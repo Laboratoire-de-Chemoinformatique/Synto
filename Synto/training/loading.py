@@ -2,7 +2,8 @@
 Module containing functions for loading trained policy and value networks
 """
 
-from torch import save, load, cuda, device
+from torch import device
+
 
 def load_value_net(model_class, config):
     """
@@ -44,4 +45,3 @@ def load_policy_net(model_class, config):
     map_location = device("cpu")
     return model_class.load_from_checkpoint(config["PolicyNetwork"]["weights_path"], map_location,
                                             n_rules=12278, vector_dim=512, batch_size=1)
-

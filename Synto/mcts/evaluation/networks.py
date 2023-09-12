@@ -6,16 +6,18 @@ of new nodes in the search tree
 import logging
 
 import torch
-from GSLRetro.training.preprocessing import mol_to_pyg
-from GSLRetro.training.preprocessing import compose_retrons
-from GSLRetro.training.loading import load_value_net
-from GSLRetro.networks.networks import ValueGraphNetwork
+
+from Synto.networks.networks import ValueGraphNetwork
+from Synto.training.loading import load_value_net
+from Synto.training.preprocessing import compose_retrons
+from Synto.training.preprocessing import mol_to_pyg
 
 
 class ValueFunction:
     """
     Value function based on value neural network for node evaluation (synthesisability prediction) in MCTS
     """
+
     def __init__(self, config):
         """
         The value function predicts the probability to synthesize the target molecule with available building blocks

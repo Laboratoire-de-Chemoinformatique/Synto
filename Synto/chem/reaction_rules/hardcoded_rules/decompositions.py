@@ -5,7 +5,6 @@ Module containing hardcoded decomposition reaction rules
 from CGRtools import QueryContainer, ReactionContainer
 from CGRtools.periodictable import ListElement
 
-
 rules = []
 
 
@@ -41,7 +40,6 @@ p1.add_bond(2, 5, 1)
 
 p2.add_atom('A', _map=4)
 
-
 # acyl group addition with aromatic carbon's case (Friedel-Crafts)
 # [C;Za]-[C](-[C])=[O]>>[C].[C]-[C](-[Cl])=[O]
 q, p1, p2 = prepare()
@@ -63,7 +61,6 @@ p1.add_bond(2, 5, 1)
 
 p2.add_atom('C', _map=4)
 
-
 # Williamson reaction
 # [C;Za]-[O]-[C;Zs;W0]>>[C]-[Br].[C]-[O]
 q, p1, p2 = prepare()
@@ -81,7 +78,6 @@ p2.add_atom('C', _map=3)
 p2.add_atom('Br')
 p2.add_bond(3, 4, 1)
 
-
 # Buchwald-Hartwig amination
 # [N;D23;Zs;W0]-[C;Za]>>[C]-[Br].[N]
 q, p1, p2 = prepare()
@@ -94,7 +90,6 @@ p1.add_atom('Br')
 p1.add_bond(2, 3, 1)
 
 p2.add_atom('N')
-
 
 # imidazole imine atom's alkylation
 # [C;r5](:[N;r5]-[C;Zs;W1]):[N;D2;r5]>>[C]-[Br].[N]:[C]:[N]
@@ -116,7 +111,6 @@ p1.add_bond(2, 3, 4)
 p2.add_atom('C', _map=4)
 p2.add_atom('Br')
 p2.add_bond(4, 5, 1)
-
 
 # Knoevenagel condensation (nitryl and carboxyl case)
 # [C]=[C](-[C]#[N])-[C](-[O])=[O]>>[C]=[O].[C](-[C]#[N])-[C](-[O])=[O]
@@ -151,7 +145,6 @@ p2.add_atom('C', _map=1)
 p2.add_atom('O', _map=8)
 p2.add_bond(1, 8, 2)
 
-
 # Knoevenagel condensation (double nitryl case)
 # [C]=[C](-[C]#[N])-[C]#[N]>>[C]=[O].[C](-[C]#[N])-[C]#[N]
 q, p1, p2 = prepare()
@@ -180,7 +173,6 @@ p1.add_bond(5, 6, 3)
 p2.add_atom('C', _map=1)
 p2.add_atom('O', _map=8)
 p2.add_bond(1, 8, 2)
-
 
 # Knoevenagel condensation (double carboxyl case)
 # [C]=[C](-[C](-[O])=[O])-[C](-[O])=[O]>>[C]=[O].[C](-[C](-[O])=[O])-[C](-[O])=[O]
@@ -218,7 +210,6 @@ p1.add_bond(6, 8, 1)
 p2.add_atom('C', _map=1)
 p2.add_atom('O', _map=9)
 p2.add_bond(1, 9, 2)
-
 
 # heterocyclization with guanidine
 # [c]((-[N;W0;Zs])@[n]@[c](-[N;D1])@[c;W0])@[n]@[c]-[O; D1]>>[C](-[N])(=[N])-[N].[C](#[N])-[C]-[C](-[O])=[O]
@@ -261,7 +252,6 @@ p2.add_bond(6, 8, 1)
 p2.add_bond(8, 9, 2)
 p2.add_bond(8, 10, 1)
 
-
 # alkylation of amine
 # [C]-[N]-[C]>>[C]-[N].[C]-[Br]
 q, p1, p2 = prepare()
@@ -283,7 +273,6 @@ p2.add_atom('C', _map=4)
 p2.add_atom('Cl')
 p2.add_bond(4, 5, 1)
 
-
 # Synthesis of guanidines
 #
 q, p1, p2 = prepare()
@@ -302,7 +291,6 @@ p1.add_bond(1, 2, 3)
 p1.add_bond(2, 3, 1)
 
 p2.add_atom('N', _map=4)
-
 
 # Grignard reaction with nitrile
 #
@@ -325,7 +313,6 @@ p2.add_atom('C', _map=4)
 p2.add_atom('Br')
 p2.add_bond(4, 5, 1)
 
-
 # Alkylation of alpha-carbon atom of nitrile
 #
 q, p1, p2 = prepare()
@@ -347,7 +334,6 @@ p2.add_atom('C', _map=4)
 p2.add_atom('Cl')
 p2.add_bond(4, 5, 1)
 
-
 # Gomberg-Bachmann reaction
 #
 q, p1, p2 = prepare()
@@ -360,7 +346,6 @@ p1.add_atom('N', _map=3)
 p1.add_bond(1, 3, 1)
 
 p2.add_atom('C', _map=2)
-
 
 # Cyclocondensation
 #
@@ -402,7 +387,6 @@ p2.add_bond(6, 7, 1)
 p2.add_bond(7, 8, 2)
 p2.add_bond(7, 10, 1)
 
-
 # heterocyclization dicarboxylic acids
 #
 q, p1, p2 = prepare()
@@ -427,6 +411,5 @@ p2.add_atom('O')
 p2.add_atom('O', _map=7)
 p2.add_bond(4, 5, 2)
 p2.add_bond(4, 7, 1)
-
 
 __all__ = ['rules']

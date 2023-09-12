@@ -4,31 +4,31 @@ Interfaces
 Graphical user interface
 -------------------
 
-You can use the pretrained GSLRetro via Graphical User Interface (GUI) available by this link.
+You can use the pretrained Synto via Graphical User Interface (GUI) available by this link.
 
 
 Command line interface
 -------------------
 
-GSLRetro provides with CLI commands for training and planning modes.
+Synto provides with CLI commands for training and planning modes.
 
     For planning mode:
 
-    * gslretro_download_data
-    * gslretro_default_planning_config
-    * gslretro_tree_search
+    * Synto_download_data
+    * Synto_default_planning_config
+    * Synto_tree_search
 
     For training mode:
 
-    * gslretro_default_training_config
-    * gslretro_extract_reaction_rules
-    * gslretro_policy_training
-    * gslretro_self_learning
+    * Synto_default_training_config
+    * Synto_extract_reaction_rules
+    * Synto_policy_training
+    * Synto_self_learning
 
     For full end-to-end training mode (combine all commands for training mode):
 
-    * gslretro_default_training_config
-    * gslretro_training
+    * Synto_default_training_config
+    * Synto_training
 
 
 Python interface
@@ -38,8 +38,8 @@ Python interface for planning
 
 .. code-block:: python
 
-    from GSLRetro.mcts import Tree
-    from GSLRetro.utils.config import read_planning_config
+    from Synto.mcts import Tree
+    from Synto.utils.config import read_planning_config
 
     # set target
     target = 'C1=CC=NC(CNC(=O)C2=C3C(=NC(N)=N2)C(OC)=CC=C3)=N1'

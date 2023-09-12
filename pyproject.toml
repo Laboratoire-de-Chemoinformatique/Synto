@@ -1,12 +1,12 @@
 [tool.poetry]
-name = "gslretro"
+name = "synto"
 version = "0.7.13"
 description = "Graph-based self-learning retrosythesis"
 authors = ["Laboratoire de Chemoinformatique <tagirshin@gmail.com>"]
 license = "MIT"
 readme = "README.rst"
 packages = [
-    { include = "GSLRetro", from = "." },
+    { include = "Synto", from = "." },
 ]
 
 [tool.poetry.dependencies]
@@ -41,13 +41,13 @@ torch-cluster = [{markers = "sys_platform == 'linux'", url="https://data.pyg.org
 pyg-lib = [{markers = "sys_platform == 'linux'", url="https://data.pyg.org/whl/torch-1.13.0%2Bcpu/pyg_lib-0.1.0+pt113cpu-cp310-cp310-linux_x86_64.whl"}]
 
 [tool.poetry.scripts]
-gslretro_download_data = "GSLRetro.interfaces.cli:download_data_cli"
-gslretro_planning_config = "GSLRetro.interfaces.cli:planning_config_cli"
-gslretro_training_config = "GSLRetro.interfaces.cli:training_config_cli"
-gslretro_tree_search = "GSLRetro.interfaces.cli:tree_search_cli"
-gslretro_extract_rules = "GSLRetro.interfaces.cli:extract_rules_cli"
-gslretro_policy_training = "GSLRetro.interfaces.cli:policy_training_cli"
-gslretro_self_learning = "GSLRetro.interfaces.cli:self_learning_cli"
+synto_download_data = "Synto.interfaces.cli:download_data_cli"
+synto_planning_config = "Synto.interfaces.cli:planning_config_cli"
+synto_training_config = "Synto.interfaces.cli:training_config_cli"
+synto_tree_search = "Synto.interfaces.cli:tree_search_cli"
+synto_extract_rules = "Synto.interfaces.cli:extract_rules_cli"
+synto_policy_training = "Synto.interfaces.cli:policy_training_cli"
+synto_self_learning = "Synto.interfaces.cli:self_learning_cli"
 
 [build-system]
 requires = ["poetry-core"]

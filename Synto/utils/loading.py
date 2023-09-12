@@ -2,14 +2,14 @@
 Module containing functions for loading reaction rules and building blocks
 """
 
-import pickle
 import logging
-import sqlite3
+import pickle
 from time import time
+
 from CGRtools import SMILESRead
+from CGRtools.reactor import Reactor
 from werkzeug.datastructures import FileStorage
 from werkzeug.utils import secure_filename
-from CGRtools.reactor import Reactor
 
 
 def load_reaction_rules(file):
@@ -26,6 +26,7 @@ def load_reaction_rules(file):
         reaction_rules = [Reactor(x) for x in reaction_rules]
 
     return reaction_rules
+
 
 # def load_reaction_rules(file):
 #     with open(file, "rb") as f:

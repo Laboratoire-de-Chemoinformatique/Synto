@@ -8,19 +8,16 @@ from typing import List
 
 import ray
 import torch
-
 from CGRtools.containers import MoleculeContainer
 from CGRtools.exceptions import InvalidAromaticRing
 from CGRtools.files import SMILESRead, SDFRead
 from CGRtools.reactor import Reactor
-
-from GSLRetro.utils.loading import load_reaction_rules
-
 from torch_geometric.data import Data, InMemoryDataset
 from torch_geometric.data.makedirs import makedirs
 from torch_geometric.transforms import ToUndirected
-
 from tqdm import tqdm
+
+from Synto.utils.loading import load_reaction_rules
 
 
 def safe_canonicalization(molecule: MoleculeContainer):
@@ -47,6 +44,7 @@ class ValueNetworkDataset(InMemoryDataset, ABC):
     """
     Value network dataset
     """
+
     def __init__(self, processed_molecules_path=None):
         """
         Initializes a value network dataset object.
@@ -106,6 +104,7 @@ class PolicyNetworkDataset(InMemoryDataset):
     """
     Policy network dataset
     """
+
     def __init__(self, molecules_path, reaction_rules_path, output_path, num_cpus=1):
         """
         Initializes a policy network dataset object.
@@ -255,9 +254,10 @@ def reaction_rules_appliance(molecule, reaction_rules):
                                 rule_prioritized = True
                     else:
                         # check cyclization retro hardcoded_rules
-                        if sum(len(mol.sssr) for mol in reaction.products) < sum(len(mol.sssr) for mol in reaction.reactants):
+                        if sum(len(mol.sssr) for mol in reaction.products) < sum(
+                                len(mol.sssr) for mol in reaction.reactants):
                             rule_prioritized = True
-        #
+            #
             if rule_applied:
                 applied_rules.append(i)
                 #

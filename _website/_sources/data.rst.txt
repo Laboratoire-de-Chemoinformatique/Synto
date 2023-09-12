@@ -1,6 +1,6 @@
 Data
 ===========================
-GSLRetro tool requires reaction and molecule datasets for training neural networks and retrosynthetic planning.
+Synto tool requires reaction and molecule datasets for training neural networks and retrosynthetic planning.
 
 For planning, the following datasets are needed
 

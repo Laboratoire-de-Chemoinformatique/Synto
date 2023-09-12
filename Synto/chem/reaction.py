@@ -67,7 +67,8 @@ def apply_reaction_rule(molecule: MoleculeContainer, reaction_rule: Reactor):
         # Как вариант, можно умножать переменную prob на количество больших молекул в продуктах реакции
 
         sorted_reactions = sorted(unsorted_reactions,
-            key=lambda reaction: len(list(filter(lambda x: len(x) > 6, reaction.products))), reverse=True) # TODO simplify it
+                                  key=lambda reaction: len(list(filter(lambda x: len(x) > 6, reaction.products))),
+                                  reverse=True)  # TODO simplify it
 
         reactions = sorted_reactions[:3]  # Take top-N reactions from reactor
     except IndexError:
@@ -75,4 +76,3 @@ def apply_reaction_rule(molecule: MoleculeContainer, reaction_rule: Reactor):
     #
     for reaction in reactions:
         yield reaction
-

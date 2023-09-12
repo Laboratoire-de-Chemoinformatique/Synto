@@ -3,8 +3,8 @@ Module containing a class Retron that represents a retron (extend molecule objec
 """
 
 from CGRtools.containers import MoleculeContainer
-from CGRtools.exceptions import InvalidAromaticRing
-from GSLRetro.training.preprocessing import safe_canonicalization
+
+from Synto.training.preprocessing import safe_canonicalization
 
 
 class Retron:

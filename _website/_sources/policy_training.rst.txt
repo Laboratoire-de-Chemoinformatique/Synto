@@ -12,7 +12,7 @@ For training the neural network, the following command can be used:
 
 .. code-block:: bash
 
-    gslretro_policy_training --config training_config.yaml
+    Synto_policy_training --config training_config.yaml
 
 The preparation of a policy neural network is divided into two stages - preparation of the training set and neural network training.
 

@@ -4,14 +4,14 @@ Module containing functions for running tree search for the set of target molecu
 
 import csv
 import logging
+from pathlib import Path
 
 from CGRtools.files import SDFRead
 from tqdm import tqdm
-from pathlib import Path
 
-from GSLRetro.utils.config import read_planning_config
-from GSLRetro.mcts import Tree
-from GSLRetro.interfaces.visualisation import to_table
+from Synto.interfaces.visualisation import to_table
+from Synto.mcts import Tree
+from Synto.utils.config import read_planning_config
 
 
 def collect_stats(tree, target):
@@ -76,7 +76,7 @@ def tree_search(
     # targets molecules_path
     targets_file = Path(targets_file)
     assert targets_file.exists(), f"Target file at path {targets_file} does not exist"
-    assert targets_file.suffix == ".sdf", "Only SDF files are accepted" # TODO move to smiles files
+    assert targets_file.suffix == ".sdf", "Only SDF files are accepted"  # TODO move to smiles files
 
     # config molecules_path
     config = read_planning_config(config_path)
@@ -91,7 +91,6 @@ def tree_search(
                              f"is unknown: {config['Tree']['evaluation_agg']}")
     else:
         logging.info(f"Evaluation strategy was chosen as greedy")
-
 
     # stats molecules_path
     if stats_name:
@@ -125,7 +124,6 @@ def tree_search(
                         break
 
                 if retropaths_files_name is not None:
-
                     retropaths_file = retropaths_folder.joinpath(f"{retropaths_files_name}_target_{ti}.html")
                     to_table(tree, retropaths_file, extended=True)
 

@@ -3,15 +3,17 @@ Module for preparation of the training set and training of the policy network us
 """
 
 import os.path as osp
+
 import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.loggers import CSVLogger
 from torch.utils.data import random_split
 from torch_geometric.data import LightningDataset
-from GSLRetro.networks.networks import PolicyNetwork
-from GSLRetro.training.preprocessing import PolicyNetworkDataset
-from GSLRetro.utils.loading import load_reaction_rules
+
+from Synto.networks.networks import PolicyNetwork
+from Synto.training.preprocessing import PolicyNetworkDataset
+from Synto.utils.loading import load_reaction_rules
 
 
 def create_policy_training_set(config):
@@ -89,6 +91,3 @@ def run_policy_training(datamodule, config):
                       gradient_clip_val=1.0)
 
     trainer.fit(network, datamodule)
-
-
-

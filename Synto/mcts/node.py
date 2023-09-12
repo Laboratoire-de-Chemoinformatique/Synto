@@ -2,6 +2,7 @@
 Module containing a class Node that represents a node in the search tree
 """
 
+
 class Node:
     """
     Node class represents a node in the search tree
@@ -46,9 +47,3 @@ class Node:
         """
 
         return len(self.retrons_to_expand) == 0
-
-
-
-
-
-

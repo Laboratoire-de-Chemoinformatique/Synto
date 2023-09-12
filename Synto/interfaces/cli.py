@@ -3,40 +3,39 @@ Module containing commands line scripts for training and planning mode
 """
 
 import os
-import gdown
 import shutil
-import click
-import yaml
 from pathlib import Path
 
-from GSLRetro.utils.config import planning_config, training_config
-from GSLRetro.utils.search import tree_search
+import click
+import gdown
+import yaml
 
-from GSLRetro.chem.reaction_rules.rule_extraction import extract_reaction_rules
+from Synto.chem.reaction_rules.rule_extraction import extract_reaction_rules
+from Synto.training.policy_training import create_policy_training_set, run_policy_training
+from Synto.training.self_learning import run_self_learning
+from Synto.utils.config import planning_config, training_config
+from Synto.utils.config import read_training_config
+from Synto.utils.search import tree_search
 
-from GSLRetro.training.policy_training import create_policy_training_set, run_policy_training
-from GSLRetro.training.self_learning import run_self_learning
-
-from GSLRetro.utils.config import read_planning_config, read_training_config
-
-# from GSLRetro.training.self_learning import run_self_learning, run_micro_self_learning, start_simulation, tune_value_net
+# from Synto.training.self_learning import run_self_learning, run_micro_self_learning, start_simulation, tune_value_net
 
 
 # training
-# python GSLRetro/interfaces/cli.py download_data
-# python GSLRetro/interfaces/cli.py planning_config
-# python GSLRetro/interfaces/cli.py training_config
-# python GSLRetro/interfaces/cli.py extract_rules --config training_config.yaml
-# python GSLRetro/interfaces/cli.py policy_training --config training_config.yaml
-# python GSLRetro/interfaces/cli.py self_learning --config training_config.yaml
-# python GSLRetro/interfaces/cli.py gslretro_training --config training_config.yaml
+# python Synto/interfaces/cli.py download_data
+# python Synto/interfaces/cli.py planning_config
+# python Synto/interfaces/cli.py training_config
+# python Synto/interfaces/cli.py extract_rules --config training_config.yaml
+# python Synto/interfaces/cli.py policy_training --config training_config.yaml
+# python Synto/interfaces/cli.py self_learning --config training_config.yaml
+# python Synto/interfaces/cli.py Synto_training --config training_config.yaml
 
 
 # planning
-# python GSLRetro/interfaces/cli.py tree_search --targets="targets.sdf" --config="planning_config.yaml" --results_root="gslretro_results"
+# python Synto/interfaces/cli.py tree_search --targets="targets.sdf" --config="planning_config.yaml" --results_root="Synto_results"
 
 
 main = click.Group()
+
 
 # ==================================================================================================================== #
 
@@ -48,7 +47,7 @@ def download_data_cli():
     and then deletes the zip file
     """
     remote_id = '1H3A28VAJ0jlur6de2CwI4vWxDGtsEx4b'
-    output = 'gslretro_data.zip'
+    output = 'Synto_data.zip'
     #
     gdown.download(output=output, id=remote_id, quiet=True)
     shutil.unpack_archive(output, './')
@@ -93,10 +92,10 @@ def training_config_cli():
     type=click.Path(exists=True),
 )
 @click.option("--config", "config",
-    required=True,
-    help="Path to the config YAML molecules_path. To generate default config, use command gslretro_default_config",
-    type=click.Path(exists=True, path_type=Path),
-)
+              required=True,
+              help="Path to the config YAML molecules_path. To generate default config, use command Synto_default_config",
+              type=click.Path(exists=True, path_type=Path),
+              )
 @click.option(
     "--results_root",
     help="Path to the folder where to save all statistics and results",
@@ -111,7 +110,7 @@ def tree_search_cli(targets_file, config_path, results_root):
     :param config_path: The path to the configuration file that contains the settings and parameters for the tree search
     :param results_root: The root directory where the search results will be saved
     """
-    tree_search(results_root, targets_file, config_path) # TODO set config not path
+    tree_search(results_root, targets_file, config_path)  # TODO set config not path
 
 
 # ==================================================================================================================== #
@@ -121,10 +120,10 @@ def tree_search_cli(targets_file, config_path, results_root):
 @click.option(
     "--config", "config",
     required=True,
-    help="Path to the config YAML molecules_path. To generate default config, use command gslretro_default_config",
+    help="Path to the config YAML molecules_path. To generate default config, use command Synto_default_config",
     type=click.Path(exists=True, path_type=Path),
 )
-def extract_reaction_cli(config):   # TODO reaction_rules_file name correct in GGRtools
+def extract_reaction_cli(config):  # TODO reaction_rules_file name correct in GGRtools
     """
     Extracts reaction rules from a reaction data file and saves the results in a specified directory
 
@@ -183,7 +182,7 @@ def self_learning_cli(config):
 # ==================================================================================================================== #
 
 
-@main.command(name='gslretro_training')
+@main.command(name='Synto_training')
 @click.option(
     "--config",
     "config",
@@ -191,7 +190,7 @@ def self_learning_cli(config):
     help="Path to the config YAML file.",
     type=click.Path(exists=True, path_type=Path)
 )
-# def gslretro_training(config):
+# def Synto_training(config):
 #
 #     # read training config
 #     config = read_training_config(config)
@@ -207,7 +206,7 @@ def self_learning_cli(config):
 #     # self-learning value network training
 #     run_self_learning(config)
 #
-def gslretro_training(config):
+def Synto_training(config):
     """
     Performs all end-to-end training steps for the preparation of policy and value networks
 
@@ -215,8 +214,7 @@ def gslretro_training(config):
     """
     import time
 
-    with open('gslretro_tmp/training_log.txt', 'w') as fw:
-
+    with open('Synto_tmp/training_log.txt', 'w') as fw:
         fw.write('Training started\n\n')
         fw.flush()
 

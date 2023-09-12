@@ -7,6 +7,7 @@ from CGRtools.periodictable import ListElement
 
 rules = []
 
+
 def prepare():
     """
     Creates and returns three query containers and appends a reaction container to the "rules" list
@@ -32,7 +33,6 @@ p.add_bond(1, 2, 1)
 p.add_bond(1, 3, 1)
 p.add_bond(1, 4, 2)
 
-
 # aryl nitration
 # [O-]-[N+](=[O])-[C;Za;W12]>>[C]
 q, p = prepare()
@@ -45,7 +45,6 @@ q.add_bond(1, 3, 1)
 q.add_bond(1, 4, 2)
 
 p.add_atom('C', _map=2)
-
 
 # Beckmann rearrangement (oxime -> amide)
 # [C]-[N;D2]-[C]=[O]>>[O]-[N]=[C]-[C]
@@ -66,7 +65,6 @@ p.add_bond(1, 2, 2)
 p.add_bond(2, 3, 1)
 p.add_bond(1, 4, 1)
 
-
 # aldehydes or ketones into oxime/imine reaction
 # [C;Zd;W1]=[N]>>[C]=[O]
 q, p = prepare()
@@ -77,7 +75,6 @@ q.add_bond(1, 2, 2)
 p.add_atom('C')
 p.add_atom('O', _map=3)
 p.add_bond(1, 3, 2)
-
 
 # addition of halogen atom into phenol ring (orto)
 # [C](-[Cl,F,Br,I;D1]):[C]-[O,N;Zs]>>[C](-[A]):[C]
@@ -95,7 +92,6 @@ p.add_atom('C')
 p.add_atom('C')
 p.add_bond(1, 2, 1)
 p.add_bond(2, 3, 4)
-
 
 # addition of halogen atom into phenol ring (para)
 # [C](:[C]:[C]:[C]-[O,N;Zs])-[Cl,F,Br,I;D1]>>[A]-[C]:[C]:[C]:[C]
@@ -122,7 +118,6 @@ p.add_bond(2, 3, 4)
 p.add_bond(3, 4, 4)
 p.add_bond(4, 5, 4)
 
-
 # hard reduction of Ar-ketones
 # [C;Za]-[C;D2;Zs;W0]>>[C]-[C]=[O]
 q, p = prepare()
@@ -136,7 +131,6 @@ p.add_atom('O')
 p.add_bond(1, 2, 1)
 p.add_bond(2, 3, 2)
 
-
 # reduction of alpha-hydroxy pyridine
 # [C;W1]:[N;H0;r6]>>[C](:[N])-[O]
 q, p = prepare()
@@ -149,7 +143,6 @@ p.add_atom('N')
 p.add_atom('O')
 p.add_bond(1, 2, 4)
 p.add_bond(1, 3, 1)
-
 
 # Reduction of alkene
 # [C]-[C;D23;Zs;W0]-[C;D123;Zs;W0]>>[C](-[C])=[C]
@@ -165,7 +158,6 @@ p.add_atom('C')
 p.add_atom('C')
 p.add_bond(1, 2, 1)
 p.add_bond(2, 3, 2)
-
 
 # Kolbe-Schmitt reaction
 # [C](:[C]-[O;D1])-[C](=[O])-[O;D1]>>[C](-[O]):[C]
@@ -188,7 +180,6 @@ p.add_atom('C')
 p.add_bond(1, 2, 1)
 p.add_bond(2, 3, 4)
 
-
 # reduction of carboxylic acid
 # [O;D1]-[C;D2]-[C]>>[C]-[C](-[O])=[O]
 q, p = prepare()
@@ -206,7 +197,6 @@ p.add_bond(1, 2, 1)
 p.add_bond(2, 3, 1)
 p.add_bond(2, 4, 2)
 
-
 # halogenation of alcohols
 # [C;Zs]-[Cl,Br;D1]>>[C]-[O]
 q, p = prepare()
@@ -217,7 +207,6 @@ q.add_bond(1, 2, 1)
 p.add_atom('C')
 p.add_atom('O', _map=3)
 p.add_bond(1, 3, 1)
-
 
 # Kolbe nitrilation
 # [N]#[C]-[C;Zs;W0]>>[Br]-[C]
@@ -232,7 +221,6 @@ p.add_atom('C')
 p.add_atom('Br', _map=4)
 p.add_bond(1, 4, 1)
 
-
 # Nitrile hydrolysis
 # [O;D1]-[C]=[O]>>[N]#[C]
 q, p = prepare()
@@ -245,7 +233,6 @@ q.add_bond(1, 3, 2)
 p.add_atom('C')
 p.add_atom('N', _map=4)
 p.add_bond(1, 4, 3)
-
 
 # sulfamidation
 # [c]-[S](=[O])(=[O])-[N]>>[c]
@@ -261,7 +248,6 @@ q.add_bond(2, 4, 2)
 q.add_bond(2, 5, 1)
 
 p.add_atom('C')
-
 
 # Ring expansion rearrangement
 #
@@ -294,7 +280,6 @@ p.add_bond(4, 5, 1)
 p.add_bond(4, 6, 1)
 p.add_bond(4, 7, 1)
 
-
 # hydrolysis of bromide alkyl
 #
 q, p = prepare()
@@ -305,7 +290,6 @@ q.add_bond(1, 2, 1)
 p.add_atom('C')
 p.add_atom('Br')
 p.add_bond(1, 2, 1)
-
 
 # Condensation of ketones/aldehydes and amines into imines
 #
@@ -318,7 +302,6 @@ p.add_atom('C', _map=2)
 p.add_atom('O')
 p.add_bond(2, 3, 2)
 
-
 # Halogenation of alkanes
 #
 q, p = prepare()
@@ -327,7 +310,6 @@ q.add_atom(ListElement(['F', 'Cl', 'Br']))
 q.add_bond(1, 2, 1)
 
 p.add_atom('C')
-
 
 # heterocyclization
 #
@@ -345,7 +327,6 @@ p.add_atom('O')
 p.add_bond(1, 2, 1)
 p.add_bond(2, 4, 2)
 
-
 # Reduction of nitrile
 #
 q, p = prepare()
@@ -360,7 +341,6 @@ p.add_atom('C')
 p.add_atom('C')
 p.add_bond(1, 2, 3)
 p.add_bond(2, 3, 1)
-
 
 # SPECIAL CASE
 # Reduction of nitrile into methylamine
@@ -380,7 +360,6 @@ p.add_atom('C')
 p.add_bond(2, 3, 3)
 p.add_bond(3, 4, 1)
 
-
 # methylation of amides
 #
 q, p = prepare()
@@ -398,7 +377,6 @@ p.add_atom('N')
 p.add_bond(1, 2, 2)
 p.add_bond(2, 3, 1)
 
-
 # hydrocyanation of alkenes
 #
 q, p = prepare()
@@ -413,7 +391,6 @@ q.add_bond(3, 4, 3)
 p.add_atom('C')
 p.add_atom('C')
 p.add_bond(1, 2, 2)
-
 
 # decarbocylation (alpha atom of nitrile)
 #
@@ -435,7 +412,6 @@ p.add_bond(2, 3, 1)
 p.add_bond(3, 4, 1)
 p.add_bond(4, 5, 2)
 p.add_bond(4, 6, 1)
-
 
 # Bichler-Napieralski reaction
 #
@@ -483,7 +459,6 @@ p.add_bond(5, 9, 1)
 p.add_bond(9, 10, 2)
 p.add_bond(9, 11, 1)
 
-
 # heterocyclization in Prins reaction
 #
 q, p = prepare()
@@ -503,7 +478,6 @@ q.add_bond(1, 6, 1)
 p.add_atom('C')
 p.add_atom('C', _map=5)
 p.add_bond(1, 5, 2)
-
 
 # recyclization of tetrahydropyran through an opening the ring and dehydration
 #
@@ -536,7 +510,6 @@ p.add_bond(4, 5, 1)
 p.add_bond(5, 6, 1)
 p.add_bond(1, 6, 1)
 
-
 # alkenes + h2o/hHal
 #
 q, p = prepare()
@@ -550,7 +523,6 @@ p.add_atom('C')
 p.add_atom('C')
 p.add_bond(1, 2, 2)
 
-
 # methylation of dimethylamines
 #
 q, p = prepare()
@@ -559,6 +531,5 @@ q.add_atom('N', neighbors=3)
 q.add_bond(1, 2, 1)
 
 p.add_atom('N', _map=2)
-
 
 __all__ = ['rules']

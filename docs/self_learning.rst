@@ -1,7 +1,7 @@
 Value network training
 ===========================
 
-The  GSLRetro tool.
+The  Synto tool.
 
 The value neural network is trained using a self-learning approach, which implies alternating retrosynthetic
 planning for the target molecules and then training the value neural network on the data successful and unsuccessful
@@ -9,7 +9,7 @@ expansions extracted from the tree search results. A neural network can be train
 
 .. code-block:: bash
 
-    gslretro_policy_training --config training_config.yaml
+    Synto_policy_training --config training_config.yaml
 
 This command requires a set of input molecules for planning stage and preparing a training set for the value
 network tuning.
@@ -21,8 +21,8 @@ A section for setting neural network architecture and some network hyperparamete
 .. code-block:: yaml
 
     ValueNetwork:
-      results_root: gslretro_training/value_network
-      weights_path: gslretro_training/value_network/value_network.ckpt
+      results_root: Synto_training/value_network
+      weights_path: Synto_training/value_network/value_network.ckpt
       num_conv_layers: 5
       vector_dim: 512
       dropout: 0.4
@@ -35,8 +35,8 @@ And a section for setting self-learning parameters:
 .. code-block:: yaml
 
     SelfLearning:
-      results_root: gslretro_training/value_network
-      dataset_path: gslretro_training/value_molecules/value_molecules.sdf
+      results_root: Synto_training/value_network
+      dataset_path: Synto_training/value_molecules/value_molecules.sdf
       num_simulations: 1
       batch_size: 5
       balance_positive: false

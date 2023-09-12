@@ -19,13 +19,12 @@ from torch.utils.data import random_split
 from torch_geometric.data import LightningDataset
 from tqdm import tqdm
 
-from GSLRetro.mcts.tree import Tree
-from GSLRetro.training.loading import load_value_net
-from GSLRetro.networks.networks import ValueGraphNetwork
-from GSLRetro.training.preprocessing import ValueNetworkDataset
-
-from GSLRetro.interfaces.visualisation import to_table
-from GSLRetro.training.preprocessing import compose_retrons
+from Synto.interfaces.visualisation import to_table
+from Synto.mcts.tree import Tree
+from Synto.networks.networks import ValueGraphNetwork
+from Synto.training.loading import load_value_net
+from Synto.training.preprocessing import ValueNetworkDataset
+from Synto.training.preprocessing import compose_retrons
 
 
 def extract_tree_stats(tree):
@@ -110,7 +109,7 @@ def shuffle_targets(targets_file):
     del mols
 
 
-def extract_tree_retrons(tree, processed_molecules=None): # TODO what if len(solved_nodes) == 0
+def extract_tree_retrons(tree, processed_molecules=None):  # TODO what if len(solved_nodes) == 0
     """
     Takes a built tree and a dictionary of processed molecules extracted from the previous trees as input, and returns
     the updated dictionary of processed molecules after adding the solved nodes from the given tree.
@@ -146,7 +145,6 @@ def run_tree_search(target=None, config=None):
     :param config: The planning configuration that contains settings for tree search
     :return: The built tree
     """
-
 
     # preprocess target
     if isinstance(target, MoleculeContainer):
@@ -474,6 +472,3 @@ def run_self_learning(config: dict):
             #
             # shuffle targets
             shuffle_targets(targets_file)
-
-
-

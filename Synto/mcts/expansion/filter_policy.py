@@ -4,16 +4,17 @@ Module containing a class that represents a policy function for node expansion i
 
 import torch
 
-from GSLRetro.chem.retron import Retron
-from GSLRetro.networks.networks import PolicyNetwork
-from GSLRetro.training.loading import load_policy_net
-from GSLRetro.training.preprocessing import mol_to_pyg
+from Synto.chem.retron import Retron
+from Synto.networks.networks import PolicyNetwork
+from Synto.training.loading import load_policy_net
+from Synto.training.preprocessing import mol_to_pyg
 
 
 class PolicyFunction:
     """
     Policy function based on policy neural network for node expansion in MCTS
     """
+
     def __init__(self, config: dict):
         """
         Initializes the expansion function (filter policy network).

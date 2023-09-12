@@ -2,9 +2,10 @@
 Module containing functions for analysis and visualization of the built search tree
 """
 
-from tqdm import tqdm as _tqdm
 from itertools import count, islice
+
 from CGRtools.containers import MoleculeContainer
+from tqdm import tqdm as _tqdm
 
 
 def tqdm(disable=True, *args, **kwargs):
@@ -84,7 +85,8 @@ def path_graph(tree, node: int) -> str:
     # Set up node_id types for different box colors
     for node in nodes:
         for retron in node.new_retrons:
-            retron._molecule.meta["status"] = "instock" if retron.is_building_block(tree.building_blocks) else "mulecule"
+            retron._molecule.meta["status"] = "instock" if retron.is_building_block(
+                tree.building_blocks) else "mulecule"
     nodes[0].curr_retron._molecule.meta["status"] = "target"
     # Box colors
     box_colors = {

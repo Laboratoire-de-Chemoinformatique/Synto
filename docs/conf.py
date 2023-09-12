@@ -19,7 +19,7 @@
 #
 import os
 import sys
-sys.path.insert(0, os.path.abspath('../GSLRetro'))
+sys.path.insert(0, os.path.abspath('../Synto'))
 
 
 # -- General configuration ------------------------------------------------
@@ -43,7 +43,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = 'GSLRetro'
+project = 'Synto'
 copyright = '2023, University of Strasbourg'
 author = 'TA / DZ'
 

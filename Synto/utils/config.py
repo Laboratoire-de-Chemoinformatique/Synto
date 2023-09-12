@@ -3,15 +3,15 @@ Module containing training and planning configuration dictionaries
 """
 
 import os
-import yaml
-from pathlib import Path
 from copy import deepcopy
+from pathlib import Path
 
+import yaml
 
 planning_config = {
     "General": {
-        "reaction_rules_path": os.path.abspath('gslretro_training/reaction_rules/reaction_rules.pickle'),
-        "building_blocks_path": os.path.abspath('gslretro_training/building_blocks/building_blocks.pickle'),
+        "reaction_rules_path": os.path.abspath('Synto_training/reaction_rules/reaction_rules.pickle'),
+        "building_blocks_path": os.path.abspath('Synto_training/building_blocks/building_blocks.pickle'),
     },
     "Tree": {
         "ucb_type": "UCT",
@@ -28,7 +28,7 @@ planning_config = {
         "epsilon": 0.0
     },
     "PolicyNetwork": {
-        "weights_path": os.path.abspath('gslretro_training/policy_network/weights/policy_network.ckpt'),
+        "weights_path": os.path.abspath('Synto_training/policy_network/weights/policy_network.ckpt'),
         "priority_rules_fraction": 0.5,
         "top_rules": 50,
         "rule_prob_threshold": 0.0
@@ -38,14 +38,13 @@ planning_config = {
     },
 }
 
-
 # training_config = {
 #     "General": {
-#         "results_folder": 'gslretro_training',
-#         "reaction_data_path": 'gslretro_training/reaction_data/reaction_data.rdf',
-#         "policy_molecules_path": 'gslretro_training/policy_molecules/policy_molecules.sdf',
-#         "building_blocks_path": 'gslretro_training/building_blocks/building_blocks.pickle',
-#         "reaction_rules_path": 'gslretro_training/reaction_rules/reaction_rules.pickle',
+#         "results_folder": 'Synto_training',
+#         "reaction_data_path": 'Synto_training/reaction_data/reaction_data.rdf',
+#         "policy_molecules_path": 'Synto_training/policy_molecules/policy_molecules.sdf',
+#         "building_blocks_path": 'Synto_training/building_blocks/building_blocks.pickle',
+#         "reaction_rules_path": 'Synto_training/reaction_rules/reaction_rules.pickle',
 #         "num_cpus": 20,
 #         "gpu": True
 #     },
@@ -64,9 +63,9 @@ planning_config = {
 #         "epsilon": 0.0
 #     },
 #     'PolicyNetwork': {
-#         "results_path": 'gslretro_training/policy_network',
+#         "results_path": 'Synto_training/policy_network',
 #         'weights_path': None,
-#         "policy_dataset_path": 'gslretro_training/policy_network/policy_dataset.pt',
+#         "policy_dataset_path": 'Synto_training/policy_network/policy_dataset.pt',
 #         "priority_rules_fraction": 0.5,
 #         "top_rules": 50,
 #         "rule_prob_threshold": 0.0,
@@ -78,7 +77,7 @@ planning_config = {
 #         "batch_size": 500
 #     },
 #     "ValueNetwork": {
-#         "results_path": 'gslretro_training/value_network',
+#         "results_path": 'Synto_training/value_network',
 #         'weights_path': None,
 #         'vector_dim': 512,
 #         "num_conv_layers": 5,
@@ -92,58 +91,58 @@ planning_config = {
 
 training_config = {
     'General': {
-        'results_root': 'gslretro_training',
-        'building_blocks_path': 'gslretro_training/building_blocks/building_blocks.pickle',
+        'results_root': 'Synto_training',
+        'building_blocks_path': 'Synto_training/building_blocks/building_blocks.pickle',
         'num_cpus': 20,
         'num_gpus': 1},
 
-        'Tree': {
-           'ucb_type': 'UCT',
-           'c_usb': 0.1,
-           'max_depth': 6,
-           'max_iterations': 50,
-           'max_time': 120,
-           'max_tree_size': 1000000,
-           'verbose': False,
-           'evaluation_mode': 'gcn',
-           'evaluation_agg': 'max',
-           'backprop_type': 'muzero',
-           'init_new_node_value': None,
-           'epsilon': 0.0},
+    'Tree': {
+        'ucb_type': 'UCT',
+        'c_usb': 0.1,
+        'max_depth': 6,
+        'max_iterations': 50,
+        'max_time': 120,
+        'max_tree_size': 1000000,
+        'verbose': False,
+        'evaluation_mode': 'gcn',
+        'evaluation_agg': 'max',
+        'backprop_type': 'muzero',
+        'init_new_node_value': None,
+        'epsilon': 0.0},
 
     'ReactionRules': {
-        'reaction_data_path': 'gslretro_training/reaction_data/reaction_data.rdf',
-        'reaction_rules_path': 'gslretro_training/reaction_rules/reaction_rules.pickle'},
+        'reaction_data_path': 'Synto_training/reaction_data/reaction_data.rdf',
+        'reaction_rules_path': 'Synto_training/reaction_rules/reaction_rules.pickle'},
 
     'SelfLearning': {
-        'results_root': 'gslretro_training/value_network',
-        'dataset_path': 'gslretro_training/value_molecules/value_molecules.sdf',
+        'results_root': 'Synto_training/value_network',
+        'dataset_path': 'Synto_training/value_molecules/value_molecules.sdf',
         'num_simulations': 1,
         'batch_size': 5,
         'balance_positive': False},
 
     'PolicyNetwork': {
-      'results_root': 'gslretro_training/policy_network',
-      'dataset_path': 'gslretro_training/policy_molecules/policy_molecules.sdf',
-      'datamodule_path': 'gslretro_training/policy_network/policy_dataset.pt',
-      'weights_path': 'data/policy_net.ckpt',
-      'priority_rules_fraction': 0.5,
-      'num_conv_layers': 5,
-      'vector_dim': 512,
-      'dropout': 0.4,
-      'learning_rate': 0.0005,
-      'num_epoch': 100,
-      'batch_size': 500},
+        'results_root': 'Synto_training/policy_network',
+        'dataset_path': 'Synto_training/policy_molecules/policy_molecules.sdf',
+        'datamodule_path': 'Synto_training/policy_network/policy_dataset.pt',
+        'weights_path': 'data/policy_net.ckpt',
+        'priority_rules_fraction': 0.5,
+        'num_conv_layers': 5,
+        'vector_dim': 512,
+        'dropout': 0.4,
+        'learning_rate': 0.0005,
+        'num_epoch': 100,
+        'batch_size': 500},
 
     'ValueNetwork': {
-      'results_root': 'gslretro_training/value_network',
-      'weights_path': 'gslretro_training/value_network/value_network.ckpt',
-      'num_conv_layers': 5,
-      'vector_dim': 512,
-      'dropout': 0.4,
-      'learning_rate': 0.0005,
-      'num_epoch': 100,
-      'batch_size': 500}
+        'results_root': 'Synto_training/value_network',
+        'weights_path': 'Synto_training/value_network/value_network.ckpt',
+        'num_conv_layers': 5,
+        'vector_dim': 512,
+        'dropout': 0.4,
+        'learning_rate': 0.0005,
+        'num_epoch': 100,
+        'batch_size': 500}
 }
 
 

@@ -2,28 +2,25 @@
 Module containing a class Tree that used for tree search of retrosynthetic paths
 """
 
+import logging
+from collections import deque, defaultdict
+from math import sqrt
 from random import choice, uniform
 from time import time
 from typing import Dict, Set, List, Tuple
 
-from math import sqrt
 from numpy.random import uniform
 
+from Synto.chem.reaction import Reaction
+from Synto.chem.reaction import apply_reaction_rule
+from Synto.chem.retron import Retron
+from Synto.interfaces.visualisation import tqdm
+from Synto.mcts.evaluation.networks import ValueFunction
+from Synto.mcts.expansion.filter_policy import PolicyFunction
+from Synto.mcts.node import Node
+from Synto.training.preprocessing import safe_canonicalization
+from Synto.utils.loading import load_building_blocks, load_reaction_rules
 
-from GSLRetro.chem.reaction import Reaction
-from GSLRetro.chem.reaction import apply_reaction_rule
-from GSLRetro.utils.loading import load_building_blocks, load_reaction_rules
-from .node import Node
-from .evaluation.networks import ValueFunction
-from .expansion.filter_policy import PolicyFunction
-from ..interfaces.visualisation import tqdm
-
-import logging
-from collections import deque, defaultdict
-
-from GSLRetro.chem.reaction import add_small_mols
-from GSLRetro.chem.retron import Retron
-from GSLRetro.training.preprocessing import safe_canonicalization
 
 class Tree:
     """
@@ -153,7 +150,7 @@ class Tree:
                     self._update_visits(node_id)
                     explore_path = False
                 else:
-                    node_id = self._select_node(node_id) # select the child node
+                    node_id = self._select_node(node_id)  # select the child node
                     curr_depth += 1
             else:
                 if self.nodes[node_id].is_solved():  # found path!
@@ -252,7 +249,8 @@ class Tree:
         prev_retrons = curr_node.curr_retron.prev_retrons
 
         tmp_retrons = []
-        for prob, rule, rule_id in self.policy_function.predict_reaction_rules(curr_node.curr_retron, self.reaction_rules):
+        for prob, rule, rule_id in self.policy_function.predict_reaction_rules(curr_node.curr_retron,
+                                                                               self.reaction_rules):
             for reaction in apply_reaction_rule(curr_node.curr_retron.molecule, rule):
 
                 # check repeated products
@@ -336,7 +334,8 @@ class Tree:
             # Predict top-10 reactors for every molecule in simulation (time-consuming)
 
             reaction_rules = [(prob, rule, rule_id) for prob, rule, rule_id in
-                              self.policy_function.predict_reaction_rules(Retron(current_mol), self.reaction_rules)][:10]
+                              self.policy_function.predict_reaction_rules(Retron(current_mol), self.reaction_rules)][
+                             :10]
             #
             reaction_rule_applied = False
             for prob, rule, rule_id in reaction_rules:
@@ -361,17 +360,17 @@ class Tree:
             if any(x in occurred_retrons for x in products) and products:
                 # Sometimes hardcoded_rules can create a loop, when
                 logging.debug('Rollout got in the loop: %s', history)
-                #print('occurred_retrons')
+                # print('occurred_retrons')
                 reward = -1.0
                 return reward
 
             if occurred_retrons.isdisjoint(products):
                 # Added number of atoms check
-                retrons_to_expand.extend([x for x in products if not Retron(x).is_building_block(self.building_blocks) and len(x) > 6])
+                retrons_to_expand.extend(
+                    [x for x in products if not Retron(x).is_building_block(self.building_blocks) and len(x) > 6])
                 curr_depth += 1
         reward = 1.0
         return reward
-
 
     def _add_node(self, node_id: int, new_node: Node, policy_prob: float = None) -> None:
         """
@@ -440,7 +439,8 @@ class Tree:
 
         while node_id:
             if self.backprop_type == "muzero":
-                self.nodes_total_value[node_id] = (self.nodes_total_value[node_id] * self.nodes_visit[node_id] + value) / (self.nodes_visit[node_id] + 1)
+                self.nodes_total_value[node_id] = (self.nodes_total_value[node_id] * self.nodes_visit[
+                    node_id] + value) / (self.nodes_visit[node_id] + 1)
             elif self.backprop_type == "cumulative":
                 self.nodes_total_value[node_id] += value
             else:
@@ -506,7 +506,6 @@ class Tree:
     #         nodes.append(temp_obj)
     #     return {"type": "reaction", "children": nodes}
 
-
     def synthesis_path(self, node_id: int) -> Tuple[Reaction, ...]:
         """
         Given a node_id, return a tuple of Reactions that represent the synthesis path from the
@@ -517,7 +516,8 @@ class Tree:
 
         nodes = self.path_to_node(node_id)
 
-        tmp = [Reaction([x.molecule for x in after.new_retrons], [before.curr_retron.molecule], ) for before, after in zip(nodes, nodes[1:])]
+        tmp = [Reaction([x.molecule for x in after.new_retrons], [before.curr_retron.molecule], ) for before, after in
+               zip(nodes, nodes[1:])]
 
         for r in tmp:
             r.clean2d()
@@ -569,7 +569,3 @@ class Tree:
             meta[node_id] = (node_value, node_synthesisability, visit_in_node)
 
         return newick_string, meta
-
-
-
-

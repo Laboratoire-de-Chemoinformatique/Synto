@@ -2,26 +2,26 @@
 Module containing classes pytorch architectures of policy and value neural networks
 """
 
-import torch
-
 from abc import ABC, abstractmethod
-from pytorch_lightning import LightningModule
+
+import torch
 from adabelief_pytorch import AdaBelief
+from pytorch_lightning import LightningModule
 from torch.nn import Linear, Module, Dropout, ModuleList
 from torch.nn.functional import relu, binary_cross_entropy_with_logits
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from torch_geometric.nn.pool import global_add_pool
 from torch_geometric.nn.conv import GCNConv
-from torchmetrics.functional.classification import multilabel_f1_score, multilabel_recall, multilabel_specificity
+from torch_geometric.nn.pool import global_add_pool
 from torchmetrics.functional.classification import binary_f1_score, binary_recall, binary_specificity
+from torchmetrics.functional.classification import multilabel_f1_score, multilabel_recall, multilabel_specificity
 
 
 class GraphEmbedding(Module):
     """
     Needed to convert molecule atom vectors to the single vector using graph convolution
     """
-    def __init__(self, vector_dim: int = 512, dropout: float = 0.4, num_conv_layers: int = 5):
 
+    def __init__(self, vector_dim: int = 512, dropout: float = 0.4, num_conv_layers: int = 5):
         """
         It initializes a graph convolutional module. Needed to convert molecule atom vectors to the single vector
         using graph convolution.
@@ -59,6 +59,7 @@ class MCTSNetwork(LightningModule, ABC):
     """
     Basic class for policy and value networks
     """
+
     def __init__(self, vector_dim, batch_size, dropout=0.4, num_conv_layers=5, learning_rate=0.001):
         """
         The basic class for MCTS graph convolutional neural networks (policy and value network).
@@ -201,6 +202,7 @@ class PolicyNetwork(MCTSNetwork, LightningModule, ABC):
     """
     Policy value network
     """
+
     def __init__(self, n_rules, vector_dim, *args, **kwargs):
         """
         Initializes a policy network with the given number of reaction rules (output dimension) and vector graph
@@ -269,6 +271,7 @@ class ValueGraphNetwork(MCTSNetwork, LightningModule, ABC):
     """
     Value value network
     """
+
     def __init__(self, vector_dim, *args, **kwargs):
         """
         Initializes a value network, and creates linear layer for predicting the synthesisability of given retron
