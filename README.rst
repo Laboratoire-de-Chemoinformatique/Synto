@@ -1,6 +1,8 @@
-GSLRetro
+Synto (合成道) - the way of chemical synthesis
 ========
-Graph-based Self-Learning Retrosynthesis
+Synto is inspired by the Japanese term *Gouseido* (合成道), which roughly translates to "the way of chemical synthesis."
+This repository is a toolbox for Monte-Carlo Tree Search (MCTS) based chemical synthesis
+with various implementations of policy and value functions.
 
 Installation
 ------------
