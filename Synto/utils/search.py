@@ -6,12 +6,15 @@ import csv
 import logging
 from pathlib import Path
 
-from CGRtools.files import SDFRead
 from tqdm import tqdm
+
+from CGRtools import smiles
+from CGRtools.files import SDFRead
 
 from Synto.interfaces.visualisation import to_table
 from Synto.mcts import Tree
 from Synto.utils.config import read_planning_config
+
 
 
 def collect_stats(tree, target):
@@ -38,7 +41,7 @@ def collect_stats(tree, target):
 def tree_search(
         results_root,
         targets_file,
-        config_path,
+        config,
         stats_name: str = 'tree_search_stats.csv',
         retropaths_files_name: str = 'retropath',
         logging_file_name: str = 'tree_search.log',
@@ -50,7 +53,7 @@ def tree_search(
 
     :param results_root: The path to the directory where the results of the tree search will be saved.
     :param targets_file: The path to the file containing the target molecules. It should be in SDF format.
-    :param config_path: The path to a configuration file that contains the settings for the tree search algorithm.
+    :param config: The path to a configuration file that contains the settings for the tree search algorithm.
     :param stats_name: The name of the file where the statistics of the tree search will be saved.
     :type stats_name: str (optional)
     :param retropaths_files_name: The name of the files that will be generated to store the retro paths.
@@ -76,10 +79,9 @@ def tree_search(
     # targets molecules_path
     targets_file = Path(targets_file)
     assert targets_file.exists(), f"Target file at path {targets_file} does not exist"
-    assert targets_file.suffix == ".sdf", "Only SDF files are accepted"  # TODO move to smiles files
+    assert targets_file.suffix == ".txt", "Only txt files are accepted"
 
     # config molecules_path
-    config = read_planning_config(config_path)
     if config["Tree"]["init_new_node_value"] is None:
         logging.info(f"Evaluation strategy was chosen as extensive")
         if config["Tree"]["evaluation_agg"] == "max":
@@ -109,12 +111,15 @@ def tree_search(
         retropaths_folder = results_root.joinpath('retropaths')
         retropaths_folder.mkdir(exist_ok=True)
     try:
-        with SDFRead(targets_file, indexable=True) as inp, open(stats_file, "w", newline="\n") as csvfile:
-            inp.reset_index()
+        with open(targets_file) as inp, open(stats_file, "w", newline="\n") as csvfile:
+
+            targets_list = [smiles(smi.strip()) for smi in inp.readlines()]
+            targets_list = [m for m in targets_list if m]
+            #
             statswriter = csv.DictWriter(csvfile, delimiter=",", fieldnames=stats_header)
             statswriter.writeheader()
 
-            for ti, target in tqdm(enumerate(inp), total=len(inp), position=0):
+            for ti, target in tqdm(enumerate(targets_list), total=len(targets_list), position=0):
                 target.canonicalize()
                 #
                 tree = Tree(target=target, config=config)

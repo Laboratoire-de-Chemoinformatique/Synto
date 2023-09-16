@@ -23,8 +23,8 @@ altair-saver = ">=0.5.0"
 ipykernel = ">=6.0"
 "epam.indigo" = "^1.9.0"
 werkzeug = ">2.0"
-gdown = "2.3.1"
-ipywidgets = "8.0.6"
+gdown = "4.7.1"
+ipywidgets = "8.1.1"
 
 [tool.poetry.group.cpu]
 optional = true
@@ -32,7 +32,7 @@ optional = true
 [tool.poetry.group.cpu.dependencies]
 adabelief-pytorch = ">=0.2.1"
 torch = ">=1.13,<1.14"
-torch-geometric = ">=2.2.0"
+torch-geometric = "2.2.0"
 pytorch-lightning = ">=1.9,<2"
 torch-scatter = [{markers = "sys_platform == 'linux'", url="https://data.pyg.org/whl/torch-1.13.0%2Bcpu/torch_scatter-2.1.0%2Bpt113cpu-cp310-cp310-linux_x86_64.whl"}]
 torch-sparse = [{markers = "sys_platform == 'linux'", url="https://data.pyg.org/whl/torch-1.13.0%2Bcpu/torch_sparse-0.6.16%2Bpt113cpu-cp310-cp310-linux_x86_64.whl"}]
@@ -44,10 +44,11 @@ pyg-lib = [{markers = "sys_platform == 'linux'", url="https://data.pyg.org/whl/t
 synto_download_data = "Synto.interfaces.cli:download_data_cli"
 synto_planning_config = "Synto.interfaces.cli:planning_config_cli"
 synto_training_config = "Synto.interfaces.cli:training_config_cli"
-synto_tree_search = "Synto.interfaces.cli:tree_search_cli"
+synto_planning = "Synto.interfaces.cli:synto_planning_cli"
 synto_extract_rules = "Synto.interfaces.cli:extract_rules_cli"
 synto_policy_training = "Synto.interfaces.cli:policy_training_cli"
 synto_self_learning = "Synto.interfaces.cli:self_learning_cli"
+synto_training = "Synto.interfaces.cli:synto_training_cli"
 
 [build-system]
 requires = ["poetry-core"]

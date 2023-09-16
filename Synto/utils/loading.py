@@ -28,43 +28,6 @@ def load_reaction_rules(file):
     return reaction_rules
 
 
-# def load_reaction_rules(file):
-#     with open(file, "rb") as f:
-#         reaction_rules = pickle.load(f)
-#
-#     if isinstance(reaction_rules, dict):  # TODO dict > list - fix format
-#         from GRRtools.transformations import ReverseReaction
-#
-#         reaction_rules = list(reaction_rules.keys())
-#
-#         reverse_reaction = ReverseReaction()
-#         reaction_rules = [reverse_reaction(i) for i in reaction_rules]
-#
-#     if not isinstance(reaction_rules[0], Reactor):
-#         reaction_rules = [Reactor(x) for x in reaction_rules]
-#
-#     return reaction_rules
-
-
-# def load_reaction_rules(file):
-#     with open(file, "rb") as f:
-#         reaction_rules = pickle.load(f)
-#     reaction_rules = {k: v for k, v in reaction_rules.items() if len(v) >= 10}
-#
-#     if isinstance(reaction_rules, dict):  # TODO dict > list - fix format
-#         from GRRtools.transformations import ReverseReaction
-#
-#         reaction_rules = list(reaction_rules.keys())
-#
-#         reverse_reaction = ReverseReaction()
-#         reaction_rules = [reverse_reaction(i) for i in reaction_rules]
-#
-#     if not isinstance(reaction_rules[0], Reactor):
-#         reaction_rules = [Reactor(x) for x in reaction_rules]
-#
-#     return reaction_rules
-
-
 def load_building_blocks(file: str, canonicalize: bool = False):
     """
     Loads building blocks data from a file, either in text, SMILES, or pickle format, and returns a frozenset of

@@ -7,7 +7,7 @@ import torch
 from Synto.chem.retron import Retron
 from Synto.networks.networks import PolicyNetwork
 from Synto.training.loading import load_policy_net
-from Synto.training.preprocessing import mol_to_pyg
+from Synto.training.preprocessing import mol_to_pyg, load_reaction_rules
 
 
 class PolicyFunction:
@@ -26,8 +26,9 @@ class PolicyFunction:
         self.top_rules = config['PolicyNetwork']['top_rules']
         self.threshold = config['PolicyNetwork']['rule_prob_threshold']
         self.priority_rules_fraction = config['PolicyNetwork']['priority_rules_fraction']
+        self.n_rules = len(load_reaction_rules(config['General']['reaction_rules_path']))
 
-        self.policy_net = load_policy_net(PolicyNetwork, config)
+        self.policy_net = load_policy_net(PolicyNetwork, config, n_rules=self.n_rules, vector_dim=512)
         self.policy_net.eval()
 
     def predict_reaction_rules(self, retron: Retron, reaction_rules: list):

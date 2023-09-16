@@ -24,7 +24,7 @@ from Synto.utils.loading import load_building_blocks, load_reaction_rules
 
 class Tree:
     """
-    Tree class with attributes and methods for the Monte-Carlo tree search
+    Tree class with attributes and methods for Monte-Carlo tree search
     """
 
     def __init__(self, target: object = None, config: dict = None):
@@ -51,20 +51,18 @@ class Tree:
         self.ucb_type = config['Tree']['ucb_type']
         self.backprop_type = config['Tree']['backprop_type']
         self.c_ucb = config['Tree']['c_usb']
-        # self.epsilon = config['Tree']['epsilon']
-        # self.exclude_small = config['ValueNetwork']['exclude_small']
-        self.epsilon = 0.0
         self.exclude_small = True
         self.evaluation_agg = config['Tree']['evaluation_agg']
         self.evaluation_mode = config['Tree']['evaluation_mode']
         self.init_new_node_value = None
         self.silent = not config['Tree']['verbose']
+        self.epsilon = 0.0
 
         # tree structure init
         self.nodes: Dict[int, Node] = {1: target_node}
         self.parents: Dict[int, int] = {1: 0}
         self.children: Dict[int, Set[int]] = {1: set()}
-        self.winning_nodes: Dict[int, int] = {}
+        self.winning_nodes: List[int] = list()
         self.visited_nodes: Set[int] = set()
         self.expanded_nodes: Set[int] = set()
         self.nodes_visit: Dict[int, int] = {1: 0}
@@ -86,7 +84,7 @@ class Tree:
         self.value_function = ValueFunction(config)
 
         # building blocks and reaction reaction_rules
-        self.reaction_rules = load_reaction_rules(config['ReactionRules']['reaction_rules_path'])
+        self.reaction_rules = load_reaction_rules(config['General']['reaction_rules_path'])
         self.building_blocks = load_building_blocks(config['General']['building_blocks_path'])
 
     def __len__(self) -> int:
@@ -121,7 +119,7 @@ class Tree:
             raise StopIteration("Target is building block \n")
 
         if self.curr_iteration >= self.max_iterations:
-            self._tqdm.close()  # TODO correct later
+            self._tqdm.close()
             raise StopIteration("Iterations limit exceeded. \n")
         elif self.curr_tree_size >= self.max_tree_size:
             self._tqdm.close()
@@ -133,7 +131,6 @@ class Tree:
             pass
 
         # start new iteration
-
         self.curr_iteration += 1
         self.curr_time = time() - self._start_time
         self._tqdm.update()
@@ -155,7 +152,7 @@ class Tree:
             else:
                 if self.nodes[node_id].is_solved():  # found path!
                     self._update_visits(node_id)  # this prevents expanding of bb node_id
-                    self.winning_nodes[node_id] = self.curr_iteration
+                    self.winning_nodes.append(node_id)
                     return True, [node_id]
 
                 elif curr_depth < self.max_depth:  # expand node if depth limit is not reached
@@ -187,7 +184,7 @@ class Tree:
                     for child_id in iter(self.children[node_id]):
                         if self.nodes[child_id].is_solved():
                             found_after_expansion.add(child_id)
-                            self.winning_nodes[child_id] = self.curr_iteration
+                            self.winning_nodes.append(child_id)
 
                     if found_after_expansion:
                         return True, list(found_after_expansion)
@@ -254,7 +251,6 @@ class Tree:
             for reaction in apply_reaction_rule(curr_node.curr_retron.molecule, rule):
 
                 # check repeated products
-                # TODO: change it to 6 and check it
                 products = tuple(mol for mol in (~reaction).decompose()[1].split() if len(mol) > 0)
                 if products in tmp_retrons:
                     continue
@@ -278,7 +274,7 @@ class Tree:
 
                     self._add_node(node_id, child_node, scaled_prob)
 
-    def _rollout_node(self, retron: Retron, curr_depth: int = None):  # TODO it still depends on CGRTools
+    def _rollout_node(self, retron: Retron, curr_depth: int = None):
         """
         The function `_rollout_node` performs a rollout simulation from a given node in a tree.
         Given the current retron, find the first successful reaction and return the new retrons.
@@ -330,12 +326,10 @@ class Tree:
             history[curr_depth]["target"] = str(current_mol)
             occurred_retrons.add(current_mol)
 
-            # Pick first successful reaction while iterating through reactors
+            # Pick the first successful reaction while iterating through reactors
             # Predict top-10 reactors for every molecule in simulation (time-consuming)
-
             reaction_rules = [(prob, rule, rule_id) for prob, rule, rule_id in
-                              self.policy_function.predict_reaction_rules(Retron(current_mol), self.reaction_rules)][
-                             :10]
+                              self.policy_function.predict_reaction_rules(Retron(current_mol), self.reaction_rules)][:10]
             #
             reaction_rule_applied = False
             for prob, rule, rule_id in reaction_rules:
@@ -454,7 +448,7 @@ class Tree:
 
         return (
             f"Tree for: {str(self.nodes[1].retrons_to_expand[0])}\n"
-            f"Size: {len(self)}\nNumber of visited nodes: {len(self.visited_nodes)}\n"
+            f"Number of nodes: {len(self)}\nNumber of visited nodes: {len(self.visited_nodes)}\n"
             f"Found paths: {len(self.winning_nodes)}\nTime: {round(self.curr_time, 1)} seconds"
         )
 
@@ -487,24 +481,6 @@ class Tree:
             nodes.append(node_id)
             node_id = self.parents[node_id]
         return [self.nodes[node_id] for node_id in reversed(nodes)]
-
-    # def get_subtree(self, molecule, graph) -> Dict:  # TODO this function for what ?
-    #     nodes = []
-    #     try:
-    #         graph[molecule]
-    #     except KeyError:
-    #         return []
-    #     for retron in graph[molecule]:
-    #         temp_obj = {
-    #             "smiles": str(retron),
-    #             "type": "mol",
-    #             "in_stock": retron.is_building_block(self.building_blocks),
-    #         }
-    #         node = self.get_subtree(retron, graph)
-    #         if node:
-    #             temp_obj["children"] = [node]
-    #         nodes.append(temp_obj)
-    #     return {"type": "reaction", "children": nodes}
 
     def synthesis_path(self, node_id: int) -> Tuple[Reaction, ...]:
         """

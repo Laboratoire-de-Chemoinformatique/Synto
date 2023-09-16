@@ -63,12 +63,13 @@ Usage
 Mostly the usage is optimized to for in command line interface.
 Here are some implemented commands:
 
-* synto_default_config
-* synto_search
-* synto_simulate
-* synto_tune_vn
+* synto_planning
+* synto_training
+* synto_extract_rules
+* synto_policy_training
 * synto_self_learning
-* synto_micro_self_learning
+* synto_self_learning
+* synto_training
 * synto_policy_train
 
 Each command has a description that can be called with ``command --help``

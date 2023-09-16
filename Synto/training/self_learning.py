@@ -109,7 +109,7 @@ def shuffle_targets(targets_file):
     del mols
 
 
-def extract_tree_retrons(tree, processed_molecules=None):  # TODO what if len(solved_nodes) == 0
+def extract_tree_retrons(tree, processed_molecules=None):
     """
     Takes a built tree and a dictionary of processed molecules extracted from the previous trees as input, and returns
     the updated dictionary of processed molecules after adding the solved nodes from the given tree.
@@ -152,7 +152,6 @@ def run_tree_search(target=None, config=None):
     elif isinstance(target, str):
         target = smiles(target)
         target.canonicalize()
-        target.clean2d()
 
     # initialize tree.
     tree = Tree(target=target, config=config)
@@ -160,13 +159,6 @@ def run_tree_search(target=None, config=None):
     # remove target from buildings blocs
     if str(target) in tree.building_blocks:
         tree.building_blocks.remove(str(target))
-
-    # # sas score  # TODO why do we need this ?
-    # if "sascore" in target.meta.keys():
-    #     sascore = round(float(target.meta["sascore"]), 3)
-    #     target.meta["name"] = f"Molecule_{target_id}_{mode}_SAScore_{sascore}"
-    # else:
-    #     target.meta["name"] = f"Molecule_{target_id}_{mode}"
 
     # run tree search
     _ = list(tree)
@@ -215,10 +207,10 @@ def tune_value_network(value_net, datamodule, experiment_root: Path, simul_id=0,
     lr_monitor = LearningRateMonitor(logging_interval="epoch")
     logger = CSVLogger(str(logs_path))
 
-    trainer = Trainer(  # TODO why it is different from policy training ?
+    trainer = Trainer(
         log_every_n_steps=5,
         accelerator="gpu",
-        devices=[0],  # TODO add condition if available
+        devices=[0],
         max_epochs=n_epoch,
         callbacks=[lr_monitor],
         logger=logger,
@@ -341,12 +333,6 @@ def run_planning(
     simulation_folder = experiment_root.joinpath(f"simulation_{simul_id}")
     if not simulation_folder.exists():
         simulation_folder.mkdir()
-    # else:
-    #     logging.warning(
-    #         f"The path {str(simulation_folder)} exists. All files will be removed"
-    #     )
-    # shutil.rmtree(simulation_folder)
-    # simulation_folder.mkdir()
 
     stats_header = ["target_smiles", "tree_size", "search_time", "found_paths", "newick_tree", "newick_meta"]
 
@@ -371,7 +357,7 @@ def run_planning(
             processed_molecules = extract_tree_retrons(tree, processed_molecules=processed_molecules)
 
             # extract tree statistics
-            tree_stats = extract_tree_stats(tree, target)
+            tree_stats = extract_tree_stats(tree)
             if tree_stats["found_paths"] > 0:
                 num_solved += 1
             total_time += tree_stats["search_time"]
@@ -417,7 +403,7 @@ def run_self_learning(config: dict):
 
     restart_batch = -1
 
-    experiment_root = Path(config['SelfLearning']['results_root'])  # TODO correct later
+    experiment_root = Path(config['SelfLearning']['results_root'])
     targets_file = Path(config['SelfLearning']['dataset_path'])
 
     # create results root folder
@@ -436,7 +422,6 @@ def run_self_learning(config: dict):
     for simul_id in range(num_simulations):
         processed_molecules_path = experiment_root.joinpath(f"simulation_{simul_id}",
                                                             f"tree_retrons_sim_{simul_id}.smi")
-        print(processed_molecules_path)
 
         batch_size = config['SelfLearning']['batch_size']
         for batch_id in range(file_length // batch_size + int(bool(file_length % batch_size))):
@@ -458,7 +443,6 @@ def run_self_learning(config: dict):
                 run_planning(
                     simul_id=simul_id,
                     config=config,
-                    mode="train",
                     targets_file=targets_batch_file,
                     processed_molecules_path=processed_molecules_path,
                     targets_batch_id=batch_id

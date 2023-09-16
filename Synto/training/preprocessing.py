@@ -29,7 +29,6 @@ def safe_canonicalization(molecule: MoleculeContainer):
     :type molecule: MoleculeContainer
     :return: The canonicalized molecule.
     """
-    # TODO Delete it later - the reason why old and new MCTS doesnt reproduce
     molecule._atoms = dict(sorted(molecule._atoms.items()))
 
     tmp = molecule.copy()
@@ -181,9 +180,6 @@ class PolicyNetworkDataset(InMemoryDataset):
                         for i in mols_idx:
                             fw.write(f'{i}\n')
 
-                    # pyg_graphs.extend(self.preprocess_batch(mols_batch, reaction_rules_ids, num_cpus))
-                    # mols_batch = []
-
                     try:
                         pyg_graphs.extend(self.preprocess_batch(mols_batch, reaction_rules_ids, num_cpus))
                         mols_batch = []
@@ -286,7 +282,7 @@ def preprocess_policy_molecules(list_of_molecules: List[MoleculeContainer], reac
     pyg_graphs = []
     for molecule in list_of_molecules:
 
-        if not isinstance(molecule, MoleculeContainer):  # TODO warning
+        if not isinstance(molecule, MoleculeContainer):
             continue
 
         # reaction reaction_rules application
