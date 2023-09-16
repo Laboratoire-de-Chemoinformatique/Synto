@@ -2,37 +2,37 @@ Interfaces
 ================
 
 Graphical user interface
--------------------
+---------------------------
 
 You can use the pretrained Synto via Graphical User Interface (GUI) available by this link.
 
 
 Command line interface
--------------------
+---------------------------
 
 Synto provides with CLI commands for training and planning modes.
 
     For planning mode:
 
-    * Synto_download_data
-    * Synto_default_planning_config
-    * Synto_tree_search
+    * synto_download_data
+    * synto_default_planning_config
+    * synto_tree_search
 
     For training mode:
 
-    * Synto_default_training_config
-    * Synto_extract_reaction_rules
-    * Synto_policy_training
-    * Synto_self_learning
+    * synto_default_training_config
+    * synto_extract_reaction_rules
+    * synto_policy_training
+    * synto_self_learning
 
     For full end-to-end training mode (combine all commands for training mode):
 
-    * Synto_default_training_config
-    * Synto_training
+    * synto_default_training_config
+    * synto_training
 
 
 Python interface
--------------------
+---------------------------
 
 Python interface for planning
 

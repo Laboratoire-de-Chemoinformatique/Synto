@@ -58,21 +58,16 @@ def apply_reaction_rule(molecule: MoleculeContainer, reaction_rule: Reactor):
     """
 
     try:
-        # reactants = add_small_mols(target, rule._Reactor__meta['small_mols'])  # TODO this is skipped
         reactants = add_small_mols(molecule, small_molecules=False)
 
         unsorted_reactions = list(reaction_rule(reactants))
-        # Сортируем реакции по убыванию количества продуктов с количеством атомов больше шести
-        # Для того, чтобы легче отбрасывать реакции с незначительными заменами (н-р, галоген на галоген)
-        # Как вариант, можно умножать переменную prob на количество больших молекул в продуктах реакции
-
         sorted_reactions = sorted(unsorted_reactions,
                                   key=lambda reaction: len(list(filter(lambda x: len(x) > 6, reaction.products))),
-                                  reverse=True)  # TODO simplify it
+                                  reverse=True)
 
         reactions = sorted_reactions[:3]  # Take top-N reactions from reactor
     except IndexError:
         reactions = []
-    #
+
     for reaction in reactions:
         yield reaction

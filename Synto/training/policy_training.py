@@ -29,11 +29,11 @@ def create_policy_training_set(config):
     :return: A `LightningDataset` object containing PyTorch Geometric graphs for training molecules and label vectors.
     """
     #
-    n_rules = len(load_reaction_rules(config['ReactionRules']['reaction_rules_path']))
+    n_rules = len(load_reaction_rules(config['General']['reaction_rules_path']))
     print(f"N rules is {n_rules}")
 
     full_dataset = PolicyNetworkDataset(molecules_path=config['PolicyNetwork']['dataset_path'],
-                                        reaction_rules_path=config['ReactionRules']['reaction_rules_path'],
+                                        reaction_rules_path=config['General']['reaction_rules_path'],
                                         output_path=config['PolicyNetwork']['datamodule_path'],
                                         num_cpus=config['General']['num_cpus'])
 
@@ -62,7 +62,7 @@ def run_policy_training(datamodule, config):
     policy training process.
     """
     #
-    n_rules = len(load_reaction_rules(config['ReactionRules']['reaction_rules_path']))
+    n_rules = len(load_reaction_rules(config['General']['reaction_rules_path']))
     print(f"N rules is {n_rules}")
 
     #

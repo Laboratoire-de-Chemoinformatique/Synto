@@ -19,7 +19,7 @@ class Retron:
         :param molecule: The `molecule` parameter is of type `MoleculeContainer`.
         :type molecule: MoleculeContainer
         """
-        self._molecule = safe_canonicalization(molecule)  # TODO this is from visualisation path_graph - fix it
+        self._molecule = safe_canonicalization(molecule)
         self._mapping = None
         self.prev_retrons = []
 
@@ -64,17 +64,6 @@ class Retron:
         Returns a SMILES of the retron
         """
         return str(self._molecule)
-
-    # def is_building_block(self, building_blocks):
-    #     if len(self._molecule) <= 6:
-    #         return True
-    #     tmp = self._molecule.copy()
-    #     try:
-    #         tmp.canonicalize()
-    #         return str(tmp) in building_blocks
-    #
-    #     except InvalidAromaticRing:
-    #         return str(self._molecule) in building_blocks
 
     def is_building_block(self, stock):
         """

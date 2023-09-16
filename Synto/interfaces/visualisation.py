@@ -197,7 +197,7 @@ def path_graph(tree, node: int) -> str:
     height = c_max_y + 3.5 * font_size  # 2.5 by default
     box_y = height / 2.0
     svg = [
-        f'<svg width="{width:.2f}cm" height="{height:.2f}cm" '
+        f'<svg width="{0.6 * width:.2f}cm" height="{0.6 * height:.2f}cm" '
         f'viewBox="{-font125:.2f} {-box_y:.2f} {width:.2f} '
         f'{height:.2f}" xmlns="http://www.w3.org/2000/svg" version="1.1">',
         '  <defs>\n    <marker id="arrow" markerWidth="10" markerHeight="10" '

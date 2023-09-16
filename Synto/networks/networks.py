@@ -152,57 +152,10 @@ class MCTSNetwork(LightningModule, ABC):
         return [optimizer], [scheduler]
 
 
-# class PolicyNetwork(MCTSNetwork, LightningModule, ABC):
-#     def __init__(self, n_rules, vector_dim, *args, **kwargs):
-#         super(PolicyNetwork, self).__init__(vector_dim, *args, **kwargs)
-#         self.save_hyperparameters()
-#         self.n_rules = n_rules
-#         self.rules_predictor = Linear(vector_dim, n_rules)
-#         self.priority_predictor = Linear(vector_dim, n_rules)
-#
-#     def forward(self, batch):
-#         x = self.embedder(batch)
-#         y = torch.sigmoid(self.rules_predictor(x))
-#         priority = torch.sigmoid(self.priority_predictor(x))
-#         return y, priority
-#
-#     def _get_loss(self, batch):
-#         true_rules = batch.y_rules.float()
-#         true_priority = batch.y_priority.float()
-#
-#         x = self.embedder(batch)
-#
-#         pred_rules = self.rules_predictor(x)
-#         pred_priority = self.priority_predictor(x)
-#
-#         loss_rules = binary_cross_entropy_with_logits(pred_rules, true_rules)
-#         loss_priority = binary_cross_entropy_with_logits(pred_priority, true_priority)
-#         loss = loss_rules + loss_priority
-#
-#         true_rules = true_rules.long()
-#         true_priority = true_priority.long()
-#
-#         ba_rules = (multilabel_recall(pred_rules, true_rules, num_labels=self.n_rules) +
-#                     multilabel_specificity(pred_rules, true_rules, num_labels=self.n_rules)) / 2
-#         f1_rules = multilabel_f1_score(pred_rules, true_rules, num_labels=self.n_rules)
-#
-#         ba_priority = (multilabel_recall(pred_priority, true_priority, num_labels=self.n_rules) +
-#                        multilabel_specificity(pred_priority, true_priority, num_labels=self.n_rules)) / 2
-#         f1_priority = multilabel_f1_score(pred_priority, true_priority, num_labels=self.n_rules)
-#
-#         metrics = {
-#             'loss': loss,
-#             'balanced_accuracy_rules': ba_rules, 'f1_score_rules': f1_rules,
-#             'balanced_accuracy_priority': ba_priority, 'f1_score_priority': f1_priority,
-#         }
-#         return metrics
-
-
 class PolicyNetwork(MCTSNetwork, LightningModule, ABC):
     """
     Policy value network
     """
-
     def __init__(self, n_rules, vector_dim, *args, **kwargs):
         """
         Initializes a policy network with the given number of reaction rules (output dimension) and vector graph
@@ -238,8 +191,8 @@ class PolicyNetwork(MCTSNetwork, LightningModule, ABC):
         :param batch: The batch of molecular graphs.
         :return: a dictionary with loss value and balanced accuracy of reaction rules prediction.
         """
-        true_y = batch.y.float()
-        true_priority = batch.priority.float()
+        true_y = batch.y_rules.float()
+        true_priority = batch.y_priority.float()
 
         x = self.embedder(batch)
         pred_y = self.y_predictor(x)
