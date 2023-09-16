@@ -9,7 +9,7 @@ Installation
 
 Important: all versions require **python from 3.8 or up to 3.10**!
 
-CPU version
+GPU version (Linux)
 ^^^^^^^^^^^
 The CPU version requires only poetry 1.3.2. To install poetry, follow the instructions on
 https://python-poetry.org/docs/#installation
@@ -46,10 +46,6 @@ Then navigate to the Synto folder and run the following command:
     conda activate Synto_env
     poetry install --with cpu
 
-GPU version
-^^^^^^^^^^^
-
-
 Optional
 ^^^^^^^^^^^
 you can install enviroment in your jupyter kernel
@@ -60,7 +56,7 @@ you can install enviroment in your jupyter kernel
 
 Usage
 ------------
-Mostly the usage is optimized to for in command line interface.
+Mostly the usage is optimized for in command line interface.
 Here are some implemented commands:
 
 * synto_planning
@@ -68,14 +64,11 @@ Here are some implemented commands:
 * synto_extract_rules
 * synto_policy_training
 * synto_self_learning
-* synto_self_learning
-* synto_training
-* synto_policy_train
 
 Each command has a description that can be called with ``command --help``
 
-Example commands:
-::
-    Synto_search --targets test.sdf --config config.yaml --stats_name "test.csv" --retropaths_files_name test
-    Synto_self_learning --experiment_root test --targets_set training.sdf --config config.yaml --num_simulations 5 --batch_size 500 --logging_file test.log
-    Synto_policy_train --config /path/to/config
+Run retrosynthetic planning
+^^^^^^^^^^^
+.. code-block:: bash
+
+    synto_planning --targets="targets.txt" --config="planning_config.yaml" --results_root="synto_results"

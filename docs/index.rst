@@ -35,9 +35,8 @@ and used in training the value network.
 .. toctree::
     :hidden:
 
+    get_started
     installation
     interfaces
     configuration
-    datasets
-    policy_training
-    self_learning
+    networks_training
