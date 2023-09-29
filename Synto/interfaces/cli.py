@@ -14,8 +14,8 @@ import gdown
 import yaml
 
 from Synto.chem.reaction_rules.rule_extraction import extract_reaction_rules
-from Synto.training.policy_training import create_policy_training_set, run_policy_training
-from Synto.training.self_learning import run_self_learning
+from Synto.ml.training import create_policy_training_set, run_policy_training
+from Synto.ml.training.self_learning import run_self_learning
 from Synto.utils.config import planning_config, training_config
 from Synto.utils.config import read_planning_config, read_training_config
 from Synto.utils.search import tree_search

@@ -2,11 +2,11 @@
 Module containing functions with fixed protocol for reaction rules extraction
 """
 
-from GRRtools.filters import CheckCCsp3Breaking, CheckCCRingBreaking
-from GRRtools.filters import CheckCGRConnectedComponents, CheckDynamicBondsNumber, CheckSmallMolecules
-from GRRtools.filters import CheckNoReaction, CheckMultiCenterReaction, CheckWrongCHBreaking
-from GRRtools.processing import reaction_database_processing
-from GRRtools.transformations import ExtractRule
+from .extracted_rules.filters import CheckCCsp3Breaking, CheckCCRingBreaking
+from .extracted_rules.filters import CheckCGRConnectedComponents, CheckDynamicBondsNumber, CheckSmallMolecules
+from .extracted_rules.filters import CheckNoReaction, CheckMultiCenterReaction, CheckWrongCHBreaking
+from .extracted_rules.processing import reaction_database_processing
+from .extracted_rules.transformations import ExtractRule
 
 filters = [
     CheckCGRConnectedComponents(),

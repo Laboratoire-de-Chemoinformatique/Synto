@@ -5,9 +5,9 @@ Module containing a class that represents a policy function for node expansion i
 import torch
 
 from Synto.chem.retron import Retron
-from Synto.networks.networks import PolicyNetwork
-from Synto.training.loading import load_policy_net
-from Synto.training.preprocessing import mol_to_pyg, load_reaction_rules
+from Synto.ml.networks.networks import PolicyNetwork
+from Synto.ml.training import load_policy_net
+from Synto.ml.training.preprocessing import mol_to_pyg, load_reaction_rules
 
 
 class PolicyFunction:

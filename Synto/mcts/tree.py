@@ -18,7 +18,7 @@ from Synto.interfaces.visualisation import tqdm
 from Synto.mcts.evaluation.networks import ValueFunction
 from Synto.mcts.expansion.filter_policy import PolicyFunction
 from Synto.mcts.node import Node
-from Synto.training.preprocessing import safe_canonicalization
+from Synto.ml.training.preprocessing import safe_canonicalization
 from Synto.utils.loading import load_building_blocks, load_reaction_rules
 
 

@@ -1,8 +1,9 @@
-Synto documentation
-===========================
+Synto (合成道) - the way of chemical synthesis
+========
+Synto is inspired by the Japanese term *Gouseido* (合成道), which roughly translates to "the way of synthesis".
+This repository is a toolbox for chemical synthesis planning based on Monte-Carlo Tree Search (MCTS)
+with various implementations of policy and value functions.
 
-Synto (Graph-based Self-Learning Retrosynthesis) is a tool for retrosynthetic planning based deep graph neural networks,
-Monte-Carlo tree search and self-learning method.
 
 Introduction
 ---------------------------
@@ -35,7 +36,7 @@ and used in training the value network.
 .. toctree::
     :hidden:
 
-    get_started
+    quick_start
     installation
     interfaces
     configuration
