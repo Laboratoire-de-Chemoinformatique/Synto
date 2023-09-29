@@ -21,10 +21,10 @@ from tqdm import tqdm
 
 from Synto.interfaces.visualisation import to_table
 from Synto.mcts.tree import Tree
-from Synto.networks.networks import ValueGraphNetwork
-from Synto.training.loading import load_value_net
-from Synto.training.preprocessing import ValueNetworkDataset
-from Synto.training.preprocessing import compose_retrons
+from Synto.ml.networks.networks import ValueGraphNetwork
+from Synto.ml.training.loading import load_value_net
+from Synto.ml.training.preprocessing import ValueNetworkDataset
+from Synto.ml.training.preprocessing import compose_retrons
 
 
 def extract_tree_stats(tree):

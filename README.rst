@@ -28,7 +28,6 @@ For example, on Ubuntu 20.04 we can install miniconda in which we will install p
 
     # Install Synto
     git clone https://git.unistra.fr/isida_gtmtoolkit/Synto.git
-    # or the github mirror https://github.com/tagirshin/Synto.git
 
     # Navigate to the Synto folder and run the following command:
     cd Synto/

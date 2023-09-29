@@ -11,8 +11,8 @@ from pytorch_lightning.loggers import CSVLogger
 from torch.utils.data import random_split
 from torch_geometric.data import LightningDataset
 
-from Synto.networks.networks import PolicyNetwork
-from Synto.training.preprocessing import PolicyNetworkDataset
+from Synto.ml.networks.networks import PolicyNetwork
+from Synto.ml.training.preprocessing import PolicyNetworkDataset
 from Synto.utils.loading import load_reaction_rules
 
 

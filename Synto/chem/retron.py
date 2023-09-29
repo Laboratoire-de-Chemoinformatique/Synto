@@ -4,7 +4,7 @@ Module containing a class Retron that represents a retron (extend molecule objec
 
 from CGRtools.containers import MoleculeContainer
 
-from Synto.training.preprocessing import safe_canonicalization
+from Synto.ml.training.preprocessing import safe_canonicalization
 
 
 class Retron:
