@@ -65,4 +65,5 @@ Run retrosynthetic planning
 ^^^^^^^^^^^
 .. code-block:: bash
 
+    synto_download_data
     synto_planning --targets="targets.txt" --config="planning_config.yaml" --results_root="synto_results"
