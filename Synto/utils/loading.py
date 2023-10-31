@@ -30,7 +30,7 @@ def load_reaction_rules(file):
 
 def load_building_blocks(file: str, canonicalize: bool = False):
     """
-    Loads building blocks data from a file, either in text, SMILES, or pickle format, and returns a frozenset of
+    Loads building blocks data from a file, either in text, SMILES, or pickle format, and returns a frozen set of
     building blocks.
 
     :param file: The path to the file containing the building blocks data
@@ -38,7 +38,7 @@ def load_building_blocks(file: str, canonicalize: bool = False):
     :param canonicalize: The `canonicalize` parameter determines whether the loaded building blocks should be
     canonicalized or not
     :type canonicalize: bool (optional)
-    :return: Tthe a frozenset loaded building blocks
+    :return: The frozen set loaded building blocks
     """
     if not file:
         logging.warning("No external In-Stock data was loaded")

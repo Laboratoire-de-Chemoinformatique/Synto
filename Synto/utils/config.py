@@ -6,6 +6,7 @@ import yaml
 
 from copy import deepcopy
 from pathlib import Path
+from os import getcwd, path
 
 planning_config = {
     "General": {
@@ -36,6 +37,16 @@ planning_config = {
         "weights_path": None
     },
 }
+
+cdw = getcwd()
+if path.exists(cdw+'/synto_data/reaction_rules.pickle'):
+    planning_config["General"]["reaction_rules_path"] = cdw+'/synto_data/reaction_rules.pickle'
+if path.exists(cdw+'/synto_data/building_blocks.pickle'):
+    planning_config["General"]["building_blocks_path"] = cdw+'/synto_data/building_blocks.pickle'
+if path.exists(cdw+'/synto_data/policy_network.ckpt'):
+    planning_config["PolicyNetwork"]["weights_path"] = cdw+'/synto_data/policy_network.ckpt'
+if path.exists(cdw+'/synto_data/value_network.ckpt'):
+    planning_config["ValueNetwork"]["weights_path"] = cdw+'/synto_data/value_network.ckpt'
 
 
 training_config = {

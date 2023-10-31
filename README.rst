@@ -14,7 +14,7 @@ GPU version (Linux)
 It requires only poetry 1.3.2. To install poetry, follow the instructions on
 https://python-poetry.org/docs/#installation
 
-For example, on Ubuntu 20.04 we can install miniconda in which we will install poetry with the following commands:
+For example, on Ubuntu we can install miniconda in which we will install poetry with the following commands:
 
 .. code-block:: bash
 
@@ -33,7 +33,7 @@ For example, on Ubuntu 20.04 we can install miniconda in which we will install p
     cd Synto/
     poetry install --with cpu
 
-If Poetry fails with error, possible solution is to update bashrc file with the following command:
+If Poetry fails with error, a possible solution is to update the bashrc file with the following command:
 
 .. code-block:: bash
 
@@ -42,7 +42,7 @@ If Poetry fails with error, possible solution is to update bashrc file with the 
 
 Optional
 ^^^^^^^^^^^
-You can install environment in your jupyter kernel
+You can install the environment in your jupyter kernel
 
 .. code-block:: bash
 
