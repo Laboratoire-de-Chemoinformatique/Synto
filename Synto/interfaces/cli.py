@@ -24,14 +24,29 @@ from Synto.utils.search import tree_search
 main = click.Group()
 
 
-@main.command(name='download_data')
-def download_data_cli():
+@main.command(name='download_planning_data')
+def download_planning_data_cli():
     """
     Downloads a file from Google Drive using its remote ID, saves it as a zip file, extracts the contents,
     and then deletes the zip file
     """
     remote_id = '1omYgc95sCf4Hj9tiwnPiDk0I248NiYiZ'
-    output = 'synto_data.zip'
+    output = 'synto_planning_data.zip'
+    #
+    gdown.download(output=output, id=remote_id, quiet=True)
+    shutil.unpack_archive(output, './')
+    #
+    os.remove(output)
+
+
+@main.command(name='download_training_data')
+def download_training_data_cli():
+    """
+    Downloads a file from Google Drive using its remote ID, saves it as a zip file, extracts the contents,
+    and then deletes the zip file
+    """
+    remote_id = '1r4I7OskGvzg-zxYNJ7WVYpVR2HSYW10N'
+    output = 'synto_training_data.zip'
     #
     gdown.download(output=output, id=remote_id, quiet=True)
     shutil.unpack_archive(output, './')

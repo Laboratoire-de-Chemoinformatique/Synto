@@ -1,7 +1,6 @@
-Synto (合成道) - the way of chemical synthesis
+Synto - A SYNthesis planning TOol
 ========
-Synto is inspired by the Japanese term *Gouseido* (合成道), which roughly translates to "the way of synthesis".
-This repository is a toolbox for chemical synthesis planning based on Monte-Carlo Tree Search (MCTS)
+Synto is a tool for chemical synthesis planning based on Monte-Carlo Tree Search (MCTS)
 with various implementations of policy and value functions.
 
 Installation
@@ -23,11 +22,11 @@ For example, on Ubuntu 20.04 we can install miniconda in which we will install p
     bash Miniconda3-latest-Linux-x86_64.sh
 
     # Install poetry
-    conda create -n Synto_env -c conda-forge "poetry=1.3.2" "python=3.10" -y
-    conda activate Synto_env
+    conda create -n synto -c conda-forge "poetry=1.3.2" "python=3.10" -y
+    conda activate synto
 
     # Install Synto
-    git clone https://git.unistra.fr/isida_gtmtoolkit/Synto.git
+    git clone https://github.com/Laboratoire-de-Chemoinformatique/Synto.git
 
     # Navigate to the Synto folder and run the following command:
     cd Synto/
@@ -46,7 +45,7 @@ You can install environment in your jupyter kernel
 
 .. code-block:: bash
 
-    python -m ipykernel install --user --name Synto_env --display-name "Synto"
+    python -m ipykernel install --user --name synto --display-name "synto"
 
 Usage
 ------------
@@ -65,5 +64,12 @@ Run retrosynthetic planning
 ^^^^^^^^^^^
 .. code-block:: bash
 
-    synto_download_data
+    synto_download_planning_data
     synto_planning --targets="targets.txt" --config="planning_config.yaml" --results_root="synto_results"
+
+Run training from scratch
+^^^^^^^^^^^
+.. code-block:: bash
+
+    synto_download_training_data
+    synto_training --config="training_config.yaml"
