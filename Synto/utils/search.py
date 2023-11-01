@@ -5,16 +5,15 @@ Module containing functions for running tree search for the set of target molecu
 import csv
 import logging
 from pathlib import Path
-
 from tqdm import tqdm
 
-from CGRtools import smiles
+from CGRtools import smiles, MoleculeContainer
 from CGRtools.files import SDFRead
 
 from Synto.interfaces.visualisation import to_table
 from Synto.mcts import Tree
+from Synto.ml.training.preprocessing import safe_canonicalization
 from Synto.utils.config import read_planning_config
-
 
 
 def collect_stats(tree, target):
@@ -114,27 +113,30 @@ def tree_search(
         with open(targets_file) as inp, open(stats_file, "w", newline="\n") as csvfile:
 
             targets_list = [smiles(smi.strip()) for smi in inp.readlines()]
-            targets_list = [m for m in targets_list if m]
+            targets_list = [m for m in targets_list if m and type(m) is MoleculeContainer]
             #
             statswriter = csv.DictWriter(csvfile, delimiter=",", fieldnames=stats_header)
             statswriter.writeheader()
 
             for ti, target in tqdm(enumerate(targets_list), total=len(targets_list), position=0):
-                target.canonicalize()
-                #
-                tree = Tree(target=target, config=config)
-                for solved, _ in tree:
-                    if solved:
-                        solved_trees += 1
-                        break
+                print(ti,target)
+                target = safe_canonicalization(target)
+                try:
+                    tree = Tree(target=target, config=config)
+                    for solved, _ in tree:
+                        if solved:
+                            solved_trees += 1
+                            break
 
-                if retropaths_files_name is not None:
-                    retropaths_file = retropaths_folder.joinpath(f"{retropaths_files_name}_target_{ti}.html")
-                    to_table(tree, retropaths_file, extended=True)
+                    if retropaths_files_name is not None:
+                        retropaths_file = retropaths_folder.joinpath(f"{retropaths_files_name}_target_{ti}.html")
+                        to_table(tree, retropaths_file, extended=True)
 
-                statistics = collect_stats(tree, target)
-                statswriter.writerow(statistics)
-                csvfile.flush()
+                    statistics = collect_stats(tree, target)
+                    statswriter.writerow(statistics)
+                    csvfile.flush()
+                except AssertionError:
+                    pass
 
         logging.info(f"Number of solved trees: {solved_trees}")
 
