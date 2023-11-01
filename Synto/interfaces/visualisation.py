@@ -22,10 +22,9 @@ def tqdm(disable=True, *args, **kwargs):
 
 def extract_routes(tree, extended=False):
     """
-    The function takes the target target and the dictionary of
-    successors and predecessors and returns a list of dictionaries that contain the target target
-    and the list of
-    successors
+    The function takes the target and the dictionary of
+    successors and predecessors and returns a list of dictionaries that contain the target
+    and the list of successors
     :return: A list of dictionaries. Each dictionary contains a target, a list of children, and a
     boolean indicating whether the target is in building_blocks.
     """
@@ -235,7 +234,7 @@ def path_graph(tree, node: int) -> str:
 
 def to_table(tree, html_path: str = "", aam: bool = False, extended=False):
     """
-    Write a HTML page with the synthesis paths in SVG format and corresponding reactions in SMILES format
+    Write an HTML page with the synthesis paths in SVG format and corresponding reactions in SMILES format
 
     :param extended:
     :param html_path: Path to save the HTML molecules_path
