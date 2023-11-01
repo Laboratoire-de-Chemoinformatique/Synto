@@ -10,6 +10,7 @@ from time import time
 from typing import Dict, Set, List, Tuple
 
 from numpy.random import uniform
+from CGRtools import MoleculeContainer
 
 from Synto.chem.reaction import Reaction
 from Synto.chem.reaction import apply_reaction_rule
@@ -27,18 +28,17 @@ class Tree:
     Tree class with attributes and methods for Monte-Carlo tree search
     """
 
-    def __init__(self, target: object = None, config: dict = None):
+    def __init__(self, target: MoleculeContainer = None, config: dict = None):
         """
         The function initializes a tree object with optional parameters for tree search for target molecule.
 
         :param target: a target molecule for retrosynthesis paths search
-        :type target: object
+        :type target: MoleculeContainer
         :param config: The `config` parameter is a dictionary that contains configuration settings for the tree search
         :type config: dict
         """
 
-        if not target:
-            assert 'Target is not defined'
+        assert target and type(target) is MoleculeContainer and target.atoms, 'Target is not defined, is not a MoleculeContainer or have no atoms'
         target_retron = Retron(target)
         target_retron.prev_retrons.append(Retron(target))
         target_node = Node(retrons_to_expand=(target_retron,), new_retrons=(target_retron,))
