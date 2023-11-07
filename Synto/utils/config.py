@@ -74,7 +74,7 @@ training_config = {
     'ReactionRules': {
         'reaction_data_path': None},
 
-    'SelfLearning': {
+    'SelfTuning': {
         'results_root': None,
         'dataset_path': None,
         'num_simulations': 1,

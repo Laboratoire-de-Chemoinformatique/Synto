@@ -21,7 +21,7 @@ possible retrosynthetic paths.
 
 Value network predicts the “probability” to reach the building blocks starting from the current intermediate product
 (including target molecule). Then these predictions are used in calculation of MCTS statistics navigating the search.
-To train the neural network we use self-learning technology, which includes alternating training and MCTS planning steps,
+To train the neural network we use self-tuning technology, which includes alternating training and MCTS planning steps,
 so that the value network learns from the previous planning experience.
 
 

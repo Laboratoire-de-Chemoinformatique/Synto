@@ -5,6 +5,9 @@ Module containing functions for loading reaction rules and building blocks
 import logging
 import pickle
 from time import time
+from tqdm import tqdm
+
+import pandas as pd
 
 from CGRtools import SMILESRead
 from CGRtools.reactor import Reactor
@@ -28,6 +31,28 @@ def load_reaction_rules(file):
     return reaction_rules
 
 
+def canonicalize_building_blocks(input_file, out_file):
+    """
+    The function canonicalizes custom building blocks
+
+    :param input_file: The path to the txt file that stores the original building blocks
+    :param input_file: The path to the txt file that stores the canonicalazied building blocks
+    """
+
+    parser = SMILESRead.create_parser(ignore=True)
+
+    with open(input_file, "r") as file:
+        mols = file.readlines()
+
+    for n, mol in tqdm(enumerate(mols), total=len(mols)):
+        mol = parser(str(mol))
+        mol.canonicalize()
+    mols = [i.strip() for i in mols]
+
+    pd.DataFrame(mols).to_csv(out_file, header=None, index=None)
+
+    return out_file
+
 def load_building_blocks(file: str, canonicalize: bool = False):
     """
     Loads building blocks data from a file, either in text, SMILES, or pickle format, and returns a frozen set of
@@ -50,7 +75,7 @@ def load_building_blocks(file: str, canonicalize: bool = False):
         if filename.endswith(".pickle") or filename.endswith(".pkl"):
             bb = pickle.load(file)
         elif filename.endswith(".txt") or filename.endswith(".smi"):
-            bb = frozenset([mol.decode("utf-8") for mol in file])
+            bb = set([mol.decode("utf-8") for mol in file])
         else:
             raise TypeError(
                 "content of FileStorage is not appropriate for in-building_blocks dataloader, expected .txt, .smi, .pickle or .pkl"
@@ -65,14 +90,14 @@ def load_building_blocks(file: str, canonicalize: bool = False):
                     mols = [parser(str(mol)) for mol in file]
                     for mol in mols:
                         mol.canonicalize()
-                    bb = frozenset([str(mol) for mol in mols])
+                    bb = set([str(mol).strip() for mol in mols])
                 else:
-                    bb = frozenset([str(mol) for mol in file])
+                    bb = set([str(mol).strip() for mol in file])
         elif filetype == "pickle" or filetype == "pkl":
             with open(file, "rb") as file:
                 bb = pickle.load(file)
                 if isinstance(bb, list):
-                    bb = frozenset(bb)
+                    bb = set(bb)
         else:
             raise TypeError(
                 f"expected .txt, .smi, .pickle, .pkl or .db files, not {filetype}"

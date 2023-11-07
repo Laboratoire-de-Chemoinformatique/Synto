@@ -1,6 +1,6 @@
 General:
-  reaction_rules_path: /home/dima/projects/synto/synto_data/reaction_rules.pickle
-  building_blocks_path: /home/dima/projects/synto/synto_data/building_blocks.pickle
+  reaction_rules_path: synto_planning_data/reaction_rules.pickle
+  building_blocks_path: synto_planning_data/building_blocks.txt
 Tree:
   ucb_type: uct
   c_usb: 0.1
@@ -13,12 +13,11 @@ Tree:
   evaluation_agg: max
   backprop_type: muzero
   init_new_node_value: null
-  epsilon: 0.0
 PolicyNetwork:
-  weights_path: /home/dima/projects/synto/synto_data/policy_network.ckpt
+  weights_path: synto_planning_data/policy_network.ckpt
   priority_rules_fraction: 0.5
   top_rules: 50
   rule_prob_threshold: 0.0
 ValueNetwork:
-  weights_path: /home/dima/projects/synto/synto_data/value_network.ckpt
+  weights_path: synto_planning_data/value_network.ckpt
   

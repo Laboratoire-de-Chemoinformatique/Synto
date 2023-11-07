@@ -56,7 +56,7 @@ Here are some implemented commands:
 * synto_training
 * synto_extract_rules
 * synto_policy_training
-* synto_self_learning
+* synto_self_tuning
 
 Each command has a description that can be called with ``command --help``
 
@@ -65,6 +65,7 @@ Run retrosynthetic planning
 .. code-block:: bash
 
     synto_download_planning_data
+    synto_building_blocks --input="synto_planning_data/building_blocks.txt" --output="synto_planning_data/building_blocks.txt" # skip for loaded data
     synto_planning --targets="targets.txt" --config="planning_config.yaml" --results_root="synto_results"
 
 Run training from scratch
@@ -72,4 +73,5 @@ Run training from scratch
 .. code-block:: bash
 
     synto_download_training_data
+    synto_building_blocks --input="synto_training_data/building_blocks.txt" --output="synto_training_data/building_blocks.txt" # skip for loaded data
     synto_training --config="training_config.yaml"
