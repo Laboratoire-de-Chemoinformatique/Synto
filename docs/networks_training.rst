@@ -57,11 +57,11 @@ A section for setting neural network architecture and some network hyperparamete
       num_epoch: 100
       batch_size: 500
 
-And a section for setting self-learning parameters:
+And a section for setting self-tuning parameters:
 
 .. code-block:: yaml
 
-    SelfLearning:
+    SelfTuning:
       results_root: Synto_training/value_network
       dataset_path: Synto_training/value_molecules/value_molecules.sdf
       num_simulations: 1
@@ -69,7 +69,7 @@ And a section for setting self-learning parameters:
       balance_positive: false
 
 
-``num_simulations`` specifies the number of simulations (planning and learning steps) for a given set of target molecules.
+``num_simulations`` specifies the number of simulations (planning and training steps) for a given set of target molecules.
 ``batch_size`` specifies the number of target molecules for planning and following training of the value neural network.
 For example, if the ``batch_size: 100``, then the value neural network will be tuned every 100 planning runs.
 

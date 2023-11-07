@@ -61,7 +61,7 @@ Training configuration yaml file
       results_root: Synto_training/reaction_rules
       reaction_data_path: Synto_training/reaction_data/reaction_data.rdf
       reaction_rules_path: Synto_training/reaction_rules/reaction_rules.pickle
-    SelfLearning:
+    SelfTuning:
       results_root: Synto_training/value_network
       dataset_path: Synto_training/value_molecules/value_molecules.sdf
       num_simulations: 1

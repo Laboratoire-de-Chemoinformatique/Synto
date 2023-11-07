@@ -20,7 +20,7 @@ Tree:
 ReactionRules:
   results_root: synto_training_data/reaction_rules
   reaction_data_path: synto_training_data/reaction_data/reaction_data.rdf
-SelfLearning:
+SelfTuning:
   results_root: synto_training_data/value_network
   dataset_path: synto_training_data/value_molecules/value_molecules.sdf
   num_simulations: 1

@@ -15,7 +15,8 @@ import yaml
 
 from Synto.chem.reaction_rules.rule_extraction import extract_reaction_rules
 from Synto.ml.training import create_policy_training_set, run_policy_training
-from Synto.ml.training.self_learning import run_self_learning
+from Synto.ml.training.self_tuning import run_self_tuning
+from Synto.utils.loading import canonicalize_building_blocks
 from Synto.utils.config import planning_config, training_config
 from Synto.utils.config import read_planning_config, read_training_config
 from Synto.utils.search import tree_search
@@ -30,7 +31,7 @@ def download_planning_data_cli():
     Downloads a file from Google Drive using its remote ID, saves it as a zip file, extracts the contents,
     and then deletes the zip file
     """
-    remote_id = '1omYgc95sCf4Hj9tiwnPiDk0I248NiYiZ'
+    remote_id = '1c5YJDT-rP1ZvFA-ELmPNTUj0b8an4yFf'
     output = 'synto_planning_data.zip'
     #
     gdown.download(output=output, id=remote_id, quiet=True)
@@ -54,7 +55,28 @@ def download_training_data_cli():
     os.remove(output)
 
 
-@main.command(name='planning_config')
+@main.command(name='building_blocks')
+@click.option(
+    "--input",
+    "input_file",
+    required=True,
+    help="Path to the file with original building blocks",
+    type=click.Path(exists=True),
+)
+@click.option(
+    "--output",
+    "output_file",
+    required=True,
+    help="Path to the file with processed building blocks",
+    type=click.Path(exists=True),
+)
+def building_blocks_cli(input_file, output_file):
+    """
+    Canonicalizes custom building blocks
+    """
+    canonicalize_building_blocks(input_file, output_file)
+
+
 def planning_config_cli():
     """
     Writes the planning configuration dictionary to a YAML file named "planning_config.yaml".
@@ -144,7 +166,7 @@ def policy_training_cli(config):
     run_policy_training(datamodule, config)
 
 
-@main.command(name='self_learning')
+@main.command(name='self_tuning')
 @click.option(
     "--config",
     "config",
@@ -152,14 +174,14 @@ def policy_training_cli(config):
     help="Path to the config YAML file.",
     type=click.Path(exists=True, path_type=Path),
 )
-def self_learning_cli(config):
+def self_tuning_cli(config):
     """
-    Runs a self-learning process for training value network
+    Runs a self-tuning process for training value network
 
-    :param config: The configuration file with settings for running the self-learning process
+    :param config: The configuration file with settings for running the self-tuning process
     """
     config = read_training_config(config)
-    run_self_learning(config)
+    run_self_tuning(config)
 
 
 @main.command(name='synto_training')
@@ -183,8 +205,8 @@ def synto_training_cli(config):
     datamodule = create_policy_training_set(config)
     run_policy_training(datamodule, config)
 
-    # self-learning value network training
-    run_self_learning(config)
+    # self-tuning value network training
+    run_self_tuning(config)
 
 
 if __name__ == '__main__':

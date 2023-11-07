@@ -23,7 +23,7 @@ Synto provides with CLI commands for training and planning modes.
     * synto_training_config
     * synto_extract_reaction_rules
     * synto_policy_training
-    * synto_self_learning
+    * synto_self_tuning
 
     For full end-to-end training mode (combine all commands for training mode):
 
