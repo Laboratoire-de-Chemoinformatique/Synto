@@ -11,7 +11,7 @@ from random import shuffle
 import torch
 from CGRtools import smiles
 from CGRtools.containers import MoleculeContainer
-from CGRtools.files import SDFRead, SDFWrite
+from CGRtools.files import SMILESRead
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import LearningRateMonitor
 from pytorch_lightning.loggers import CSVLogger
@@ -64,15 +64,15 @@ def create_targets_batch(experiment_root=None, targets_file=None, tmp_file_id=No
     tmp_targets = experiment_root.joinpath("targets")
     if not tmp_targets.exists():
         tmp_targets.mkdir()
-    with SDFRead(targets_file, indexable=True) as inp:
-        inp.reset_index()
+    with SMILESRead(targets_file) as input_file:
+        inp = input_file.read()
         file_length = len(inp)
         batch_slices = [i for i in batch_slices if i < file_length]
         targets = [inp[i] for i in batch_slices]
     batch_file = tmp_targets.joinpath(f"batch_{tmp_file_id}.sdf")
-    with SDFWrite(batch_file) as out:
+    with open(batch_file, 'w') as out:
         for mol in targets:
-            out.write(mol)
+            out.write("%s\n" % str(mol))
     return batch_file
 
 
@@ -100,12 +100,12 @@ def shuffle_targets(targets_file):
 
     :param targets_file: The file that contains a set of targets to be shuffled
     """
-    with SDFRead(targets_file) as inp:
+    with SMILESRead(targets_file) as inp:
         mols = inp.read()
     shuffle(mols)
-    with SDFWrite(targets_file) as out:
+    with open(targets_file, 'w') as out:
         for mol in mols:
-            out.write(mol)
+            out.write("%s\n" % str(mol))
     del mols
 
 
@@ -317,8 +317,6 @@ def run_planning(
             trainer.strategy.connect(value_net)
             trainer.save_checkpoint(config["ValueNetwork"]["weights_path"])
 
-    assert targets_file.suffix == ".sdf", "Only SDF files for list_of_molecules are acceptable"
-
     # load processed molecules (extracted retrons)
     processed_molecules = None
     if processed_molecules_path:
@@ -343,8 +341,8 @@ def run_planning(
 
     # read targets file
     num_solved, total_time = 0, 0
-    with SDFRead(targets_file, indexable=True) as inp, open(stats_file, "w", newline="\n") as csvfile:
-        inp.reset_index()
+    with SMILESRead(targets_file) as input_file, open(stats_file, "w", newline="\n") as csvfile:
+        inp = input_file.read()
 
         batch_len = len(inp)
         stats_writer = csv.DictWriter(csvfile, delimiter=",", fieldnames=stats_header)
@@ -414,8 +412,8 @@ def run_self_learning(config: dict):
     logging.basicConfig(filename=logging_file, encoding='utf-8', level=10,
                         format='%(asctime)s - %(levelname)s - %(message)s', datefmt='%d/%m/%Y %I:%M:%S %p')
 
-    with SDFRead(targets_file, indexable=True) as inp:
-        inp.reset_index()
+    with SMILESRead(targets_file) as inp_data:
+        inp = inp_data.read()
         file_length = len(inp)
 
     num_simulations = config['SelfLearning']['num_simulations']
