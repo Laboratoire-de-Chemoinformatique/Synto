@@ -17,7 +17,7 @@ planning_config = {
         "ucb_type": "uct",
         "c_usb": 0.1,
         "max_depth": 6,
-        "max_iterations": 10,
+        "max_iterations": 100,
         "max_time": 120,
         "max_tree_size": 1e6,
         "verbose": False,

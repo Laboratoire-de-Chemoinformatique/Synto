@@ -25,8 +25,8 @@ from Synto.utils.search import tree_search
 main = click.Group()
 
 
-@main.command(name='download_planning_data')
-def download_planning_data_cli():
+@main.command(name='planning_data')
+def planning_data_cli():
     """
     Downloads a file from Google Drive using its remote ID, saves it as a zip file, extracts the contents,
     and then deletes the zip file
@@ -40,8 +40,8 @@ def download_planning_data_cli():
     os.remove(output)
 
 
-@main.command(name='download_training_data')
-def download_training_data_cli():
+@main.command(name='training_data')
+def training_data_cli():
     """
     Downloads a file from Google Drive using its remote ID, saves it as a zip file, extracts the contents,
     and then deletes the zip file
@@ -75,25 +75,6 @@ def building_blocks_cli(input_file, output_file):
     Canonicalizes custom building blocks
     """
     canonicalize_building_blocks(input_file, output_file)
-
-
-def planning_config_cli():
-    """
-    Writes the planning configuration dictionary to a YAML file named "planning_config.yaml".
-    """
-    with open("planning_config.yaml", "w") as file:
-        yaml.dump(planning_config, file, sort_keys=False)
-
-
-@main.command(name='training_config')
-def training_config_cli():
-    """
-    Writes the training configuration dictionary to a YAML file named "training_config.yaml".
-    """
-    with open("training_config.yaml", "w") as file:
-        yaml.dump(training_config, file, sort_keys=False)
-
-    return None
 
 
 @main.command(name='tree_search')

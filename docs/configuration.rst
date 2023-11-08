@@ -4,7 +4,7 @@ Configuration
 Configuration
 
 Planning configuration
-------------
+---------------------------
 Planning configuration yaml file
 
 .. code-block:: yaml
@@ -34,7 +34,7 @@ Planning configuration yaml file
 
 
 Training configuration
-------------
+---------------------------
 Training configuration yaml file
 
 .. code-block:: yaml

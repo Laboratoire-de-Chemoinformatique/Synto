@@ -41,16 +41,14 @@ torch-cluster = [{markers = "sys_platform == 'linux'", url="https://data.pyg.org
 pyg-lib = [{markers = "sys_platform == 'linux'", url="https://data.pyg.org/whl/torch-1.13.0%2Bcpu/pyg_lib-0.1.0+pt113cpu-cp310-cp310-linux_x86_64.whl"}]
 
 [tool.poetry.scripts]
-synto_download_planning_data = "Synto.interfaces.cli:download_planning_data_cli"
-synto_download_training_data = "Synto.interfaces.cli:download_training_data_cli"
-synto_building_blocks = "Synto.interfaces.cli:building_blocks_cli"
-synto_planning_config = "Synto.interfaces.cli:planning_config_cli"
-synto_training_config = "Synto.interfaces.cli:training_config_cli"
+synto_planning_data = "Synto.interfaces.cli:download_planning_data_cli"
+synto_training_data = "Synto.interfaces.cli:download_training_data_cli"
 synto_planning = "Synto.interfaces.cli:synto_planning_cli"
+synto_training = "Synto.interfaces.cli:synto_training_cli"
+synto_building_blocks = "Synto.interfaces.cli:building_blocks_cli"
 synto_extract_rules = "Synto.interfaces.cli:extract_rules_cli"
 synto_policy_training = "Synto.interfaces.cli:policy_training_cli"
 synto_self_tuning = "Synto.interfaces.cli:self_tuning_cli"
-synto_training = "Synto.interfaces.cli:synto_training_cli"
 
 [build-system]
 requires = ["poetry-core"]
