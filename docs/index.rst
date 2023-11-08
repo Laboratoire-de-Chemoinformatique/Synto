@@ -1,16 +1,11 @@
-Synto (合成道) - the way of chemical synthesis
+Synto
 ========
-Synto is inspired by the Japanese term *Gouseido* (合成道), which roughly translates to "the way of synthesis".
-This repository is a toolbox for chemical synthesis planning based on Monte-Carlo Tree Search (MCTS)
+Synto (SYNthesis planning TOol) a tool for chemical synthesis planning based on Monte-Carlo Tree Search (MCTS)
 with various implementations of policy and value functions.
-
-
-Introduction
----------------------------
 
 Synto learns to generate retrosynthetic paths from real chemical reactions stored in big databases.
 To extract this knowledge from the reaction databases we need to apply machine learning algorithms, especially deep
-neural networks. To generate the retrosynthesis path for the given molecule the tool needs to know which reaction to
+neural networks. To generate the retrosynthesis pathways for the given molecule the tool needs to know which reaction to
 apply to current substrates to get the intermediate product and how to establish the correct sequence of these reactions
 (synthetic path) leading to the target molecule.
 
@@ -36,8 +31,8 @@ and used in training the value network.
 .. toctree::
     :hidden:
 
-    quick_start
     installation
     interfaces
+    planning
+    training
     configuration
-    networks_training

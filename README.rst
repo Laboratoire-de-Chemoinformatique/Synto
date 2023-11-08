@@ -17,15 +17,15 @@ For example, on Ubuntu we can install miniconda in which we will install poetry 
 
 .. code-block:: bash
 
-    # Install miniconda
+    # install miniconda
     wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
     bash Miniconda3-latest-Linux-x86_64.sh
 
-    # Install poetry
+    # install poetry
     conda create -n synto -c conda-forge "poetry=1.3.2" "python=3.10" -y
     conda activate synto
 
-    # Install Synto
+    # install Synto
     git clone https://github.com/Laboratoire-de-Chemoinformatique/Synto.git
 
     # Navigate to the Synto folder and run the following command:
@@ -41,7 +41,7 @@ If Poetry fails with error, a possible solution is to update the bashrc file wit
 
 Optional
 ^^^^^^^^^^^
-You can install the environment in your jupyter kernel
+One can install the environment in your jupyter kernel
 
 .. code-block:: bash
 
@@ -64,7 +64,7 @@ Run retrosynthetic planning
 ^^^^^^^^^^^
 .. code-block:: bash
 
-    synto_download_planning_data
+    synto_planning_data
     synto_building_blocks --input="synto_planning_data/building_blocks.txt" --output="synto_planning_data/building_blocks.txt" # skip for loaded data
     synto_planning --targets="targets.txt" --config="planning_config.yaml" --results_root="synto_results"
 
@@ -72,6 +72,6 @@ Run training from scratch
 ^^^^^^^^^^^
 .. code-block:: bash
 
-    synto_download_training_data
+    synto_training_data
     synto_building_blocks --input="synto_training_data/building_blocks.txt" --output="synto_training_data/building_blocks.txt" # skip for loaded data
     synto_training --config="training_config.yaml"

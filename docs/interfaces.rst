@@ -1,33 +1,27 @@
 Interfaces
 ================
 
-Graphical user interface
----------------------------
-
-You can use the pretrained Synto via Graphical User Interface (GUI) available by this link.
-
-
 Command line interface
 ---------------------------
 
 Synto provides with CLI commands for training and planning modes.
 
-    For planning mode:
+    For retrosynthesis planning:
 
-    * synto_download_data
-    * synto_planning_config
-    * synto_tree_search
+    * synto_planning_data
+    * synto_building_blocks
+    * synto_planning
 
-    For training mode:
+    For retrosynthetic models training:
 
-    * synto_training_config
+    * synto_training_data
+    * synto_building_blocks
     * synto_extract_reaction_rules
     * synto_policy_training
     * synto_self_tuning
 
     For full end-to-end training mode (combine all commands for training mode):
 
-    * synto_training_config
     * synto_training
 
 
@@ -52,6 +46,6 @@ Python interface for planning
     config_path = 'planning_config.yaml'
     config = read_planning_config(config_path)
 
-    # Run search
+    # run search
     tree = Tree(target=target, config=config)
     _ = list(tree)
