@@ -119,7 +119,6 @@ def tree_search(
             statswriter.writeheader()
 
             for ti, target in tqdm(enumerate(targets_list), total=len(targets_list), position=0):
-                print(ti,target)
                 target = safe_canonicalization(target)
                 try:
                     tree = Tree(target=target, config=config)

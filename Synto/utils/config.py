@@ -17,8 +17,8 @@ planning_config = {
         "ucb_type": "uct",
         "c_usb": 0.1,
         "max_depth": 6,
-        "max_iterations": 10,
-        "max_time": 120,
+        "max_iterations": 100,
+        "max_time": 600,
         "max_tree_size": 1e6,
         "verbose": False,
         "evaluation_mode": "gcn",
@@ -39,63 +39,59 @@ planning_config = {
 }
 
 cdw = getcwd()
-if path.exists(cdw+'/synto_data/reaction_rules.pickle'):
-    planning_config["General"]["reaction_rules_path"] = cdw+'/synto_data/reaction_rules.pickle'
-if path.exists(cdw+'/synto_data/building_blocks.pickle'):
-    planning_config["General"]["building_blocks_path"] = cdw+'/synto_data/building_blocks.pickle'
-if path.exists(cdw+'/synto_data/policy_network.ckpt'):
-    planning_config["PolicyNetwork"]["weights_path"] = cdw+'/synto_data/policy_network.ckpt'
-if path.exists(cdw+'/synto_data/value_network.ckpt'):
-    planning_config["ValueNetwork"]["weights_path"] = cdw+'/synto_data/value_network.ckpt'
+if path.exists(cdw + '/synto_planning_data/reaction_rules.pickle'):
+    planning_config["General"]["reaction_rules_path"] = cdw + '/synto_planning_data/reaction_rules.pickle'
+if path.exists(cdw + '/synto_planning_data/building_blocks.pickle'):
+    planning_config["General"]["building_blocks_path"] = cdw + '/synto_planning_data/building_blocks.txt'
+if path.exists(cdw + '/synto_planning_data/policy_network.ckpt'):
+    planning_config["PolicyNetwork"]["weights_path"] = cdw + '/synto_planning_data/policy_network.ckpt'
+if path.exists(cdw + '/synto_planning_data/value_network.ckpt'):
+    planning_config["ValueNetwork"]["weights_path"] = cdw + '/synto_planning_data/value_network.ckpt'
 
 
 training_config = {
     'General': {
-        'results_root': 'synto_training',
-        'reaction_rules_path': 'Synto_training/reaction_rules/reaction_rules.pickle',
-        'building_blocks_path': 'Synto_training/building_blocks/building_blocks.pickle',
-        'num_cpus': 20,
+        'results_root': None,
+        'building_blocks_path': None,
+        'num_cpus': 10,
         'num_gpus': 1},
-
     'Tree': {
         'ucb_type': 'uct',
         'c_usb': 0.1,
-        'max_depth': 6,
-        'max_iterations': 50,
+        'max_depth': 9,
+        'max_iterations': 5,
         'max_time': 120,
-        'max_tree_size': 1000000,
+        'max_tree_size': 1e6,
         'verbose': False,
         'evaluation_mode': 'gcn',
         'evaluation_agg': 'max',
         'backprop_type': 'muzero',
         'init_new_node_value': None,
         'epsilon': 0.0},
-
     'ReactionRules': {
-        'reaction_data_path': None},
-
-    'SelfLearning': {
         'results_root': None,
-        'dataset_path': None,
-        'num_simulations': 1,
-        'batch_size': 5,
-        'balance_positive': False},
-
+        'reaction_data_path': None,
+        'reaction_rules_path': None},
     'PolicyNetwork': {
         'results_root': None,
         'dataset_path': None,
         'datamodule_path': None,
         'weights_path': None,
         'priority_rules_fraction': 0.5,
+        "top_rules": 50,
+        "rule_prob_threshold": 0.0,
         'num_conv_layers': 5,
         'vector_dim': 512,
         'dropout': 0.4,
         'learning_rate': 0.0005,
         'num_epoch': 100,
         'batch_size': 500},
-
-    'ValueNetwork': {
+    'SelfTuning': {
         'results_root': None,
+        'dataset_path': None,
+        'num_simulations': 1,
+        'batch_size': 5},
+    'ValueNetwork': {
         'weights_path': None,
         'num_conv_layers': 5,
         'vector_dim': 512,
@@ -118,10 +114,10 @@ def check_planning_config(loaded_config):
         for ii, vv in v.items():
             updated_config[i][ii] = vv
     #
-    assert Path(updated_config["PolicyNetwork"]["weights_path"]).exists(), "Path for Policy Network does not exists"
-    assert Path(updated_config["ValueNetwork"]["weights_path"]).exists(), "Path for Value Network does not exists"
     assert Path(updated_config["General"]["reaction_rules_path"]).exists(), "Path for reaction rules does not exists"
     assert Path(updated_config["General"]["building_blocks_path"]).exists(), "Path for building blocks does not exists"
+    assert Path(updated_config["PolicyNetwork"]["weights_path"]).exists(), "Path for Policy Network does not exists"
+    assert Path(updated_config["SelFTuning"]["weights_path"]).exists(), "Path for Value Network does not exists"
 
     return updated_config
 
