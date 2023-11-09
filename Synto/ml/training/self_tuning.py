@@ -453,6 +453,6 @@ def run_self_tuning(config: dict):
                              simul_id=simul_id,
                              config=config,
                              experiment_root=experiment_root)
-            #
+
             # shuffle targets
             shuffle_targets(targets_file)
