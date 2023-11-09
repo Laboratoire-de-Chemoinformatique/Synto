@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Interfaces &#8212; Synto 1.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/sphinx_highlight.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Planning" href="planning.html" />
+    <link rel="prev" title="Installation" href="installation.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="interfaces">
+<h1>Interfaces<a class="headerlink" href="#interfaces" title="Permalink to this heading">¶</a></h1>
+<section id="command-line-interface">
+<h2>Command line interface<a class="headerlink" href="#command-line-interface" title="Permalink to this heading">¶</a></h2>
+<p>Synto provides with CLI commands for training and planning modes.</p>
+<blockquote>
+<div><p>For retrosynthesis planning:</p>
+<ul class="simple">
+<li><p>synto_planning_data</p></li>
+<li><p>synto_building_blocks</p></li>
+<li><p>synto_planning</p></li>
+</ul>
+<p>For retrosynthetic models training:</p>
+<ul class="simple">
+<li><p>synto_training_data</p></li>
+<li><p>synto_building_blocks</p></li>
+<li><p>synto_extract_reaction_rules</p></li>
+<li><p>synto_policy_training</p></li>
+<li><p>synto_self_tuning</p></li>
+</ul>
+<p>For full end-to-end training mode (combine all commands for training mode):</p>
+<ul class="simple">
+<li><p>synto_training</p></li>
+</ul>
+</div></blockquote>
+</section>
+<section id="python-interface">
+<h2>Python interface<a class="headerlink" href="#python-interface" title="Permalink to this heading">¶</a></h2>
+<p>Python interface for planning</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">Synto.mcts</span> <span class="kn">import</span> <span class="n">Tree</span>
+<span class="kn">from</span> <span class="nn">Synto.utils.config</span> <span class="kn">import</span> <span class="n">read_planning_config</span>
+<span class="kn">from</span> <span class="nn">CGRtools</span> <span class="kn">import</span> <span class="n">smiles</span>
+
+<span class="c1"># set target</span>
+<span class="n">target</span> <span class="o">=</span> <span class="s1">&#39;C1=CC=NC(CNC(=O)C2=C3C(=NC(N)=N2)C(OC)=CC=C3)=N1&#39;</span>
+<span class="n">target</span> <span class="o">=</span> <span class="n">smiles</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
+<span class="n">target</span><span class="o">.</span><span class="n">canonicalize</span><span class="p">()</span>
+<span class="n">target</span><span class="o">.</span><span class="n">clean2d</span><span class="p">()</span>
+
+<span class="c1"># read config file</span>
+<span class="n">config_path</span> <span class="o">=</span> <span class="s1">&#39;planning_config.yaml&#39;</span>
+<span class="n">config</span> <span class="o">=</span> <span class="n">read_planning_config</span><span class="p">(</span><span class="n">config_path</span><span class="p">)</span>
+
+<span class="c1"># run search</span>
+<span class="n">tree</span> <span class="o">=</span> <span class="n">Tree</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">target</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>
+<span class="n">_</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">tree</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">Synto</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Interfaces</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#command-line-interface">Command line interface</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#python-interface">Python interface</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="planning.html">Planning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="training.html">Training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="installation.html" title="previous chapter">Installation</a></li>
+      <li>Next: <a href="planning.html" title="next chapter">Planning</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2023, University of Strasbourg.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 7.0.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
+      
+      |
+      <a href="_sources/interfaces.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
