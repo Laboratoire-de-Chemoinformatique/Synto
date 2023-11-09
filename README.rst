@@ -3,12 +3,6 @@ Synto - A SYNthesis planning TOol
 Synto is a tool for chemical synthesis planning based on Monte-Carlo Tree Search (MCTS)
 with various implementations of policy and value functions.
 
-Documentation
------------
-
-The the detailed documentation can be found `here <https://laboratoire-de-chemoinformatique.github.io/Synto/>`_
-
-
 
 Installation
 ------------
@@ -82,3 +76,9 @@ Run training from scratch
     synto_training_data
     synto_building_blocks --input="synto_training_data/building_blocks.txt" --output="synto_training_data/building_blocks.txt" # skip for loaded data
     synto_training --config="training_config.yaml"
+
+
+Documentation
+-----------
+
+The the detailed documentation can be found `here <https://laboratoire-de-chemoinformatique.github.io/Synto/>`_
