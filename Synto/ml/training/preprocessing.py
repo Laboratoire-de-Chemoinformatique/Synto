@@ -265,7 +265,6 @@ def reaction_rules_appliance(molecule, reaction_rules):
 
     return applied_rules, priority_rules
 
-
 @ray.remote
 def preprocess_policy_molecules(list_of_molecules: List[MoleculeContainer], reaction_rules: List[Reactor]):
     """

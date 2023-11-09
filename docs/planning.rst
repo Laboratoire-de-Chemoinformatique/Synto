@@ -23,15 +23,15 @@ Retrosynthesis planning is configured with the `config_planning.yaml` configurat
     General:
       reaction_rules_path: synto_planning_data/reaction_rules.pickle
       building_blocks_path: synto_planning_data/building_blocks.txt
+    Tree:
+      max_depth: 9
+      max_iterations: 100
+      evaluation_mode: gcn
+      verbose: true
     PolicyNetwork:
       weights_path: synto_planning_data/policy_network.ckpt
     ValueNetwork:
       weights_path: synto_planning_data/value_network.ckpt
-    Tree:
-      max_depth: 9  # maximum depth of tree
-      max_iterations: 100  # maximum number of iterations
-      max_time: 600  # search time limit
-      verbose: True  # tree search progress bar
 
 
 **Run planning**

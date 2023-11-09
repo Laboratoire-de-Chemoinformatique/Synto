@@ -17,34 +17,33 @@ The following data files are required for retrosynthetic models training with Sy
 
 Retrosynthetic models training is configured with the `config_training.yaml` configuration file:
 
-
 .. code-block:: yaml
 
     General:
       results_root: synto_training_data
-      building_blocks_path: synto_training_data/building_blocks/building_blocks.txt
+      reaction_rules_path: synto_training_data/reaction_rules/reaction_rules.pickle
+      building_blocks_path: synto_training_data/building_blocks/building_blocks.pickle
       num_cpus: 10
       num_gpus: 1
+    Tree:
+      max_depth: 6
+      max_iterations: 5
+      evaluation_mode: gcn
+      verbose: false
     ReactionRules:
       results_root: synto_training_data/reaction_rules
       reaction_data_path: synto_training_data/reaction_data/reaction_data.rdf
-      reaction_rules_path: synto_training_data/reaction_rules/reaction_rules.pickle
+    SelfTuning:
+      results_root: synto_training_data/value_network
+      dataset_path: synto_training_data/value_molecules/value_molecules.sdf
     PolicyNetwork:
       results_root: synto_training_data/policy_network
       dataset_path: synto_training_data/policy_molecules/policy_molecules.sdf
       datamodule_path: synto_training_data/policy_network/policy_dataset.pt
       weights_path: synto_training_data/policy_network/policy_network.ckpt
-    Tree:
-      max_depth: 9
-      max_iterations: 100
-      max_time: 600
-      verbose: True
-    SelfTuning:
+    ValueNetwork:
       results_root: synto_training_data/value_network
-      dataset_path: synto_training_data/value_molecules/value_molecules.sdf
       weights_path: synto_training_data/value_network/value_network.ckpt
-      num_simulations: 1
-      batch_size: 500
 
 
 **Full-pipeline execution**
@@ -84,5 +83,7 @@ Extracted reaction rules and trained policy and value networks can be used in re
       max_depth: 9  # maximum depth of tree
       max_iterations: 100  # maximum number of iterations
       max_time: 600  # search time limit
+      evaluation_mode: gcn
       verbose: True  # tree search progress bar
+
 

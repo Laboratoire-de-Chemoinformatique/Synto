@@ -28,7 +28,7 @@ For example, on Ubuntu we can install miniconda in which we will install poetry 
     # install Synto
     git clone https://github.com/Laboratoire-de-Chemoinformatique/Synto.git
 
-    # Navigate to the Synto folder and run the following command:
+    # navigate to the Synto folder and run the following command:
     cd Synto/
     poetry install --with cpu
 
