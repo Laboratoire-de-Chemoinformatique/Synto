@@ -159,16 +159,15 @@ class PolicyNetworkDataset(InMemoryDataset):
 
         :param molecules_path: The `path to the file containing the training molecules in SDF format
         :param reaction_rules: The list of reaction rules that will be used for preprocessing the molecules.
-        :param num_cpus: The the number of CPUs that will be used for the preprocessing task
+        :param num_cpus: The number of CPUs that will be used for the preprocessing task
         :return: A list of PyTorch Geometric (PyG) graphs.
         """
 
         reaction_rules_ids = ray.put(reaction_rules)
 
         pyg_graphs = []
-        with SDFRead(molecules_path, indexable=True) as inp:
-            inp.reset_index()
-
+        with SMILESRead(molecules_path) as inp_data:
+            inp = inp_data.read()
             mols_batch, mols_idx = [], []
             for n, molecule in tqdm(enumerate(inp), total=len(inp)):
                 mols_idx.append(n)
