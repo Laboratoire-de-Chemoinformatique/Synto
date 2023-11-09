@@ -3,6 +3,7 @@ from StructureFingerprint import MorganFingerprint
 import numpy as np
 from typing import Iterable, Tuple
 
+
 def tanimoto_kernel(x: np.ndarray, y: np.ndarray) -> np.ndarray:
     """
     Calculate Tanimoto between each elements of array x and y.
@@ -102,6 +103,7 @@ class CheckRings:
             return True
         else:
             return False
+
 
 class CheckDynamicBondsNumber:
     """Allows to check if there is unacceptable number of dynamic bonds in CGR"""
