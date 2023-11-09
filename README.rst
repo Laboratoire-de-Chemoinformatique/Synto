@@ -6,7 +6,9 @@ with various implementations of policy and value functions.
 Documentation
 -----------
 
-The the detailed documentation can be found [here](https://laboratoire-de-chemoinformatique.github.io/Synto/)
+The the detailed documentation can be found `here <https://laboratoire-de-chemoinformatique.github.io/Synto/>`_
+
+
 
 Installation
 ------------
