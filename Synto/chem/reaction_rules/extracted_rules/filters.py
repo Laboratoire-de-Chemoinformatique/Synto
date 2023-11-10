@@ -390,4 +390,5 @@ class CheckRulesByPopularity:
         extracted
         :return: True or False
         """
-        return True if int(rule.meta['Number_of_reactions']) < self.min_popularity else False
+        # return True if int(rule.meta['Number_of_reactions']) < self.min_popularity else False
+        return True if len(rule._Reactor__meta['reaction_ids']) < self.min_popularity else False

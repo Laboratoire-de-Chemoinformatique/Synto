@@ -5,7 +5,7 @@ Module containing functions with fixed protocol for reaction rules extraction
 from .extracted_rules.filters import CheckCCsp3Breaking, CheckCCRingBreaking, CheckRulesByPopularity
 from .extracted_rules.filters import CheckCGRConnectedComponents, CheckDynamicBondsNumber, CheckSmallMolecules
 from .extracted_rules.filters import CheckNoReaction, CheckMultiCenterReaction, CheckWrongCHBreaking
-from .extracted_rules.processing import reaction_database_processing
+from .extracted_rules.processing import reaction_database_processing, reaction_database_multiprocessing
 from .extracted_rules.transformations import ExtractRule
 
 filters = [
@@ -17,7 +17,6 @@ filters = [
     CheckWrongCHBreaking(),
     CheckCCsp3Breaking(),
     CheckCCRingBreaking(),
-    CheckRulesByPopularity(),
 ]
 
 transformations = [

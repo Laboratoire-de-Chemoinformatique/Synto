@@ -93,13 +93,14 @@ def reaction_database_processing(reaction_database_file_name: str, transformatio
                     if is_filtered:
                         filtered_file.write(reaction)
                         continue
-                if transformations:  # TODO below reaction overwrite reaction is not good > reaction and reaction rules
-                    reaction = apply_transformations(transformations, reaction)  # TODO probably rule extraction is not transformation
-            except Exception:
+                if transformations:
+                    reaction = apply_transformations(transformations, reaction)
+            except Exception as e:
+                print(e)
                 reaction.meta['Error'] = 'True'
                 filtered_file.write(reaction)
             else:
-                if type(reaction) != list:  # TODO isinstance ?
+                if type(reaction) != list:
                     reaction = [reaction]
                 for real_reaction in reaction:
                     real_reaction.clean2d()
@@ -110,19 +111,26 @@ def reaction_database_processing(reaction_database_file_name: str, transformatio
                     result_file.write(real_reaction)
 
     if save_only_unique:
-        with RDFWrite(f'{result_directory_name}/unique_{result_reactions_file_name}') as unique_file:
-            for result_reaction, reaction_ids in tqdm(unique_reactions.items()):
-                result_reaction.meta['reaction_ids'] = ','.join([str(indx) for indx in reaction_ids])
-                unique_file.write(result_reaction)
-        with open(f'{result_directory_name}/{result_reactions_pkl_file_name}', 'wb') as pickle_file:
 
-            unique_reactions = list(unique_reactions.keys())
+        pop_reactions = []
+        for result_reaction, reaction_ids in unique_reactions.items():
+            result_reaction.meta['reaction_ids'] = tuple(i for i in reaction_ids)
+            if len(result_reaction.meta['reaction_ids']) >= 3:
+                pop_reactions.append(result_reaction)
+            else:
+                pass
+
+        with RDFWrite(f'{result_directory_name}/unique_{result_reactions_file_name}') as unique_file:
+            for result_reaction in tqdm(pop_reactions):
+                unique_file.write(result_reaction)
+
+        with open(f'{result_directory_name}/{result_reactions_pkl_file_name}', 'wb') as pickle_file:
             
             # reverse reaction rules
             reverse_reaction = ReverseReaction()
-            unique_reactions = [reverse_reaction(i) for i in unique_reactions]
+            pop_rections = [reverse_reaction(i) for i in pop_reactions]
 
-            dump(unique_reactions, pickle_file)
+            dump(pop_rections, pickle_file)
 
 
 def reaction_database_multiprocessing(reaction_database_file_name: str, number_of_processes: int,
