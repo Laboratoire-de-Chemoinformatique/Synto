@@ -140,14 +140,14 @@ class PolicyNetworkDataset(InMemoryDataset):
 
         ray.init(num_cpus=self.num_cpus, ignore_reinit_error=True)
         reaction_rules_ids = ray.put(reaction_rules)
-        todo = Queue()
+        to_process = Queue()
 
         processed_data = []
         for mols_batch in tqdm(mols_batches):
             for mol in mols_batch:
-                todo.put(mol)
+                to_process.put(mol)
             del mols_batch
-            results_ids = [preprocess_policy_molecules.remote(todo, reaction_rules_ids)]*self.num_cpus
+            results_ids = [preprocess_policy_molecules.remote(to_process, reaction_rules_ids)]*self.num_cpus
             results = [graph for res in ray.get(results_ids) if res for graph in res]
             processed_data.extend(results)
 
@@ -233,13 +233,13 @@ def reaction_rules_appliance(molecule, reaction_rules):
 
 
 @ray.remote
-def preprocess_policy_molecules(todo: Queue, reaction_rules: List[Reactor]):
+def preprocess_policy_molecules(to_process: Queue, reaction_rules: List[Reactor]):
     """
     The function preprocesses a list of molecules by applying reaction rules and converting molecules into PyTorch
     geometric graphs. Successfully applied rules are converted to binary vectors for policy network training.
 
-    :param todo: The queue containing SMILES of molecules to be converted to the training data.
-    :type todo: Queue
+    :param to_process: The queue containing SMILES of molecules to be converted to the training data.
+    :type to_process: Queue
     :param reaction_rules: The list of `reaction rules.
     :type reaction_rules: List[Reactor]
     :return: a list of PyGraph objects.
@@ -248,7 +248,7 @@ def preprocess_policy_molecules(todo: Queue, reaction_rules: List[Reactor]):
     pyg_graphs = []
     while True:
         try:
-            molecule_str = todo.get(timeout=1)
+            molecule_str = to_process.get(timeout=1)
             molecule = smiles(molecule_str)
             if not isinstance(molecule, MoleculeContainer):
                 continue
