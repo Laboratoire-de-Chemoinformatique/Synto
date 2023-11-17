@@ -7,10 +7,12 @@ from abc import ABC
 from typing import List
 
 import ray
+from ray.util.queue import Queue, Empty
 import torch
+from CGRtools import smiles
 from CGRtools.containers import MoleculeContainer
 from CGRtools.exceptions import InvalidAromaticRing
-from CGRtools.files import SMILESRead, SDFRead
+from CGRtools.files import SMILESRead
 from CGRtools.reactor import Reactor
 from torch_geometric.data import Data, InMemoryDataset
 from torch_geometric.data.makedirs import makedirs
@@ -134,10 +136,20 @@ class PolicyNetworkDataset(InMemoryDataset):
         """
 
         reaction_rules = load_reaction_rules(self.reaction_rules_path)
+        mols_batches = self.prepare_mol_batches()
 
         ray.init(num_cpus=self.num_cpus, ignore_reinit_error=True)
+        reaction_rules_ids = ray.put(reaction_rules)
+        to_process = Queue()
 
-        processed_data = self.preprocess(self.molecules_path, reaction_rules, self.num_cpus)
+        processed_data = []
+        for mols_batch in tqdm(mols_batches):
+            for mol in mols_batch:
+                to_process.put(mol)
+            del mols_batch
+            results_ids = [preprocess_policy_molecules.remote(to_process, reaction_rules_ids)]*self.num_cpus
+            results = [graph for res in ray.get(results_ids) if res for graph in res]
+            processed_data.extend(results)
 
         ray.shutdown()
 
@@ -152,66 +164,21 @@ class PolicyNetworkDataset(InMemoryDataset):
 
         return data, slices
 
-    def preprocess(self, molecules_path, reaction_rules, num_cpus):
+    def prepare_mol_batches(self):
         """
-        Takes the file containing molecules, a set of reaction rules, and the number of CPUs to use, and returns
-        a list of preprocessed PyTorch Geometric graphs.
-
-        :param molecules_path: The `path to the file containing the training molecules in SDF format
-        :param reaction_rules: The list of reaction rules that will be used for preprocessing the molecules.
-        :param num_cpus: The number of CPUs that will be used for the preprocessing task
-        :return: A list of PyTorch Geometric (PyG) graphs.
+        Reads input SMILES and distributes them into batches, for processing them later in the code.
+        :return: list of lists of SMILES of length self.batch_prep_size*self.num_cpus.
         """
-
-        reaction_rules_ids = ray.put(reaction_rules)
-
-        pyg_graphs = []
-        with SMILESRead(molecules_path) as inp_data:
-            inp = inp_data.read()
-            mols_batch, mols_idx = [], []
-            for n, molecule in tqdm(enumerate(inp), total=len(inp)):
-                mols_idx.append(n)
-
+        mols_batch, mols_batches = [], []
+        with open(self.molecules_path, "r") as inp_data:
+            for molecule in tqdm(inp_data.read().splitlines()):
                 mols_batch.append(molecule)
-                if len(mols_batch) == self.batch_prep_size * num_cpus:
-
-                    with open('policy_mols.txt', 'w') as fw:
-                        for i in mols_idx:
-                            fw.write(f'{i}\n')
-
-                    try:
-                        pyg_graphs.extend(self.preprocess_batch(mols_batch, reaction_rules_ids, num_cpus))
-                        mols_batch = []
-                    except:
-                        mols_batch = []
-                        continue
-
+                if len(mols_batch) == self.batch_prep_size*self.num_cpus:
+                    mols_batches.append(mols_batch)
+                    mols_batch = []
             if mols_batch:
-                pyg_graphs.extend(self.preprocess_batch(mols_batch, reaction_rules_ids, num_cpus))
-
-        return pyg_graphs
-
-    def preprocess_batch(self, mols_batch, reaction_rules_ids, num_cpus):
-        """
-        Preprocesses a batch of molecules
-
-        :param mols_batch: A list of molecules to be preprocessed
-        :param reaction_rules_ids: The list of identifiers for reaction rules
-        :param num_cpus: The number of CPUs (central processing units) that will be used for parallel processing.
-        :return: A list of preprocessed molecules
-        """
-
-        mols_batch_ids = [ray.put(mols_batch[i * self.batch_prep_size: (i + 1) * self.batch_prep_size])
-                          for i in range(num_cpus)]
-
-        results_ids = [preprocess_policy_molecules.remote(m_id, reaction_rules_ids) for m_id in mols_batch_ids]
-        results = [graph for res in ray.get(results_ids) if res for graph in res]
-
-        del results_ids
-        del mols_batch
-        del mols_batch_ids
-
-        return results
+                mols_batches.append(mols_batch)
+        return mols_batches
 
 
 def reaction_rules_appliance(molecule, reaction_rules):
@@ -264,48 +231,49 @@ def reaction_rules_appliance(molecule, reaction_rules):
 
     return applied_rules, priority_rules
 
+
 @ray.remote
-def preprocess_policy_molecules(list_of_molecules: List[MoleculeContainer], reaction_rules: List[Reactor]):
+def preprocess_policy_molecules(to_process: Queue, reaction_rules: List[Reactor]):
     """
     The function preprocesses a list of molecules by applying reaction rules and converting molecules into PyTorch
     geometric graphs. Successfully applied rules are converted to binary vectors for policy network training.
 
-    :param list_of_molecules: The list of molecules to be converted to the training data.
-    :type list_of_molecules: List[MoleculeContainer]
+    :param to_process: The queue containing SMILES of molecules to be converted to the training data.
+    :type to_process: Queue
     :param reaction_rules: The list of `reaction rules.
     :type reaction_rules: List[Reactor]
     :return: a list of PyGraph objects.
     """
 
     pyg_graphs = []
-    for molecule in list_of_molecules:
+    while True:
+        try:
+            molecule_str = to_process.get(timeout=1)
+            molecule = smiles(molecule_str)
+            if not isinstance(molecule, MoleculeContainer):
+                continue
 
-        if not isinstance(molecule, MoleculeContainer):
-            continue
+            # reaction reaction_rules application
+            applied_rules, priority_rules = reaction_rules_appliance(molecule, reaction_rules)
+            y_rules = torch.sparse_coo_tensor([applied_rules], torch.ones(len(applied_rules)),
+                                              (len(reaction_rules),), dtype=torch.uint8)
+            y_priority = torch.sparse_coo_tensor([priority_rules], torch.ones(len(priority_rules)),
+                                                 (len(reaction_rules),), dtype=torch.uint8)
 
-        # reaction reaction_rules application
-        applied_rules, priority_rules = reaction_rules_appliance(molecule, reaction_rules)
+            y_rules = torch.unsqueeze(y_rules, 0)
+            y_priority = torch.unsqueeze(y_priority, 0)
 
-        y_rules = torch.sparse_coo_tensor([applied_rules], torch.ones(len(applied_rules)),
-                                          (len(reaction_rules),), dtype=torch.uint8)
+            pyg_graph = mol_to_pyg(molecule)
+            if pyg_graph:
+                pyg_graph.y_rules = y_rules
+                pyg_graph.y_priority = y_priority
+            else:
+                continue
 
-        y_priority = torch.sparse_coo_tensor([priority_rules], torch.ones(len(priority_rules)),
-                                             (len(reaction_rules),), dtype=torch.uint8)
-
-        y_rules = torch.unsqueeze(y_rules, 0)
-        y_priority = torch.unsqueeze(y_priority, 0)
-
-        #
-        pyg_graph = mol_to_pyg(molecule)
-        if pyg_graph:
-            pyg_graph.y_rules = y_rules
-            pyg_graph.y_priority = y_priority
-        else:
-            continue
-        #
-        assert pyg_graph.is_undirected()
-        pyg_graphs.append(pyg_graph)
-
+            assert pyg_graph.is_undirected()
+            pyg_graphs.append(pyg_graph)
+        except Empty:
+            break
     return pyg_graphs
 
 
