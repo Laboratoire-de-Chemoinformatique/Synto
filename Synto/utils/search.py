@@ -16,7 +16,7 @@ from Synto.ml.training.preprocessing import safe_canonicalization
 from Synto.utils.config import read_planning_config
 
 
-def collect_stats(tree, target):
+def extract_tree_stats(tree, target):
     """
     Collects various statistics from a tree and returns them in a dictionary format
 
@@ -131,7 +131,7 @@ def tree_search(
                         retropaths_file = retropaths_folder.joinpath(f"{retropaths_files_name}_target_{ti}.html")
                         to_table(tree, retropaths_file, extended=True)
 
-                    statistics = collect_stats(tree, target)
+                    statistics = extract_tree_stats(tree, target)
                     statswriter.writerow(statistics)
                     csvfile.flush()
                 except AssertionError:

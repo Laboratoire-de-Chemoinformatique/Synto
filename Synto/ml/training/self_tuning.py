@@ -25,27 +25,7 @@ from Synto.ml.networks.networks import ValueGraphNetwork
 from Synto.ml.training.loading import load_value_net
 from Synto.ml.training.preprocessing import ValueNetworkDataset
 from Synto.ml.training.preprocessing import compose_retrons
-
-
-def extract_tree_stats(tree):
-    """
-    Extracts various statistics from a tree, including the target smiles, tree size, search time, number of found paths,
-    and the newick representation of the tree.
-
-    :param tree: The built tree
-    :return: A dictionary containing calculated statistics
-    """
-    newick_tree, newick_meta = tree.newickify(visits_threshold=1)
-    newick_meta_line = ";".join([f"{nid},{v[0]},{v[1]},{v[2]}" for nid, v in newick_meta.items()])
-
-    stats = {"target_smiles": str(tree.nodes[1]),
-             "tree_size": len(tree),
-             "search_time": float(round(tree.curr_time, 1)),
-             "found_paths": len(tree.winning_nodes),
-             "newick_tree": newick_tree,
-             "newick_meta": newick_meta_line}
-
-    return stats
+from Synto.utils.search import extract_tree_stats
 
 
 def create_targets_batch(experiment_root=None, targets_file=None, tmp_file_id=None, batch_slices=None):
@@ -355,7 +335,7 @@ def run_planning(
             processed_molecules = extract_tree_retrons(tree, processed_molecules=processed_molecules)
 
             # extract tree statistics
-            tree_stats = extract_tree_stats(tree)
+            tree_stats = extract_tree_stats(tree, target)
             if tree_stats["found_paths"] > 0:
                 num_solved += 1
             total_time += tree_stats["search_time"]
@@ -376,7 +356,7 @@ def run_planning(
             to_table(tree, str(saved_paths), extended=True)
 
     logging.info(f"Simulation over batch is finished with mean search time {total_time // batch_len} "
-                 f"and percetage of solved queries {(num_solved / batch_len) * 100}")
+                 f"and percentage of solved queries {(num_solved / batch_len) * 100}")
 
     # shuffle retrons
     processed_keys = list(processed_molecules.keys())

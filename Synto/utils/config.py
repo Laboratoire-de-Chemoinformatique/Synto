@@ -117,7 +117,7 @@ def check_planning_config(loaded_config):
     assert Path(updated_config["General"]["reaction_rules_path"]).exists(), "Path for reaction rules does not exists"
     assert Path(updated_config["General"]["building_blocks_path"]).exists(), "Path for building blocks does not exists"
     assert Path(updated_config["PolicyNetwork"]["weights_path"]).exists(), "Path for Policy Network does not exists"
-    assert Path(updated_config["SelfTuning"]["weights_path"]).exists(), "Path for Value Network does not exists"
+    assert Path(updated_config["ValueNetwork"]["weights_path"]).exists(), "Path for Value Network does not exists"
 
     return updated_config
 
