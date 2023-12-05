@@ -2,7 +2,7 @@ General:
   results_root: synto_training_test
   reaction_rules_path: synto_training_test/reaction_rules/reaction_rules.pickle
   building_blocks_path: synto_training_test/building_blocks/building_blocks.pickle
-  num_cpus: 10
+  num_cpus: 5
   num_gpus: 1
 Tree:
   ucb_type: uct
@@ -20,6 +20,7 @@ Tree:
 ReactionRules:
   results_root: synto_training_test/reaction_rules
   reaction_data_path: synto_training_test/reaction_data/reaction_data.rdf
+  min_popularity: 5
 SelfTuning:
   results_root: synto_training_test/value_network
   dataset_path: synto_training_test/value_molecules/value_molecules.smi
