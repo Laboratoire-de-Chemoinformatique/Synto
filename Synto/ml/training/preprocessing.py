@@ -147,7 +147,7 @@ class PolicyNetworkDataset(InMemoryDataset):
             for mol in mols_batch:
                 to_process.put(mol)
             del mols_batch
-            results_ids = [preprocess_policy_molecules.remote(to_process, reaction_rules_ids)]*self.num_cpus
+            results_ids = [preprocess_policy_molecules.remote(to_process, reaction_rules_ids) for i in range(self.num_cpus)]
             results = [graph for res in ray.get(results_ids) if res for graph in res]
             processed_data.extend(results)
 
