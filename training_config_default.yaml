@@ -6,7 +6,7 @@ General:
   num_gpus: 1
 Tree:
   max_depth: 6
-  max_iterations: 100
+  max_iterations: 5
   evaluation_mode: gcn
   verbose: false
 ReactionRules:
