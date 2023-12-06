@@ -53,6 +53,7 @@ training_config = {
     'General': {
         'results_root': None,
         'building_blocks_path': None,
+        'reaction_rules_path': None,
         'num_cpus': 10,
         'num_gpus': 1},
     'Tree': {
@@ -71,7 +72,7 @@ training_config = {
     'ReactionRules': {
         'results_root': None,
         'reaction_data_path': None,
-        'reaction_rules_path': None},
+        'min_popularity': 10},
     'PolicyNetwork': {
         'results_root': None,
         'dataset_path': None,
@@ -117,7 +118,7 @@ def check_planning_config(loaded_config):
     assert Path(updated_config["General"]["reaction_rules_path"]).exists(), "Path for reaction rules does not exists"
     assert Path(updated_config["General"]["building_blocks_path"]).exists(), "Path for building blocks does not exists"
     assert Path(updated_config["PolicyNetwork"]["weights_path"]).exists(), "Path for Policy Network does not exists"
-    assert Path(updated_config["SelfTuning"]["weights_path"]).exists(), "Path for Value Network does not exists"
+    assert Path(updated_config["ValueNetwork"]["weights_path"]).exists(), "Path for Value Network does not exists"
 
     return updated_config
 

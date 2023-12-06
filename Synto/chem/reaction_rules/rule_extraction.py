@@ -5,7 +5,7 @@ Module containing functions with fixed protocol for reaction rules extraction
 from .extracted_rules.filters import CheckCCsp3Breaking, CheckCCRingBreaking, CheckRulesByPopularity
 from .extracted_rules.filters import CheckCGRConnectedComponents, CheckDynamicBondsNumber, CheckSmallMolecules
 from .extracted_rules.filters import CheckNoReaction, CheckMultiCenterReaction, CheckWrongCHBreaking
-from .extracted_rules.processing import reaction_database_processing, reaction_database_multiprocessing
+from .extracted_rules.processing import reaction_database_processing
 from .extracted_rules.transformations import ExtractRule
 
 filters = [
@@ -38,10 +38,11 @@ transformations = [
 ]
 
 
-def extract_reaction_rules(reaction_file: str = None, results_root: str = None):
+def extract_reaction_rules(reaction_file: str = None, results_root: str = None, min_popularity: int = 3):
     """
     The function extracts reaction rules from a reaction file and saves the results to a specified directory.
 
+    :param min_popularity:
     :param reaction_file: The path to the file containing the reaction rules. This file should be in a specific format
     (RDF) that allows the extraction of the reaction rules
     :type reaction_file: str
@@ -53,5 +54,6 @@ def extract_reaction_rules(reaction_file: str = None, results_root: str = None):
         transformations=transformations,
         filters=filters,
         result_directory_name=results_root,
-        save_only_unique=True
+        save_only_unique=True,
+        min_popularity=min_popularity
     )

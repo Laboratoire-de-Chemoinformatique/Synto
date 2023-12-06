@@ -25,27 +25,8 @@ from Synto.ml.networks.networks import ValueGraphNetwork
 from Synto.ml.training.loading import load_value_net
 from Synto.ml.training.preprocessing import ValueNetworkDataset
 from Synto.ml.training.preprocessing import compose_retrons
-
-
-def extract_tree_stats(tree):
-    """
-    Extracts various statistics from a tree, including the target smiles, tree size, search time, number of found paths,
-    and the newick representation of the tree.
-
-    :param tree: The built tree
-    :return: A dictionary containing calculated statistics
-    """
-    newick_tree, newick_meta = tree.newickify(visits_threshold=1)
-    newick_meta_line = ";".join([f"{nid},{v[0]},{v[1]},{v[2]}" for nid, v in newick_meta.items()])
-
-    stats = {"target_smiles": str(tree.nodes[1]),
-             "tree_size": len(tree),
-             "search_time": float(round(tree.curr_time, 1)),
-             "found_paths": len(tree.winning_nodes),
-             "newick_tree": newick_tree,
-             "newick_meta": newick_meta_line}
-
-    return stats
+from Synto.utils.search import extract_tree_stats
+from Synto.utils.logging import DisableLogger, HiddenPrints
 
 
 def create_targets_batch(experiment_root=None, targets_file=None, tmp_file_id=None, batch_slices=None):
@@ -207,21 +188,22 @@ def tune_value_network(value_net, datamodule, experiment_root: Path, simul_id=0,
     lr_monitor = LearningRateMonitor(logging_interval="epoch")
     logger = CSVLogger(str(logs_path))
 
-    trainer = Trainer(
-        log_every_n_steps=5,
-        accelerator="gpu",
-        devices=[0],
-        max_epochs=n_epoch,
-        callbacks=[lr_monitor],
-        logger=logger,
-        gradient_clip_val=1.0,
-    )
+    with DisableLogger() as DL, HiddenPrints() as HP:
 
-    trainer.fit(value_net, datamodule)
-    val_score = trainer.validate(value_net, datamodule.val_dataloader())[0]
-    logging.info(f"Training finished with loss: {val_score['val_loss']}; "
-                 f"BA: {val_score['val_balanced_accuracy']}; F1: {val_score['val_f1_score']}")
-    trainer.save_checkpoint(current_weights)
+        trainer = Trainer(
+            accelerator="gpu", devices=[0],
+            max_epochs=n_epoch,
+            callbacks=[lr_monitor],
+            logger=logger,
+            gradient_clip_val=1.0,
+            enable_progress_bar=False
+        )
+        trainer.fit(value_net, datamodule)
+
+        val_score = trainer.validate(value_net, datamodule.val_dataloader())[0]
+        trainer.save_checkpoint(current_weights)
+    #
+    print(f"Value network balanced accuracy: {val_score['val_balanced_accuracy']}")
 
 
 def run_training(processed_molecules_path=None, simul_id=None, config=None, experiment_root=None):
@@ -313,9 +295,10 @@ def run_planning(
                 learning_rate=config["ValueNetwork"]["learning_rate"],
             )
             #
-            trainer = Trainer()
-            trainer.strategy.connect(value_net)
-            trainer.save_checkpoint(config["ValueNetwork"]["weights_path"])
+            with DisableLogger() as DL, HiddenPrints() as HP:
+                trainer = Trainer()
+                trainer.strategy.connect(value_net)
+                trainer.save_checkpoint(config["ValueNetwork"]["weights_path"])
 
     # load processed molecules (extracted retrons)
     processed_molecules = None
@@ -350,12 +333,13 @@ def run_planning(
 
         # run tree search for targets
         config["Tree"]["verbose"] = False
+        print(f'Process batch number {targets_batch_id}')
         for target_id, target in tqdm(enumerate(inp), total=batch_len):
             tree = run_tree_search(target, config)
             processed_molecules = extract_tree_retrons(tree, processed_molecules=processed_molecules)
 
             # extract tree statistics
-            tree_stats = extract_tree_stats(tree)
+            tree_stats = extract_tree_stats(tree, target)
             if tree_stats["found_paths"] > 0:
                 num_solved += 1
             total_time += tree_stats["search_time"]
@@ -375,8 +359,7 @@ def run_planning(
             # save tree retro paths table
             to_table(tree, str(saved_paths), extended=True)
 
-    logging.info(f"Simulation over batch is finished with mean search time {total_time // batch_len} "
-                 f"and percetage of solved queries {(num_solved / batch_len) * 100}")
+    print(f"Planning is finished with {num_solved} solved targets")
 
     # shuffle retrons
     processed_keys = list(processed_molecules.keys())
@@ -422,7 +405,9 @@ def run_self_tuning(config: dict):
                                                             f"tree_retrons_sim_{simul_id}.smi")
 
         batch_size = config['SelfTuning']['batch_size']
-        for batch_id in range(file_length // batch_size + int(bool(file_length % batch_size))):
+        batch_splits = list(range(file_length // batch_size + int(bool(file_length % batch_size))))
+        print(f'{len(batch_splits)} batches were created with {batch_size} molecules each')
+        for batch_id in batch_splits:
 
             if restart_batch > batch_id:
                 logging.info(f"Skipped batch {batch_id} for simulation {simul_id}")

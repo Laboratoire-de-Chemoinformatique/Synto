@@ -1,14 +1,14 @@
 General:
-  results_root: synto_training_small
-  reaction_rules_path: synto_training_small/reaction_rules/reaction_rules.pickle
-  building_blocks_path: synto_training_small/building_blocks/building_blocks.pickle
-  num_cpus: 20
+  results_root: synto_training_test
+  reaction_rules_path: synto_training_test/reaction_rules/reaction_rules.pickle
+  building_blocks_path: synto_training_test/building_blocks/building_blocks.pickle
+  num_cpus: 5
   num_gpus: 1
 Tree:
   ucb_type: uct
   c_usb: 0.1
   max_depth: 6
-  max_iterations: 100
+  max_iterations: 15
   max_time: 600
   max_tree_size: 1000000
   verbose: false
@@ -18,18 +18,19 @@ Tree:
   init_new_node_value: null
   epsilon: 0.0
 ReactionRules:
-  results_root: synto_training_small/reaction_rules
-  reaction_data_path: synto_training_small/reaction_data/reaction_data.rdf
+  results_root: synto_training_test/reaction_rules
+  reaction_data_path: synto_training_test/reaction_data/reaction_data.rdf
+  min_popularity: 5
 SelfTuning:
-  results_root: synto_training_small/value_network
-  dataset_path: synto_training_small/value_molecules/value_molecules.sdf
+  results_root: synto_training_test/value_network
+  dataset_path: synto_training_test/value_molecules/value_molecules.smi
   num_simulations: 1
-  batch_size: 500
+  batch_size: 5
 PolicyNetwork:
-  results_root: synto_training_small/policy_network
-  dataset_path: synto_training_small/policy_molecules/policy_molecules.sdf
-  datamodule_path: synto_training_small/policy_network/policy_dataset.pt
-  weights_path: synto_training_small/policy_network/policy_network.ckpt
+  results_root: synto_training_test/policy_network
+  dataset_path: synto_training_test/policy_molecules/policy_molecules.smi
+  datamodule_path: synto_training_test/policy_network/policy_dataset.pt
+  weights_path: synto_training_test/policy_network/policy_network.ckpt
   top_rules: 50
   priority_rules_fraction: 0.5
   rule_prob_threshold: 0.0
@@ -40,11 +41,11 @@ PolicyNetwork:
   num_epoch: 100
   batch_size: 500
 ValueNetwork:
-  results_root: synto_training_small/value_network
-  weights_path: synto_training_small/value_network/value_network.ckpt
+  results_root: synto_training_test/value_network
+  weights_path: synto_training_test/value_network/value_network.ckpt
   num_conv_layers: 5
   vector_dim: 512
   dropout: 0.4
   learning_rate: 0.0005
-  num_epoch: 5
+  num_epoch: 100
   batch_size: 500
