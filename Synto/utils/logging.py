@@ -2,8 +2,13 @@ import os
 import sys
 import logging
 
+
 class DisableLogger():
-    'https://stackoverflow.com/questions/2266646/how-to-disable-logging-on-the-standard-error-stream'
+    """
+    This function mute redundant logging information. Adopted from
+    https://stackoverflow.com/questions/2266646/how-to-disable-logging-on-the-standard-error-stream
+    """
+
     def __enter__(self):
         logging.disable(logging.CRITICAL)
     def __exit__(self, exit_type, exit_value, exit_traceback):
@@ -11,7 +16,11 @@ class DisableLogger():
 
 
 class HiddenPrints:
-    'https://stackoverflow.com/questions/8391411/how-to-block-calls-to-print'
+    """
+    This function mute redundant printing information. Adopted from
+    https://stackoverflow.com/questions/8391411/how-to-block-calls-to-print
+    """
+
     def __enter__(self):
         self._original_stdout = sys.stdout
         sys.stdout = open(os.devnull, 'w')
