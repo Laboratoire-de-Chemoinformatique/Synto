@@ -101,7 +101,7 @@ class ValueNetworkDataset(InMemoryDataset, ABC):
         return data, slices
 
 
-class PolicyNetworkDataset(InMemoryDataset):
+class FilteringPolicyDataset(InMemoryDataset):
     """
     Policy network dataset
     """
@@ -147,7 +147,7 @@ class PolicyNetworkDataset(InMemoryDataset):
             for mol in mols_batch:
                 to_process.put(mol)
             del mols_batch
-            results_ids = [preprocess_policy_molecules.remote(to_process, reaction_rules_ids)]*self.num_cpus
+            results_ids = [preprocess_filtering_policy_molecules.remote(to_process, reaction_rules_ids)] * self.num_cpus
             results = [graph for res in ray.get(results_ids) if res for graph in res]
             processed_data.extend(results)
 
@@ -233,7 +233,7 @@ def reaction_rules_appliance(molecule, reaction_rules):
 
 
 @ray.remote
-def preprocess_policy_molecules(to_process: Queue, reaction_rules: List[Reactor]):
+def preprocess_filtering_policy_molecules(to_process: Queue, reaction_rules: List[Reactor]):
     """
     The function preprocesses a list of molecules by applying reaction rules and converting molecules into PyTorch
     geometric graphs. Successfully applied rules are converted to binary vectors for policy network training.

@@ -16,8 +16,8 @@ from Synto.chem.reaction import Reaction
 from Synto.chem.reaction import apply_reaction_rule
 from Synto.chem.retron import Retron
 from Synto.interfaces.visualisation import tqdm
-from Synto.mcts.evaluation.networks import ValueFunction
-from Synto.mcts.expansion.filter_policy import PolicyFunction
+from Synto.mcts.evaluation import ValueFunction
+from Synto.mcts.expansion import PolicyFunction
 from Synto.mcts.node import Node
 from Synto.ml.training.preprocessing import safe_canonicalization
 from Synto.utils.loading import load_building_blocks, load_reaction_rules

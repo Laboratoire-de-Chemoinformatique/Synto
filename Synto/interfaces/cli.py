@@ -15,7 +15,7 @@ import yaml
 
 from Synto.chem.reaction_rules.rule_extraction import extract_reaction_rules
 from Synto.ml.training import create_policy_training_set, run_policy_training
-from Synto.ml.training.self_tuning import run_self_tuning
+from Synto.ml.training.reinforcement import run_self_tuning
 from Synto.utils.loading import canonicalize_building_blocks
 from Synto.utils.config import planning_config, training_config
 from Synto.utils.config import read_planning_config, read_training_config

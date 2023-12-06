@@ -8,12 +8,10 @@ import torch
 from adabelief_pytorch import AdaBelief
 from pytorch_lightning import LightningModule
 from torch.nn import Linear, Module, Dropout, ModuleList
-from torch.nn.functional import relu, binary_cross_entropy_with_logits
+from torch.nn.functional import relu
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch_geometric.nn.conv import GCNConv
 from torch_geometric.nn.pool import global_add_pool
-from torchmetrics.functional.classification import binary_f1_score, binary_recall, binary_specificity
-from torchmetrics.functional.classification import multilabel_f1_score, multilabel_recall, multilabel_specificity
 
 
 class GraphEmbedding(Module):
@@ -150,120 +148,3 @@ class MCTSNetwork(LightningModule, ABC):
             'monitor': 'val_loss'
         }
         return [optimizer], [scheduler]
-
-
-class PolicyNetwork(MCTSNetwork, LightningModule, ABC):
-    """
-    Policy value network
-    """
-    def __init__(self, n_rules, vector_dim, *args, **kwargs):
-        """
-        Initializes a policy network with the given number of reaction rules (output dimension) and vector graph
-        embedding dimension, and creates linear layers for predicting the regular and priority reaction rules.
-
-        :param n_rules: The number of reaction rules in the policy network.
-        :param vector_dim: The dimensionality of the input vectors.
-        """
-        super(PolicyNetwork, self).__init__(vector_dim, *args, **kwargs)
-        self.save_hyperparameters()
-        self.n_rules = n_rules
-        self.y_predictor = Linear(vector_dim, n_rules)
-        self.priority_predictor = Linear(vector_dim, n_rules)
-
-    def forward(self, batch):
-        """
-        The forward function takes a molecular graph, applies a graph convolution and sigmoid layers to predict
-        regular and priority reaction rules.
-
-        :param batch: The input batch of molecular graphs.
-        :return: Returns the vector of probabilities (given by sigmoid) of successful application of regular and
-        priority reaction rules.
-        """
-        x = self.embedder(batch)
-        y = torch.sigmoid(self.y_predictor(x))
-        priority = torch.sigmoid(self.priority_predictor(x))
-        return y, priority
-
-    def _get_loss(self, batch):
-        """
-        Calculates the loss and various classification metrics for a given batch for reaction rules prediction.
-
-        :param batch: The batch of molecular graphs.
-        :return: a dictionary with loss value and balanced accuracy of reaction rules prediction.
-        """
-        true_y = batch.y_rules.float()
-        true_priority = batch.y_priority.float()
-
-        x = self.embedder(batch)
-        pred_y = self.y_predictor(x)
-        pred_priority = self.priority_predictor(x)
-        loss_y = binary_cross_entropy_with_logits(pred_y, true_y)
-        loss_priority = binary_cross_entropy_with_logits(pred_priority, true_priority)
-        loss = loss_y + loss_priority
-
-        true_y = true_y.long()
-        true_priority = true_priority.long()
-
-        ba_y = (multilabel_recall(pred_y, true_y, num_labels=self.n_rules) +
-                multilabel_specificity(pred_y, true_y, num_labels=self.n_rules)) / 2
-        f1_y = multilabel_f1_score(pred_y, true_y, num_labels=self.n_rules)
-
-        ba_priority = (multilabel_recall(pred_priority, true_priority, num_labels=self.n_rules) +
-                       multilabel_specificity(pred_priority, true_priority, num_labels=self.n_rules)) / 2
-        f1_priority = multilabel_f1_score(pred_priority, true_priority, num_labels=self.n_rules)
-
-        metrics = {
-            'loss': loss,
-            'balanced_accuracy_y': ba_y, 'f1_score_y': f1_y,
-            'balanced_accuracy_priority': ba_priority, 'f1_score_priority': f1_priority,
-        }
-        return metrics
-
-
-class ValueGraphNetwork(MCTSNetwork, LightningModule, ABC):
-    """
-    Value value network
-    """
-
-    def __init__(self, vector_dim, *args, **kwargs):
-        """
-        Initializes a value network, and creates linear layer for predicting the synthesisability of given retron
-        represented by molecular graph.
-
-        :param vector_dim: The dimensionality of the output linear layer.
-        """
-        super(ValueGraphNetwork, self).__init__(vector_dim, *args, **kwargs)
-        self.save_hyperparameters()
-        self.predictor = Linear(vector_dim, 1)
-
-    def forward(self, batch) -> torch.Tensor:
-        """
-        The forward function takes a batch of molecular graphs, applies a graph convolution returns the synthesisability
-        (probability given by sigmoid function) of a given retron represented by molecular graph precessed by
-        graph convolution.
-
-        :param batch: The batch of molecular graphs.
-        :return: a predicted synthesisability (between 0 and 1).
-        """
-        x = self.embedder(batch)
-        x = torch.sigmoid(self.predictor(x))
-        return x
-
-    def _get_loss(self, batch):
-        """
-        Calculates the loss and various classification metrics for a given batch for retron synthesysability prediction.
-
-        :param batch: The batch of molecular graphs.
-        :return: a dictionary with loss value and balanced accuracy of retron synthesysability prediction.
-        """
-        true_y = batch.y.float()
-        true_y = torch.unsqueeze(true_y, -1)
-        x = self.embedder(batch)
-        pred_y = self.predictor(x)
-        loss = binary_cross_entropy_with_logits(pred_y, true_y)
-        true_y = true_y.long()
-        ba = (binary_recall(pred_y, true_y) +
-              binary_specificity(pred_y, true_y)) / 2
-        f1 = binary_f1_score(pred_y, true_y)
-        metrics = {'loss': loss, 'balanced_accuracy': ba, 'f1_score': f1}
-        return metrics

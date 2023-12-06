@@ -11,8 +11,8 @@ from pytorch_lightning.loggers import CSVLogger
 from torch.utils.data import random_split
 from torch_geometric.data import LightningDataset
 
-from Synto.ml.networks.networks import PolicyNetwork
-from Synto.ml.training.preprocessing import PolicyNetworkDataset
+from Synto.ml.networks.policy import PolicyNetwork
+from Synto.ml.training.preprocessing import FilteringPolicyDataset
 from Synto.utils.loading import load_reaction_rules
 
 
@@ -32,10 +32,10 @@ def create_policy_training_set(config):
     n_rules = len(load_reaction_rules(config['General']['reaction_rules_path']))
     print(f"N rules is {n_rules}")
 
-    full_dataset = PolicyNetworkDataset(molecules_path=config['PolicyNetwork']['dataset_path'],
-                                        reaction_rules_path=config['General']['reaction_rules_path'],
-                                        output_path=config['PolicyNetwork']['datamodule_path'],
-                                        num_cpus=config['General']['num_cpus'])
+    full_dataset = FilteringPolicyDataset(molecules_path=config['PolicyNetwork']['dataset_path'],
+                                          reaction_rules_path=config['General']['reaction_rules_path'],
+                                          output_path=config['PolicyNetwork']['datamodule_path'],
+                                          num_cpus=config['General']['num_cpus'])
 
     train_size = int(0.8 * len(full_dataset))
     val_size = len(full_dataset) - train_size
@@ -61,27 +61,26 @@ def run_policy_training(datamodule, config):
     dimension, batch size, dropout rate, number of convolutional layers, learning rate, number of epochs, etc.) for the
     policy training process.
     """
-    #
+
     n_rules = len(load_reaction_rules(config['General']['reaction_rules_path']))
     print(f"N rules is {n_rules}")
 
-    #
     network = PolicyNetwork(vector_dim=config['PolicyNetwork']['vector_dim'],
-                            n_rules=n_rules,
-                            batch_size=config['PolicyNetwork']['batch_size'],
-                            dropout=config['PolicyNetwork']['dropout'],
-                            num_conv_layers=config['PolicyNetwork']['num_conv_layers'],
-                            learning_rate=config['PolicyNetwork']['learning_rate'])
-    #
+                                   n_rules=n_rules,
+                                   batch_size=config['PolicyNetwork']['batch_size'],
+                                   dropout=config['PolicyNetwork']['dropout'],
+                                   num_conv_layers=config['PolicyNetwork']['num_conv_layers'],
+                                   learning_rate=config['PolicyNetwork']['learning_rate'])
+
     results_path = config['PolicyNetwork']['results_root']
     weights_path = osp.join(results_path)
     logs_path = osp.join(results_path)
-    #
+
     lr_monitor = LearningRateMonitor(logging_interval='epoch')
     logger = CSVLogger(logs_path)
-    #
+
     checkpoint = ModelCheckpoint(dirpath=weights_path, filename='policy_network', monitor="val_loss", mode="min")
-    #
+
     if config['General']['num_gpus']:
         gpus = [0]
     trainer = Trainer(gpus=gpus,

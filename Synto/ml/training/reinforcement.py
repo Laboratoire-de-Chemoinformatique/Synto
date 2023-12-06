@@ -21,7 +21,7 @@ from tqdm import tqdm
 
 from Synto.interfaces.visualisation import to_table
 from Synto.mcts.tree import Tree
-from Synto.ml.networks.networks import ValueGraphNetwork
+from Synto.ml.networks.value import SynthesabilityValueNetwork
 from Synto.ml.training.loading import load_value_net
 from Synto.ml.training.preprocessing import ValueNetworkDataset
 from Synto.ml.training.preprocessing import compose_retrons
@@ -245,7 +245,7 @@ def run_training(processed_molecules_path=None, simul_id=None, config=None, expe
         config_weights_path = Path(config["ValueNetwork"]["weights_path"])
         if config_weights_path.exists():
             logging.info(f"Trainer loaded weights from {config_weights_path}")
-            value_net = load_value_net(ValueGraphNetwork, config)
+            value_net = load_value_net(SynthesabilityValueNetwork, config)
 
     if value_net is None:
         all_weigths = sorted(weights_path.glob("*.ckpt"))
@@ -253,7 +253,7 @@ def run_training(processed_molecules_path=None, simul_id=None, config=None, expe
         if all_weigths:
             config["ValueNetwork"]["weights_path"] = all_weigths[-1]
             logging.info(f"Trainer loaded weights from {all_weigths[-1]}")
-            value_net = load_value_net(ValueGraphNetwork, config)
+            value_net = load_value_net(SynthesabilityValueNetwork, config)
 
     training_set = create_tuning_set(processed_molecules_path)
     tune_value_network(value_net, training_set, experiment_root, simul_id, n_epoch=config["ValueNetwork"]["num_epoch"])
@@ -292,7 +292,7 @@ def run_planning(
             config_weights_path = Path(config["ValueNetwork"]["weights_path"])
             if config_weights_path.exists():
                 logging.info(f"Simulation loaded weights from {config_weights_path}")
-                value_net = load_value_net(ValueGraphNetwork, config)
+                value_net = load_value_net(SynthesabilityValueNetwork, config)
 
         if value_net is None:
             weights_path = experiment_root.joinpath("weights")
@@ -301,11 +301,11 @@ def run_planning(
             if all_weights:
                 config["ValueNetwork"]["weights_path"] = all_weights[-1]
                 logging.info(f"Simulation loaded weights from {all_weights[-1]}")
-                value_net = load_value_net(ValueGraphNetwork, config)
+                value_net = load_value_net(SynthesabilityValueNetwork, config)
 
         if not value_net:
             logging.info(f"Trainer init model without loading weights")
-            value_net = ValueGraphNetwork(
+            value_net = SynthesabilityValueNetwork(
                 vector_dim=config["ValueNetwork"]["vector_dim"],
                 batch_size=config["ValueNetwork"]["batch_size"],
                 dropout=config["ValueNetwork"]["dropout"],
