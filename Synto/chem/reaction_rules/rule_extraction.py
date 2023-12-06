@@ -42,8 +42,9 @@ def extract_reaction_rules(reaction_file: str = None, results_root: str = None, 
     """
     The function extracts reaction rules from a reaction file and saves the results to a specified directory.
 
-    :param min_popularity:
-    :param reaction_file: The path to the file containing the reaction rules. This file should be in a specific format
+    :param min_popularity: the rule should appear at least min_popularity times in the reactions set to be considered.
+    :type reaction_file: int
+    :param reaction_file: The path to the file containing the reaction rules. This file should be in a specific format.
     (RDF) that allows the extraction of the reaction rules
     :type reaction_file: str
     :param results_root: The string that specifies the root directory where the extracted reaction rules will be stored.
