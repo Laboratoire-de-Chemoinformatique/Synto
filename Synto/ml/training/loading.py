@@ -30,5 +30,5 @@ def load_policy_net(model_class, config, n_rules=None, vector_dim=None):
     """
 
     map_location = device("cpu")
-    return model_class.load_from_checkpoint(config["PolicyNetwork"]["weights_path"], map_location,
-                                            n_rules=n_rules, vector_dim=vector_dim, batch_size=1)
+    return model_class.load_from_checkpoint(config["PolicyNetwork"]["weights_path"], map_location, n_rules=n_rules,
+                                            vector_dim=vector_dim, batch_size=1)

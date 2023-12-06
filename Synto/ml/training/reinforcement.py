@@ -16,7 +16,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import LearningRateMonitor
 from pytorch_lightning.loggers import CSVLogger
 from torch.utils.data import random_split
-from torch_geometric.data import LightningDataset
+from torch_geometric.data.lightning import LightningDataset
 from tqdm import tqdm
 
 from Synto.interfaces.visualisation import to_table
@@ -25,8 +25,8 @@ from Synto.ml.networks.value import SynthesabilityValueNetwork
 from Synto.ml.training.loading import load_value_net
 from Synto.ml.training.preprocessing import ValueNetworkDataset
 from Synto.ml.training.preprocessing import compose_retrons
-from Synto.utils.search import extract_tree_stats
 from Synto.utils.logging import DisableLogger, HiddenPrints
+from Synto.utils.search import extract_tree_stats
 
 
 def create_targets_batch(experiment_root=None, targets_file=None, tmp_file_id=None, batch_slices=None):
@@ -189,15 +189,8 @@ def tune_value_network(value_net, datamodule, experiment_root: Path, simul_id=0,
     logger = CSVLogger(str(logs_path))
 
     with DisableLogger() as DL, HiddenPrints() as HP:
-
-        trainer = Trainer(
-            accelerator="gpu", devices=[0],
-            max_epochs=n_epoch,
-            callbacks=[lr_monitor],
-            logger=logger,
-            gradient_clip_val=1.0,
-            enable_progress_bar=False
-        )
+        trainer = Trainer(accelerator="gpu", devices=[0], max_epochs=n_epoch, callbacks=[lr_monitor], logger=logger,
+            gradient_clip_val=1.0, enable_progress_bar=False)
         trainer.fit(value_net, datamodule)
 
         val_score = trainer.validate(value_net, datamodule.val_dataloader())[0]
@@ -241,13 +234,8 @@ def run_training(processed_molecules_path=None, simul_id=None, config=None, expe
     tune_value_network(value_net, training_set, experiment_root, simul_id, n_epoch=config["ValueNetwork"]["num_epoch"])
 
 
-def run_planning(
-        simul_id: int,
-        config: dict,
-        targets_file: Path,
-        processed_molecules_path: Path = None,
-        targets_batch_id: int = None
-):
+def run_planning(simul_id: int, config: dict, targets_file: Path, processed_molecules_path: Path = None,
+        targets_batch_id: int = None):
     """
     Performs planning stage (tree search) for target molecules and save extracted from built trees retrons for further
     tuning the value network in the training stage.
@@ -287,13 +275,10 @@ def run_planning(
 
         if not value_net:
             logging.info(f"Trainer init model without loading weights")
-            value_net = SynthesabilityValueNetwork(
-                vector_dim=config["ValueNetwork"]["vector_dim"],
-                batch_size=config["ValueNetwork"]["batch_size"],
-                dropout=config["ValueNetwork"]["dropout"],
+            value_net = SynthesabilityValueNetwork(vector_dim=config["ValueNetwork"]["vector_dim"],
+                batch_size=config["ValueNetwork"]["batch_size"], dropout=config["ValueNetwork"]["dropout"],
                 num_conv_layers=config["ValueNetwork"]["num_conv_layers"],
-                learning_rate=config["ValueNetwork"]["learning_rate"],
-            )
+                learning_rate=config["ValueNetwork"]["learning_rate"], )
             #
             with DisableLogger() as DL, HiddenPrints() as HP:
                 trainer = Trainer()
@@ -349,12 +334,9 @@ def run_planning(
             csvfile.flush()
             if targets_batch_id is not None:
                 saved_paths = simulation_folder.joinpath(
-                    f"paths_target_{target_id}_sim_{simul_id}_batch_{targets_batch_id}.html"
-                )
+                    f"paths_target_{target_id}_sim_{simul_id}_batch_{targets_batch_id}.html")
             else:
-                saved_paths = simulation_folder.joinpath(
-                    f"paths_target_{target_id}_sim_{simul_id}.html"
-                )
+                saved_paths = simulation_folder.joinpath(f"paths_target_{target_id}_sim_{simul_id}.html")
 
             # save tree retro paths table
             to_table(tree, str(saved_paths), extended=True)
@@ -417,24 +399,15 @@ def run_self_tuning(config: dict):
 
                 # create batch of targets
                 batch_slices = range(batch_id * batch_size, (batch_id + 1) * batch_size)
-                targets_batch_file = create_targets_batch(experiment_root=experiment_root,
-                                                          targets_file=targets_file,
-                                                          tmp_file_id=batch_id,
-                                                          batch_slices=batch_slices)
+                targets_batch_file = create_targets_batch(experiment_root=experiment_root, targets_file=targets_file,
+                                                          tmp_file_id=batch_id, batch_slices=batch_slices)
 
                 # start tree planning simulation for batch of targets
-                run_planning(
-                    simul_id=simul_id,
-                    config=config,
-                    targets_file=targets_batch_file,
-                    processed_molecules_path=processed_molecules_path,
-                    targets_batch_id=batch_id
-                )
+                run_planning(simul_id=simul_id, config=config, targets_file=targets_batch_file,
+                    processed_molecules_path=processed_molecules_path, targets_batch_id=batch_id)
 
                 # train value network for extracted retrons
-                run_training(processed_molecules_path=processed_molecules_path,
-                             simul_id=simul_id,
-                             config=config,
+                run_training(processed_molecules_path=processed_molecules_path, simul_id=simul_id, config=config,
                              experiment_root=experiment_root)
 
             # shuffle targets

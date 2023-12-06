@@ -52,23 +52,10 @@ def extract_routes(tree, extended=False):
                 for x in after:
                     pred[x] = before
 
-            paths_block.append(
-                {
-                    "type": "mol",
-                    "smiles": str(target),
-                    "in_stock": target_in_stock,
-                    "children": [get_child_nodes(tree, target, succ)],
-                }
-            )
+            paths_block.append({"type": "mol", "smiles": str(target), "in_stock": target_in_stock,
+                "children": [get_child_nodes(tree, target, succ)], })
     else:
-        paths_block = [
-            {
-                "type": "mol",
-                "smiles": str(target),
-                "in_stock": target_in_stock,
-                "children": [],
-            }
-        ]
+        paths_block = [{"type": "mol", "smiles": str(target), "in_stock": target_in_stock, "children": [], }]
     return paths_block
 
 
@@ -88,8 +75,7 @@ def path_graph(tree, node: int) -> str:
                 tree.building_blocks) else "mulecule"
     nodes[0].curr_retron._molecule.meta["status"] = "target"
     # Box colors
-    box_colors = {
-        "target": "#98EEFF",  # 152, 238, 255
+    box_colors = {"target": "#98EEFF",  # 152, 238, 255
         "mulecule": "#F0AB90",  # 240, 171, 144
         "instock": "#9BFAB3",  # 155, 250, 179
     }
@@ -117,9 +103,7 @@ def path_graph(tree, node: int) -> str:
 
     columns = [columns[::-1] for columns in columns[::-1]]  # Reverse array to make retrosynthetic graph
     pred = tuple(  # Change dict to tuple to make multiple retrons_to_expand available
-        (abs(source - len(pred)), abs(target - len(pred)))
-        for target, source in pred.items()
-    )
+        (abs(source - len(pred)), abs(target - len(pred))) for target, source in pred.items())
 
     # now we have columns for visualizing
     # lets start recalculate XY
@@ -162,8 +146,7 @@ def path_graph(tree, node: int) -> str:
             y_delta = abs(max_y - min_y)
             box = (
                 f'<rect x="{min_x}" y="{max_y}" rx="{y_delta * 0.1}" ry="{y_delta * 0.1}" width="{x_delta}" height="{y_delta}"'
-                f' stroke="black" stroke-width=".0025" fill="{box_colors[m.meta["status"]]}" fill-opacity="0.30"/>'
-            )
+                f' stroke="black" stroke-width=".0025" fill="{box_colors[m.meta["status"]]}" fill-opacity="0.30"/>')
             arrow_points[next(cy)].append(y_shift - h / 2.0)
             y_shift -= h + 3.0
             depicted_molecule = list(m.depict(embedding=True))[:3]
@@ -195,13 +178,11 @@ def path_graph(tree, node: int) -> str:
     width = c_max_x + 4.0 * font_size  # 3.0 by default
     height = c_max_y + 3.5 * font_size  # 2.5 by default
     box_y = height / 2.0
-    svg = [
-        f'<svg width="{0.6 * width:.2f}cm" height="{0.6 * height:.2f}cm" '
-        f'viewBox="{-font125:.2f} {-box_y:.2f} {width:.2f} '
-        f'{height:.2f}" xmlns="http://www.w3.org/2000/svg" version="1.1">',
+    svg = [f'<svg width="{0.6 * width:.2f}cm" height="{0.6 * height:.2f}cm" '
+           f'viewBox="{-font125:.2f} {-box_y:.2f} {width:.2f} '
+           f'{height:.2f}" xmlns="http://www.w3.org/2000/svg" version="1.1">',
         '  <defs>\n    <marker id="arrow" markerWidth="10" markerHeight="10" '
-        'refX="0" refY="3" orient="auto">\n      <path d="M0,0 L0,6 L9,3"/>\n    </marker>\n  </defs>',
-    ]
+        'refX="0" refY="3" orient="auto">\n      <path d="M0,0 L0,6 L9,3"/>\n    </marker>\n  </defs>', ]
 
     for s, p in pred:
         """
@@ -223,9 +204,7 @@ def path_graph(tree, node: int) -> str:
             arrow += f'  <circle cx="{mid_x}" cy="{p_y}" r="0.1"/>'
         svg.append(arrow)
     for atoms, bonds, masks, box in render:
-        molecule_svg = MoleculeContainer._graph_svg(
-            atoms, bonds, masks, -font125, -box_y, width, height
-        )
+        molecule_svg = MoleculeContainer._graph_svg(atoms, bonds, masks, -font125, -box_y, width, height)
         molecule_svg.insert(1, box)
         svg.extend(molecule_svg)
     svg.append("</svg>")
@@ -303,9 +282,7 @@ def to_table(tree, html_path: str = "", aam: bool = False, extended=False):
 
     # Gather path data
     table += f"<tr>{td}{font_normal}Target Molecule: {str(tree.nodes[1].curr_retron)}{font_close}</td></tr>"
-    table += (
-        f"<tr>{td}{font_normal}Tree Size: {len(tree)}{font_close} nodes</td></tr>"
-    )
+    table += (f"<tr>{td}{font_normal}Tree Size: {len(tree)}{font_close} nodes</td></tr>")
     table += f"<tr>{td}{font_normal}Number of visited nodes: {len(tree.visited_nodes)}{font_close}</td></tr>"
     table += f"<tr>{td}{font_normal}Found paths: {len(paths)}{font_close}</td></tr>"
     table += f"<tr>{td}{font_normal}Time: {round(tree.curr_time, 4)}{font_close} seconds</td></tr>"
@@ -333,11 +310,9 @@ def to_table(tree, html_path: str = "", aam: bool = False, extended=False):
             step += 1
         # Concatenate all content of path
         path_score = round(tree.path_score(path), 3)
-        table += (
-            f'<tr style="line-height: 250%">{td}{font_head}Path {path}; '
-            f"Steps: {len(full_path)}; "
-            f"Cumulated nodes' value: {path_score}{font_close}</td></tr>"
-        )
+        table += (f'<tr style="line-height: 250%">{td}{font_head}Path {path}; '
+                  f"Steps: {len(full_path)}; "
+                  f"Cumulated nodes' value: {path_score}{font_close}</td></tr>")
         # f"Cumulated nodes' value: {node._probabilities[path]}{font_close}</td></tr>"
         table += f"<tr>{td}{svg}</td></tr>"
         table += f"<tr>{td}{reactions}</td></tr>"

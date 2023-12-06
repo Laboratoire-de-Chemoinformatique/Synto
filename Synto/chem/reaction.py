@@ -2,9 +2,9 @@
 Module containing classes and functions for manipulating reactions and reaction rules
 """
 
-from CGRtools import Reactor
 from CGRtools.containers import MoleculeContainer
 from CGRtools.containers import ReactionContainer
+from CGRtools.reactor import Reactor
 
 
 class Reaction(ReactionContainer):

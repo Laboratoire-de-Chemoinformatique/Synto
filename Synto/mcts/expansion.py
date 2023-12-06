@@ -4,8 +4,8 @@ Module containing a class that represents a policy function for node expansion i
 
 import torch
 
-from Synto import Retron
-from Synto.ml.networks.policy import RabkingPolicyNetwork
+from Synto.chem.retron import Retron
+from Synto.ml.networks.policy import PolicyNetwork
 from Synto.ml.training import load_policy_net, mol_to_pyg
 from Synto.utils import load_reaction_rules
 
@@ -28,7 +28,7 @@ class PolicyFunction:
         self.priority_rules_fraction = config['PolicyNetwork']['priority_rules_fraction']
         self.n_rules = len(load_reaction_rules(config['General']['reaction_rules_path']))
 
-        self.policy_net = load_policy_net(RabkingPolicyNetwork, config, n_rules=self.n_rules, vector_dim=512)
+        self.policy_net = load_policy_net(PolicyNetwork, config, n_rules=self.n_rules, vector_dim=512)
         self.policy_net.eval()
 
     def predict_reaction_rules(self, retron: Retron, reaction_rules: list):

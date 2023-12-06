@@ -51,8 +51,7 @@ class SynthesabilityValueNetwork(MCTSNetwork, LightningModule, ABC):
         pred_y = self.predictor(x)
         loss = binary_cross_entropy_with_logits(pred_y, true_y)
         true_y = true_y.long()
-        ba = (binary_recall(pred_y, true_y) +
-              binary_specificity(pred_y, true_y)) / 2
+        ba = (binary_recall(pred_y, true_y) + binary_specificity(pred_y, true_y)) / 2
         f1 = binary_f1_score(pred_y, true_y)
         metrics = {'loss': loss, 'balanced_accuracy': ba, 'f1_score': f1}
         return metrics

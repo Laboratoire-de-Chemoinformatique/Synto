@@ -137,14 +137,9 @@ class MCTSNetwork(LightningModule, ABC):
         and ReduceLROnPlateau scheduler.
         :return:  The optimizer and a scheduler.
         """
-        optimizer = AdaBelief(self.parameters(), lr=self.lr, eps=1e-16, betas=(0.9, 0.999),
-                              weight_decouple=True, rectify=True, weight_decay=0.01,
-                              print_change_log=False)
+        optimizer = AdaBelief(self.parameters(), lr=self.lr, eps=1e-16, betas=(0.9, 0.999), weight_decouple=True,
+                              rectify=True, weight_decay=0.01, print_change_log=False)
 
         lr_scheduler = ReduceLROnPlateau(optimizer, patience=3, factor=0.8, min_lr=5e-5, verbose=True)
-        scheduler = {
-            'scheduler': lr_scheduler,
-            'reduce_on_plateau': True,
-            'monitor': 'val_loss'
-        }
+        scheduler = {'scheduler': lr_scheduler, 'reduce_on_plateau': True, 'monitor': 'val_loss'}
         return [optimizer], [scheduler]

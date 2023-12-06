@@ -2,11 +2,18 @@
 Module containing functions with fixed protocol for reaction rules extraction
 """
 
-from .extracted_rules.filters import CheckCCsp3Breaking, CheckCCRingBreaking, CheckRulesByPopularity
-from .extracted_rules.filters import CheckCGRConnectedComponents, CheckDynamicBondsNumber, CheckSmallMolecules
-from .extracted_rules.filters import CheckNoReaction, CheckMultiCenterReaction, CheckWrongCHBreaking
-from .extracted_rules.processing import reaction_database_processing
-from .extracted_rules.transformations import ExtractRule
+from Synto.chem.reaction_rules.extracted_rules.filters import (
+    CheckCCsp3Breaking,
+    CheckCCRingBreaking,
+    CheckNoReaction,
+    CheckMultiCenterReaction,
+    CheckWrongCHBreaking,
+    CheckCGRConnectedComponents,
+    CheckDynamicBondsNumber,
+    CheckSmallMolecules,
+)
+from Synto.chem.reaction_rules.extracted_rules.processing import reaction_database_processing
+from Synto.chem.reaction_rules.extracted_rules.transformations import ExtractRule
 
 filters = [
     CheckCGRConnectedComponents(),
@@ -38,7 +45,11 @@ transformations = [
 ]
 
 
-def extract_reaction_rules(reaction_file: str = None, results_root: str = None, min_popularity: int = 3):
+def extract_reaction_rules(
+    reaction_file: str = None,
+    results_root: str = None,
+    min_popularity: int = 3
+):
     """
     The function extracts reaction rules from a reaction file and saves the results to a specified directory.
 

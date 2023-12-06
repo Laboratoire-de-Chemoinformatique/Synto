@@ -1,36 +1,43 @@
-from CGRtools import ReactionContainer, MoleculeContainer, CGRContainer
-from StructureFingerprint import MorganFingerprint
-import numpy as np
 from typing import Iterable, Tuple
 
+import numpy as np
+from CGRtools.containers import ReactionContainer, MoleculeContainer, CGRContainer
+from StructureFingerprint import MorganFingerprint
 
-def tanimoto_kernel(x: np.ndarray, y: np.ndarray) -> np.ndarray:
+
+def tanimoto_kernel(x, y):
     """
-    Calculate Tanimoto between each elements of array x and y.
+    Calculate the Tanimoto coefficient between each element of arrays x and y.
+
     Parameters
     ----------
-    x : 2D array
-        Array of features.
-    y : 2D array
-        Array of features.
-    Note
-    ----
-    Features in arrays x and y should be equal and in same order.
+    x : array-like
+        A 2D array of features.
+    y : array-like
+        A 2D array of features.
+
+    Notes
+    -----
+    Features in arrays x and y should be equal in number and ordered in the same way.
+
     Returns
     -------
-    array : 2D array
-        Pairwise Tanimoto coefficients.
+    ndarray
+        A 2D array containing pairwise Tanimoto coefficients.
+
+    Examples
+    --------
+    >>> x = np.array([[1, 2], [3, 4]])
+    >>> y = np.array([[5, 6], [7, 8]])
+    >>> tanimoto_kernel(x, y)
+    array([[...]])
     """
     x_dot = np.dot(x, y.T)
+    x2 = np.sum(x ** 2, axis=1)
+    y2 = np.sum(y ** 2, axis=1)
 
-    x2 = (x ** 2).sum(axis=1)
-    y2 = (y ** 2).sum(axis=1)
-
-    len_x2 = len(x2)
-    len_y2 = len(y2)
-
-    result = x_dot / (np.array([x2] * len_y2).T + np.array([y2] * len_x2) - x_dot)
-    result[np.isnan(result)] = 0
+    denominator = (np.array([x2] * len(y2)).T + np.array([y2] * len(x2)) - x_dot)
+    result = np.divide(x_dot, denominator, out=np.zeros_like(x_dot), where=denominator != 0)
 
     return result
 
@@ -50,8 +57,8 @@ class IsCompeteProducts:
         for mol, other_mol in reaction.reagents + reaction.products:
             if len(mol) > 6 and len(other_mol) > 6:
                 molf = mf.transform([mol])
-                other_mol = mf.transform([reagent])
-                fingerprint_tanimoto = tanimoto_kernel(molf, other_mol)[0][0]
+                other_molf = mf.transform([other_mol])
+                fingerprint_tanimoto = tanimoto_kernel(molf, other_molf)[0][0]
                 if fingerprint_tanimoto > 0.3:
                     try:
                         clique_size = len(next(mol.get_mcs_mapping(other_mol, limit=100)))
@@ -229,7 +236,6 @@ class CheckMultiCenterReaction:
             return True
         return False
 
-
     @staticmethod
     def _calc_rings(molecules: Iterable) -> Tuple[int, int]:
         """
@@ -246,16 +252,17 @@ class CheckMultiCenterReaction:
 
 
 class CheckWrongCHBreaking:
-    """Allows to check if there is a C-C bond formation from breaking C-H (exclude condensation reactions and reactions
-        with carbens)"""
+    """
+    Class to check if there is a C-C bond formation from breaking a C-H bond.
+    This excludes condensation reactions and reactions with carbens.
+    """
 
     def __call__(self, reaction: ReactionContainer) -> bool:
         """
-        Returns True if there is a C-C bond formation from breaking C-H (exclude condensation reactions and reactions
-        with carbens), else False
+        Determines if a reaction involves incorrect C-C bond formation from breaking a C-H bond.
 
-        :param reaction: input reaction
-        :return: True or False
+        :param reaction: The reaction to be checked.
+        :return: True if incorrect C-C bond formation is found, False otherwise.
         """
         reaction.kekule()
         reaction.thiele()
@@ -263,45 +270,41 @@ class CheckWrongCHBreaking:
         copy_reaction.explicify_hydrogens()
         cgr = ~copy_reaction
         reduced_cgr = cgr.augmented_substructure(cgr.center_atoms, deep=1)
-        if self.is_wrong_c_h_breaking(reduced_cgr):
-            return True
-        else:
-            return False
+
+        return self.is_wrong_c_h_breaking(reduced_cgr)
 
     @staticmethod
     def is_wrong_c_h_breaking(cgr: CGRContainer) -> bool:
         """
-        Returns True if there is C-C bonds formation from breaking C-H (exclude condensation reactions and reactions
-        with carbens), else False
-
-        :param cgr: CGR with explicified hydrogens
-        :return: True or False
+        Checks for incorrect C-C bond formation from breaking a C-H bond in a CGR.
+        :param cgr: The CGR with explicified hydrogens.
+        :return: True if incorrect C-C bond formation is found, False otherwise.
         """
         for atom_id in cgr.center_atoms:
             if cgr.atom(atom_id).atomic_symbol == 'C':
-
-                is_c_h_breaking = False
-                is_c_c_formation = False
-                c_with_h_id = None
-                another_c_id = None
+                is_c_h_breaking, is_c_c_formation = False, False
+                c_with_h_id, another_c_id = None, None
 
                 for neighbour_id, bond in cgr._bonds[atom_id].items():
                     neighbour = cgr.atom(neighbour_id)
 
-                    if bond.order is not None and bond.p_order is None and neighbour.atomic_symbol == 'H':
+                    if bond.order and not bond.p_order and neighbour.atomic_symbol == 'H':
                         is_c_h_breaking = True
                         c_with_h_id = atom_id
 
-                    elif bond.order is None and bond.p_order is not None and neighbour.atomic_symbol == 'C':
+                    elif not bond.order and bond.p_order and neighbour.atomic_symbol == 'C':
                         is_c_c_formation = True
                         another_c_id = neighbour_id
 
                 if is_c_h_breaking and is_c_c_formation:
-                    # checks for presence of heteroatoms in first environment of 2 bonding carbons
-                    if any(cgr.atom(neighbour_id).atomic_symbol not in ('C', 'H') for neighbour_id in
-                           cgr._bonds[c_with_h_id].keys()) or \
-                            any(cgr.atom(neighbour_id).atomic_symbol not in ('C', 'H') for neighbour_id in
-                                cgr._bonds[another_c_id].keys()):
+                    # Check for presence of heteroatoms in the first environment of 2 bonding carbons
+                    if any(
+                        cgr.atom(neighbour_id).atomic_symbol not in ('C', 'H')
+                        for neighbour_id in cgr._bonds[c_with_h_id]
+                    ) or any(
+                        cgr.atom(neighbour_id).atomic_symbol not in ('C', 'H')
+                        for neighbour_id in cgr._bonds[another_c_id]
+                    ):
                         return False
                     return True
 
@@ -363,9 +366,9 @@ class CheckCCRingBreaking:
             else:
                 is_bond_broken = bond.order is not None and bond.p_order is None
                 are_atoms_carbons = atom.atomic_symbol == 'C' and neighbour.atomic_symbol == 'C'
-                are_atoms_in_ring = bool({5, 6, 7}.intersection(atom.ring_sizes)) and \
-                                    bool({5, 6, 7}.intersection(neighbour.ring_sizes)) and \
-                                    any(atom_id in ring and neighbour_id in ring for ring in reactants_rings)
+                are_atoms_in_ring = bool({5, 6, 7}.intersection(atom.ring_sizes)) and bool(
+                    {5, 6, 7}.intersection(neighbour.ring_sizes)) and any(
+                    atom_id in ring and neighbour_id in ring for ring in reactants_rings)
 
             if is_bond_broken and are_atoms_carbons and are_atoms_in_ring:
                 return True

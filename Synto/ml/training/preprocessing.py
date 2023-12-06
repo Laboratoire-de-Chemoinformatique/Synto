@@ -7,13 +7,13 @@ from abc import ABC
 from typing import List
 
 import ray
-from ray.util.queue import Queue, Empty
 import torch
 from CGRtools import smiles
 from CGRtools.containers import MoleculeContainer
 from CGRtools.exceptions import InvalidAromaticRing
 from CGRtools.files import SMILESRead
 from CGRtools.reactor import Reactor
+from ray.util.queue import Queue, Empty
 from torch_geometric.data import Data, InMemoryDataset
 from torch_geometric.data.makedirs import makedirs
 from torch_geometric.transforms import ToUndirected
@@ -148,8 +148,8 @@ class FilteringPolicyDataset(InMemoryDataset):
             for mol in mols_batch:
                 to_process.put(mol)
             del mols_batch
-            results_ids = [preprocess_policy_molecules.remote(to_process, reaction_rules_ids)
-                           for _ in range(self.num_cpus)]
+            results_ids = [preprocess_filtering_policy_molecules.remote(to_process, reaction_rules_ids) for _ in
+                           range(self.num_cpus)]
             results = [graph for res in ray.get(results_ids) if res for graph in res]
             processed_data.extend(results)
 
@@ -257,8 +257,8 @@ def preprocess_filtering_policy_molecules(to_process: Queue, reaction_rules: Lis
 
             # reaction reaction_rules application
             applied_rules, priority_rules = reaction_rules_appliance(molecule, reaction_rules)
-            y_rules = torch.sparse_coo_tensor([applied_rules], torch.ones(len(applied_rules)),
-                                              (len(reaction_rules),), dtype=torch.uint8)
+            y_rules = torch.sparse_coo_tensor([applied_rules], torch.ones(len(applied_rules)), (len(reaction_rules),),
+                                              dtype=torch.uint8)
             y_priority = torch.sparse_coo_tensor([priority_rules], torch.ones(len(priority_rules)),
                                                  (len(reaction_rules),), dtype=torch.uint8)
 
@@ -417,56 +417,14 @@ def compose_retrons(retrons: list = None, exclude_small=True) -> MoleculeContain
         return tmp_mol
 
 
-MENDEL_INFO = {
-    "Ag": (5, 11, 1, 1),
-    "Al": (3, 13, 2, 1),
-    "Ar": (3, 18, 2, 6),
-    "As": (4, 15, 2, 3),
-    "B": (2, 13, 2, 1),
-    "Ba": (6, 2, 1, 2),
-    "Bi": (6, 15, 2, 3),
-    "Br": (4, 17, 2, 5),
-    "C": (2, 14, 2, 2),
-    "Ca": (4, 2, 1, 2),
-    "Ce": (6, None, 1, 2),
-    "Cl": (3, 17, 2, 5),
-    "Cr": (4, 6, 1, 1),
-    "Cs": (6, 1, 1, 1),
-    "Cu": (4, 11, 1, 1),
-    "Dy": (6, None, 1, 2),
-    "Er": (6, None, 1, 2),
-    "F": (2, 17, 2, 5),
-    "Fe": (4, 8, 1, 2),
-    "Ga": (4, 13, 2, 1),
-    "Gd": (6, None, 1, 2),
-    "Ge": (4, 14, 2, 2),
-    "Hg": (6, 12, 1, 2),
-    "I": (5, 17, 2, 5),
-    "In": (5, 13, 2, 1),
-    "K": (4, 1, 1, 1),
-    "La": (6, 3, 1, 2),
-    "Li": (2, 1, 1, 1),
-    "Mg": (3, 2, 1, 2),
-    "Mn": (4, 7, 1, 2),
-    "N": (2, 15, 2, 3),
-    "Na": (3, 1, 1, 1),
-    "Nd": (6, None, 1, 2),
-    "O": (2, 16, 2, 4),
-    "P": (3, 15, 2, 3),
-    "Pb": (6, 14, 2, 2),
-    "Pd": (5, 10, 3, 10),
-    "Pr": (6, None, 1, 2),
-    "Rb": (5, 1, 1, 1),
-    "S": (3, 16, 2, 4),
-    "Sb": (5, 15, 2, 3),
-    "Se": (4, 16, 2, 4),
-    "Si": (3, 14, 2, 2),
-    "Sm": (6, None, 1, 2),
-    "Sn": (5, 14, 2, 2),
-    "Sr": (5, 2, 1, 2),
-    "Te": (5, 16, 2, 4),
-    "Ti": (4, 4, 1, 2),
-    "Tl": (6, 13, 2, 1),
-    "Yb": (6, None, 1, 2),
-    "Zn": (4, 12, 1, 2),
-}
+MENDEL_INFO = {"Ag": (5, 11, 1, 1), "Al": (3, 13, 2, 1), "Ar": (3, 18, 2, 6), "As": (4, 15, 2, 3), "B": (2, 13, 2, 1),
+    "Ba": (6, 2, 1, 2), "Bi": (6, 15, 2, 3), "Br": (4, 17, 2, 5), "C": (2, 14, 2, 2), "Ca": (4, 2, 1, 2),
+    "Ce": (6, None, 1, 2), "Cl": (3, 17, 2, 5), "Cr": (4, 6, 1, 1), "Cs": (6, 1, 1, 1), "Cu": (4, 11, 1, 1),
+    "Dy": (6, None, 1, 2), "Er": (6, None, 1, 2), "F": (2, 17, 2, 5), "Fe": (4, 8, 1, 2), "Ga": (4, 13, 2, 1),
+    "Gd": (6, None, 1, 2), "Ge": (4, 14, 2, 2), "Hg": (6, 12, 1, 2), "I": (5, 17, 2, 5), "In": (5, 13, 2, 1),
+    "K": (4, 1, 1, 1), "La": (6, 3, 1, 2), "Li": (2, 1, 1, 1), "Mg": (3, 2, 1, 2), "Mn": (4, 7, 1, 2),
+    "N": (2, 15, 2, 3), "Na": (3, 1, 1, 1), "Nd": (6, None, 1, 2), "O": (2, 16, 2, 4), "P": (3, 15, 2, 3),
+    "Pb": (6, 14, 2, 2), "Pd": (5, 10, 3, 10), "Pr": (6, None, 1, 2), "Rb": (5, 1, 1, 1), "S": (3, 16, 2, 4),
+    "Sb": (5, 15, 2, 3), "Se": (4, 16, 2, 4), "Si": (3, 14, 2, 2), "Sm": (6, None, 1, 2), "Sn": (5, 14, 2, 2),
+    "Sr": (5, 2, 1, 2), "Te": (5, 16, 2, 4), "Ti": (4, 4, 1, 2), "Tl": (6, 13, 2, 1), "Yb": (6, None, 1, 2),
+    "Zn": (4, 12, 1, 2), }

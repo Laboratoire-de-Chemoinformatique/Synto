@@ -1,13 +1,13 @@
 import logging
 import os
 from collections import defaultdict
-from multiprocessing import Pool
 from pickle import dump
 from typing import Tuple
 
 from CGRtools import RDFRead, RDFWrite, ReactionContainer
-from .transformations import ReverseReaction
 from tqdm import tqdm
+
+from .transformations import ReverseReaction
 
 
 def apply_transformations(transformations: list, reaction: ReactionContainer) -> ReactionContainer:
@@ -47,8 +47,7 @@ def reaction_database_processing(reaction_database_file_name: str, transformatio
                                  filtered_reactions_file_name: str = 'filtered_reactions.rdf',
                                  result_reactions_file_name: str = 'reaction_rules.rdf',
                                  result_reactions_pkl_file_name: str = 'reaction_rules.pickle',
-                                 remove_old_results: bool = True,
-                                 min_popularity: int = 3):
+                                 remove_old_results: bool = True, min_popularity: int = 3):
     """
     Applies given transformations and filters to reactions from the reaction database. Returns result reactions files in
     RDF and pickle (if save_only_unique is True) formats and filtered reactions file in RDF format
@@ -86,9 +85,9 @@ def reaction_database_processing(reaction_database_file_name: str, transformatio
     if save_only_unique:
         unique_reactions = defaultdict(list)
 
-    with RDFRead(reaction_database_file_name, indexable=True) as reactions, \
-            RDFWrite(f'{result_directory_name}/{filtered_reactions_file_name}', append=True) as filtered_file, \
-            RDFWrite(f'{result_directory_name}/{result_reactions_file_name}', append=True) as result_file:
+    with RDFRead(reaction_database_file_name, indexable=True) as reactions, RDFWrite(
+        f'{result_directory_name}/{filtered_reactions_file_name}', append=True) as filtered_file, RDFWrite(
+        f'{result_directory_name}/{result_reactions_file_name}', append=True) as result_file:
         reactions.reset_index()
         for n, reaction in tqdm(enumerate(reactions), total=len(reactions)):
             try:
@@ -130,11 +129,9 @@ def reaction_database_processing(reaction_database_file_name: str, transformatio
             print(f'{len(pop_reactions)} reaction rules were extracted')
 
         with open(f'{result_directory_name}/{result_reactions_pkl_file_name}', 'wb') as pickle_file:
-            
+
             # reverse reaction rules
             reverse_reaction = ReverseReaction()
             pop_rections = [reverse_reaction(i) for i in pop_reactions]
 
             dump(pop_rections, pickle_file)
-
-
