@@ -7,7 +7,7 @@ with various implementations of policy and value functions.
 Installation
 ------------
 
-Important: all versions require **python from 3.8 or up to 3.10**!
+Important: all versions require **python from 3.8 and up to 3.10**!
 
 GPU version (Linux)
 ^^^^^^^^^^^
@@ -81,4 +81,4 @@ Run training from scratch
 Documentation
 -----------
 
-The the detailed documentation can be found `here <https://laboratoire-de-chemoinformatique.github.io/Synto/>`_
+The detailed documentation can be found `here <https://laboratoire-de-chemoinformatique.github.io/Synto/>`_
