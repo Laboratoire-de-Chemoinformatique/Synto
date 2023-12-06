@@ -7,14 +7,14 @@ with various implementations of policy and value functions.
 Installation
 ------------
 
-Important: all versions require **python from 3.8 or up to 3.10**!
+Important: all versions require **python from 3.8 and up to 3.10**!
 
-GPU version (Linux)
+Linux distributions
 ^^^^^^^^^^^
-It requires only poetry 1.3.2. To install poetry, follow the instructions on
+It requires only poetry 1.3.2. To install poetry, follow the example below, or the instructions on
 https://python-poetry.org/docs/#installation
 
-For example, on Ubuntu we can install miniconda in which we will install poetry with the following commands:
+For example, on Ubuntu we can install miniconda and set an environment in which we will install poetry with the following commands:
 
 .. code-block:: bash
 
@@ -42,7 +42,7 @@ If Poetry fails with error, a possible solution is to update the bashrc file wit
 
 Optional
 ^^^^^^^^^^^
-One can install the environment in your jupyter kernel
+After installation, one can add the Synto environment in their Jupyter platform:
 
 .. code-block:: bash
 
@@ -50,7 +50,7 @@ One can install the environment in your jupyter kernel
 
 Usage
 ------------
-Mostly the usage is optimized for in command line interface.
+The usage is mostly optimized for the command line interface.
 Here are some implemented commands:
 
 * synto_planning
@@ -67,7 +67,7 @@ Run retrosynthetic planning
 
     synto_planning_data
     synto_building_blocks --input="synto_planning_data/building_blocks.txt" --output="synto_planning_data/building_blocks.txt" # skip for loaded data
-    synto_planning --targets="targets.txt" --config="planning_config.yaml" --results_root="synto_results"
+    synto_planning --targets="targets.txt" --config="planning_config_default.yaml" --results_root="synto_results"
 
 Run training from scratch
 ^^^^^^^^^^^
@@ -75,10 +75,10 @@ Run training from scratch
 
     synto_training_data
     synto_building_blocks --input="synto_training_data/building_blocks.txt" --output="synto_training_data/building_blocks.txt" # skip for loaded data
-    synto_training --config="training_config.yaml"
+    synto_training --config="training_config_default.yaml"
 
 
 Documentation
 -----------
 
-The the detailed documentation can be found `here <https://laboratoire-de-chemoinformatique.github.io/Synto/>`_
+The detailed documentation can be found `here <https://laboratoire-de-chemoinformatique.github.io/Synto/>`_

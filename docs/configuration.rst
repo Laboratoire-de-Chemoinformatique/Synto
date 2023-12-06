@@ -44,13 +44,13 @@ Training configuration yaml file
       results_root: synto_training_data
       reaction_rules_path: synto_training_data/reaction_rules/reaction_rules.pickle
       building_blocks_path: synto_training_data/building_blocks/building_blocks.pickle
-      num_cpus: 10
+      num_cpus: 5
       num_gpus: 1
     Tree:
       ucb_type: uct
       c_usb: 0.1
       max_depth: 6
-      max_iterations: 100
+      max_iterations: 15
       max_time: 600
       max_tree_size: 1000000
       verbose: false
@@ -62,14 +62,15 @@ Training configuration yaml file
     ReactionRules:
       results_root: synto_training_data/reaction_rules
       reaction_data_path: synto_training_data/reaction_data/reaction_data.rdf
+      min_popularity: 5
     SelfTuning:
       results_root: synto_training_data/value_network
-      dataset_path: synto_training_data/value_molecules/value_molecules.sdf
+      dataset_path: synto_training_data/value_molecules/value_molecules.smi
       num_simulations: 1
-      batch_size: 500
+      batch_size: 5
     PolicyNetwork:
       results_root: synto_training_data/policy_network
-      dataset_path: synto_training_data/policy_molecules/policy_molecules.sdf
+      dataset_path: synto_training_data/policy_molecules/policy_molecules.smi
       datamodule_path: synto_training_data/policy_network/policy_dataset.pt
       weights_path: synto_training_data/policy_network/policy_network.ckpt
       top_rules: 50

@@ -7,6 +7,7 @@ warnings.filterwarnings("ignore")
 
 import os
 import shutil
+import logging
 from pathlib import Path
 
 import click
@@ -115,7 +116,7 @@ def synto_planning_cli(targets_file, config_path, results_root):
     help="Path to the config YAML molecules_path. To generate default config, use command Synto_default_config",
     type=click.Path(exists=True, path_type=Path),
 )
-def extract_reaction_cli(config):
+def extract_rules_cli(config):
     """
     Extracts reaction rules from a reaction data file and saves the results in a specified directory
 
@@ -123,7 +124,8 @@ def extract_reaction_cli(config):
     """
     config = read_training_config(config)
     extract_reaction_rules(reaction_file=config['ReactionRules']['reaction_data_path'],
-                           results_root=config['ReactionRules']['results_root'])
+                           results_root=config['ReactionRules']['results_root'],
+                           min_popularity=config['ReactionRules']['min_popularity'])
 
 
 @main.command(name='policy_training')
@@ -176,17 +178,26 @@ def self_tuning_cli(config):
 def synto_training_cli(config):
 
     # read training config
+    print('READ CONFIG ...')
     config = read_training_config(config)
+    print('Config is read')
 
     # reaction rules extraction
+    print('\nEXTRACT REACTION RULES ...')
     extract_reaction_rules(reaction_file=config['ReactionRules']['reaction_data_path'],
-                           results_root=config['ReactionRules']['results_root'])
+                           results_root=config['ReactionRules']['results_root'],
+                           min_popularity=config['ReactionRules']['min_popularity'])
+
+    # create policy network dataset
+    print('\nCREATE POLICY NETWORK DATASET ...')
+    datamodule = create_policy_training_set(config)
 
     # train policy network
-    datamodule = create_policy_training_set(config)
+    print('\nTRAIN POLICY NETWORK ...')
     run_policy_training(datamodule, config)
 
     # self-tuning value network training
+    print('\nTRAIN VALUE NETWORK ...')
     run_self_tuning(config)
 
 
