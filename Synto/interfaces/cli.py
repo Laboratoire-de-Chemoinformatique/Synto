@@ -185,7 +185,8 @@ def synto_training_cli(config):
     # reaction rules extraction
     print('\nEXTRACT REACTION RULES ...')
     extract_reaction_rules(reaction_file=config['ReactionRules']['reaction_data_path'],
-                           results_root=config['ReactionRules']['results_root'])
+                           results_root=config['ReactionRules']['results_root'],
+                           min_popularity=config['ReactionRules']['min_popularity'])
 
     # create policy network dataset
     print('\nCREATE POLICY NETWORK DATASET ...')
