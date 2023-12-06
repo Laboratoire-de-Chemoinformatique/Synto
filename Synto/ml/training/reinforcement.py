@@ -24,7 +24,7 @@ from Synto.mcts.tree import Tree
 from Synto.ml.networks.value import SynthesabilityValueNetwork
 from Synto.ml.training.loading import load_value_net
 from Synto.ml.training.preprocessing import ValueNetworkDataset
-from Synto.ml.training.preprocessing import compose_retrons
+from Synto.chem.retron import compose_retrons
 from Synto.utils.logging import DisableLogger, HiddenPrints
 from Synto.utils.search import extract_tree_stats
 

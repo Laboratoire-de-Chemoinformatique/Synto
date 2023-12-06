@@ -43,31 +43,43 @@ def tanimoto_kernel(x, y):
 
 
 class IsCompeteProducts:
-    """Allows to check if there are compete reactions"""
+    """Checks if there are compete reactions"""
 
     def __call__(self, reaction: ReactionContainer) -> bool:
         """
-        Returns True if there are compete reactions, else False
+        Returns True if the reaction has compete products, else False
 
         :param reaction: input reaction
         :return: True or False
         """
         mf = MorganFingerprint()
         is_compete = False
-        for mol, other_mol in reaction.reagents + reaction.products:
-            if len(mol) > 6 and len(other_mol) > 6:
-                molf = mf.transform([mol])
-                other_molf = mf.transform([other_mol])
-                fingerprint_tanimoto = tanimoto_kernel(molf, other_molf)[0][0]
-                if fingerprint_tanimoto > 0.3:
-                    try:
-                        clique_size = len(next(mol.get_mcs_mapping(other_mol, limit=100)))
-                        mcs_tanimoto = clique_size / (len(mol) + len(other_mol) - clique_size)
-                        if mcs_tanimoto > 0.6:
-                            is_compete = True
-                            break
-                    except StopIteration:
-                        continue
+
+        # Check for compete products using both fingerprint similarity and maximum common substructure (MCS) similarity
+        for mol in reaction.reagents:
+            for other_mol in reaction.products:
+                if len(mol) > 6 and len(other_mol) > 6:
+                    # Compute fingerprint similarity
+                    molf = mf.transform([mol])
+                    other_molf = mf.transform([other_mol])
+                    fingerprint_tanimoto = tanimoto_kernel(molf, other_molf)[0][0]
+
+                    # If fingerprint similarity is high enough, check for MCS similarity
+                    if fingerprint_tanimoto > 0.3:
+                        try:
+                            # Find the maximum common substructure (MCS) and compute its size
+                            clique_size = len(next(mol.get_mcs_mapping(other_mol, limit=100)))
+
+                            # Calculate MCS similarity based on MCS size
+                            mcs_tanimoto = clique_size / (len(mol) + len(other_mol) - clique_size)
+
+                            # If MCS similarity is also high enough, mark the reaction as having compete products
+                            if mcs_tanimoto > 0.6:
+                                is_compete = True
+                                break
+                        except StopIteration:
+                            continue
+
         return is_compete
 
 
@@ -337,41 +349,48 @@ class CheckCCsp3Breaking:
 
 
 class CheckCCRingBreaking:
-    """Allows to check if there is ring C-C bonds breaking (5, 6, 7 atoms in rings)"""
+    """Checks if a reaction involves ring C-C bond breaking"""
 
     def __call__(self, reaction: ReactionContainer) -> bool:
         """
-        Returns True if there is ring C-C bonds breaking (5, 6, 7 atoms in rings), else False
+        Returns True if the reaction involves ring C-C bond breaking, else False
 
         :param reaction: input reaction
         :return: True or False
         """
         cgr = ~reaction
 
+        # Extract reactants' center atoms and their rings
         reactants_center_atoms = {}
-        reactants_rings = ()
+        reactants_rings = set()
         for reactant in reaction.reactants:
-            reactants_rings += reactant.sssr
+            reactants_rings.update(reactant.sssr)
             for n, atom in reactant.atoms():
                 if n in cgr.center_atoms:
                     reactants_center_atoms[n] = atom
 
-        reaction_center = cgr.augmented_substructure(cgr.center_atoms, deep=0)
+        # Identify reaction center based on center atoms
+        reaction_center = cgr.augmented_substructure(centers=cgr.center_atoms, deep=0)
+
+        # Iterate over bonds in the reaction center and check for ring C-C bond breaking
         for atom_id, neighbour_id, bond in reaction_center.bonds():
             try:
+                # Retrieve corresponding atoms from reactants
                 atom = reactants_center_atoms[atom_id]
                 neighbour = reactants_center_atoms[neighbour_id]
             except KeyError:
                 continue
             else:
-                is_bond_broken = bond.order is not None and bond.p_order is None
+                # Check if the bond is broken and both atoms are carbons in rings of size 5, 6, or 7
+                is_bond_broken = (bond.order is not None) and (bond.p_order is None)
                 are_atoms_carbons = atom.atomic_symbol == 'C' and neighbour.atomic_symbol == 'C'
-                are_atoms_in_ring = bool({5, 6, 7}.intersection(atom.ring_sizes)) and bool(
-                    {5, 6, 7}.intersection(neighbour.ring_sizes)) and any(
-                    atom_id in ring and neighbour_id in ring for ring in reactants_rings)
+                are_atoms_in_ring = (atom.ring_sizes.intersection({5, 6, 7}) and
+                                     neighbour.ring_sizes.intersection({5, 6, 7}) and
+                                     any(atom_id in ring and neighbour_id in ring for ring in reactants_rings))
 
-            if is_bond_broken and are_atoms_carbons and are_atoms_in_ring:
-                return True
+                # If all conditions are met, indicate ring C-C bond breaking
+                if is_bond_broken and are_atoms_carbons and are_atoms_in_ring:
+                    return True
 
         return False
 

@@ -12,7 +12,7 @@ from CGRtools.files import SDFRead
 
 from Synto.interfaces.visualisation import to_table
 from Synto.mcts import Tree
-from Synto.ml.training.preprocessing import safe_canonicalization
+from Synto.chem.utils import safe_canonicalization
 from Synto.utils.config import read_planning_config
 
 

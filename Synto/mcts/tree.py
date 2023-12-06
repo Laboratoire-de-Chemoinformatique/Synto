@@ -19,7 +19,7 @@ from Synto.interfaces.visualisation import tqdm
 from Synto.mcts.evaluation import ValueFunction
 from Synto.mcts.expansion import PolicyFunction
 from Synto.mcts.node import Node
-from Synto.ml.training.preprocessing import safe_canonicalization
+from Synto.chem.utils import safe_canonicalization
 from Synto.utils.loading import load_building_blocks, load_reaction_rules
 
 

@@ -22,25 +22,6 @@ from tqdm import tqdm
 from Synto.utils.loading import load_reaction_rules
 
 
-def safe_canonicalization(molecule: MoleculeContainer):
-    """
-    The function takes a molecule, attempts to canonicalize it, and returns the
-    canonicalized molecule if successful, otherwise it returns the original object.
-
-    :param molecule: The given molecule
-    :type molecule: MoleculeContainer
-    :return: The canonicalized molecule.
-    """
-    molecule._atoms = dict(sorted(molecule._atoms.items()))
-
-    tmp = molecule.copy()
-    try:
-        tmp.canonicalize()
-        return tmp
-    except InvalidAromaticRing:
-        return molecule
-
-
 class ValueNetworkDataset(InMemoryDataset, ABC):
     """
     Value network dataset
@@ -382,39 +363,6 @@ def mol_to_pyg(molecule: MoleculeContainer):
 
     assert mol_pyg_graph.is_undirected()
     return mol_pyg_graph
-
-
-def compose_retrons(retrons: list = None, exclude_small=True) -> MoleculeContainer:
-    """
-    The function takes a list of retrons, excludes small retrons if specified, and composes them into a single molecule.
-    This molecule is used for the prediction of synthesisability of the characterizing the possible success of the path
-    including the nodes with the given retrons.
-
-    :param retrons: The list of retrons to be composed.
-    :type retrons: list
-    :param exclude_small: The parameter that determines whether small retrons should be
-    excluded from the composition process. If `exclude_small` is set to `True`, only retrons with a length greater than
-    6 will be considered for composition.
-    :return: A composed retrons as a MoleculeContainer object.
-    """
-
-    if len(retrons) == 1:
-        return retrons[0].molecule
-    elif len(retrons) > 1:
-        if exclude_small:
-            big_retrons = [retron for retron in retrons if len(retron.molecule) > 6]
-            if big_retrons:
-                retrons = big_retrons
-        tmp_mol = retrons[0].molecule.copy()
-        transition_mapping = {}
-        for mol in retrons[1:]:
-            for n, atom in mol.molecule.atoms():
-                new_number = tmp_mol.add_atom(atom.atomic_symbol)
-                transition_mapping[n] = new_number
-            for atom, neighbor, bond in mol.molecule.bonds():
-                tmp_mol.add_bond(transition_mapping[atom], transition_mapping[neighbor], bond)
-            transition_mapping = {}
-        return tmp_mol
 
 
 MENDEL_INFO = {"Ag": (5, 11, 1, 1), "Al": (3, 13, 2, 1), "Ar": (3, 18, 2, 6), "As": (4, 15, 2, 3), "B": (2, 13, 2, 1),
