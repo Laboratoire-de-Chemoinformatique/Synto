@@ -1,7 +1,7 @@
 General:
   results_root: synto_training_test
   reaction_rules_path: synto_training_test/reaction_rules/reaction_rules.pickle
-  building_blocks_path: synto_training_test/building_blocks/building_blocks.pickle
+  building_blocks_path: synto_training_test/building_blocks/building_blocks.smi
   num_cpus: 5
   num_gpus: 1
 Tree:

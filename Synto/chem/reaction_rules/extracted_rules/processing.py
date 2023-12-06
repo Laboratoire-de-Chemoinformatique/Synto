@@ -47,7 +47,7 @@ def reaction_database_processing(reaction_database_file_name: str, transformatio
                                  filtered_reactions_file_name: str = 'filtered_reactions.rdf',
                                  result_reactions_file_name: str = 'reaction_rules.rdf',
                                  result_reactions_pkl_file_name: str = 'reaction_rules.pickle',
-                                 remove_old_results: bool = False,
+                                 remove_old_results: bool = True,
                                  min_popularity: int = 3):
     """
     Applies given transformations and filters to reactions from the reaction database. Returns result reactions files in
@@ -61,20 +61,23 @@ def reaction_database_processing(reaction_database_file_name: str, transformatio
     :param filtered_reactions_file_name: filtered and error reactions file name (.rdf)
     :param result_reactions_file_name: result reactions file name (.rdf)
     :param result_reactions_pkl_file_name: result reactions file name (.pickle)
+    :param remove_old_results: if previously extracted reactions and rules are removed.
+    :param min_popularity: the rule should appear at least min_popularity times in the reactions set to be considered.
     """
     os.makedirs(result_directory_name, exist_ok=True)
 
-    if os.path.isfile(f'{result_directory_name}/{filtered_reactions_file_name}'):
-        os.remove(f'{result_directory_name}/{filtered_reactions_file_name}')
-        logging.warning(f"Removed {result_directory_name}/{filtered_reactions_file_name}")
+    if remove_old_results:
+        if os.path.isfile(f'{result_directory_name}/{filtered_reactions_file_name}'):
+            os.remove(f'{result_directory_name}/{filtered_reactions_file_name}')
+            logging.warning(f"Removed {result_directory_name}/{filtered_reactions_file_name}")
 
-    if os.path.isfile(f'{result_directory_name}/{result_reactions_file_name}'):
-        os.remove(f'{result_directory_name}/{result_reactions_file_name}')
-        logging.warning(f"Removed {result_directory_name}/{result_reactions_file_name}")
+        if os.path.isfile(f'{result_directory_name}/{result_reactions_file_name}'):
+            os.remove(f'{result_directory_name}/{result_reactions_file_name}')
+            logging.warning(f"Removed {result_directory_name}/{result_reactions_file_name}")
 
-    if os.path.isfile(f'{result_directory_name}/unique_{result_reactions_file_name}'):
-        os.remove(f'{result_directory_name}/unique_{result_reactions_file_name}')
-        logging.warning(f"Removed {result_directory_name}/unique_{result_reactions_file_name}")
+        if os.path.isfile(f'{result_directory_name}/unique_{result_reactions_file_name}'):
+            os.remove(f'{result_directory_name}/unique_{result_reactions_file_name}')
+            logging.warning(f"Removed {result_directory_name}/unique_{result_reactions_file_name}")
 
     # filtered_file_exist = os.path.isfile(f'{result_directory_name}/{filtered_reactions_file_name}')
     # results_file_exist = os.path.isfile(f'{result_directory_name}/{filtered_reactions_file_name}')
