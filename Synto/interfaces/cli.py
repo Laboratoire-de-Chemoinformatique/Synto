@@ -7,21 +7,19 @@ warnings.filterwarnings("ignore")
 
 import os
 import shutil
-import logging
 from pathlib import Path
-
 import click
 import gdown
-import yaml
 
-from Synto.chem.reaction_rules.rule_extraction import extract_reaction_rules
-from Synto.ml.training import create_policy_training_set, run_policy_training
-from Synto.ml.training.self_tuning import run_self_tuning
-from Synto.utils.loading import canonicalize_building_blocks
-from Synto.utils.config import planning_config, training_config
-from Synto.utils.config import read_planning_config, read_training_config
-from Synto.utils.search import tree_search
+from ..chem.reaction_rules.rule_extraction import extract_reaction_rules
+from ..chem.reaction import reactions_cleaner
+from ..ml.training import create_policy_training_set, run_policy_training
+from ..ml.training.self_tuning import run_self_tuning
+from ..utils.loading import canonicalize_building_blocks
+from ..utils.config import read_planning_config, read_training_config
+from ..utils.search import tree_search
 
+warnings.filterwarnings("ignore")
 
 main = click.Group()
 
@@ -182,9 +180,18 @@ def synto_training_cli(config):
     config = read_training_config(config)
     print('Config is read')
 
+    # reaction rules standardization
+    if config['ReactionRules']['standardize_reactions']:
+        print('\nSTANDARDIZE REACTION RULES ...')
+        reactions_cleaner(input_file=config['ReactionRules']['reaction_data_path'],
+                          output_file=config['ReactionRules']['standardized_reactions_path'],
+                          num_cpus=config['General']['num_cpus'], )
+
     # reaction rules extraction
     print('\nEXTRACT REACTION RULES ...')
-    extract_reaction_rules(reaction_file=config['ReactionRules']['reaction_data_path'],
+    extraction_path = config['ReactionRules']['standardized_reactions_path'] if config['ReactionRules']['standardize_reactions'] \
+        else config['ReactionRules']['reaction_data_path']
+    extract_reaction_rules(reaction_file=extraction_path,
                            results_root=config['ReactionRules']['results_root'],
                            min_popularity=config['ReactionRules']['min_popularity'])
 
