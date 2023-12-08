@@ -6,22 +6,22 @@ import os
 from abc import ABC
 from multiprocessing import Manager, Process, Pool
 from typing import List
+from tqdm import tqdm
 
 import ray
-# from queue import Queue, Empty #util.queue import Queue, Empty
+# from queue import Queue, Empty
 from ray.util.queue import Queue, Empty
-import torch
 from CGRtools import smiles
 from CGRtools.containers import MoleculeContainer
 from CGRtools.exceptions import InvalidAromaticRing
 from CGRtools.files import SMILESRead
 from CGRtools.reactor import Reactor
+import torch
 from torch_geometric.data import Data, InMemoryDataset
 from torch_geometric.data.makedirs import makedirs
 from torch_geometric.transforms import ToUndirected
-from tqdm import tqdm
 
-from Synto.utils.loading import load_reaction_rules
+from ...utils.loading import load_reaction_rules
 
 
 def safe_canonicalization(molecule: MoleculeContainer):
@@ -123,7 +123,7 @@ class PolicyNetworkDataset(InMemoryDataset):
         self.reaction_rules_path = reaction_rules_path
         self.output_path = output_path
         self.num_cpus = num_cpus
-        self.batch_prep_size = 100
+        self.batch_prep_size = 10
 
         if output_path and os.path.exists(output_path):
             self.data, self.slices = torch.load(self.output_path)
@@ -141,16 +141,16 @@ class PolicyNetworkDataset(InMemoryDataset):
         reaction_rules = load_reaction_rules(self.reaction_rules_path)
         reaction_rules_ids = ray.put(reaction_rules)
 
-        to_process = Queue()
+        to_process = Queue(maxsize=self.batch_prep_size * self.num_cpus)
         processed_data = []
+        results_ids = [preprocess_policy_molecules.remote(to_process, reaction_rules_ids) for _ in range(self.num_cpus)]
 
         with open(self.molecules_path, "r") as inp_data:
             for molecule in tqdm(inp_data.read().splitlines()):
                 to_process.put(molecule)
-                if to_process.qsize() >= self.batch_prep_size * self.num_cpus:
-                    results_ids = [preprocess_policy_molecules.remote(to_process, reaction_rules_ids) for _ in range(self.num_cpus)]
-                    results = [graph for res in ray.get(results_ids) if res for graph in res]
-                    processed_data.extend(results)
+
+        results = [graph for res in ray.get(results_ids) if res for graph in res]
+        processed_data.extend(results)
 
         ray.shutdown()
 
@@ -279,7 +279,7 @@ def preprocess_policy_molecules(to_process: Queue, reaction_rules: List[Reactor]
     pyg_graphs = []
     while True:
         try:
-            molecule = smiles(to_process.get(timeout=1))
+            molecule = smiles(to_process.get(timeout=30))
             if not isinstance(molecule, MoleculeContainer):
                 continue
 
