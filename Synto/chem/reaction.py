@@ -2,7 +2,7 @@
 Module containing classes and functions for manipulating reactions and reaction rules
 """
 
-from .standardizer import Standardizer
+from Synto.chem.standardizer import Standardizer
 
 from CGRtools import Reactor
 from CGRtools.containers import MoleculeContainer
@@ -12,7 +12,6 @@ from multiprocessing import Queue, Process, Manager
 from tqdm import tqdm
 from logging import warning, getLogger
 import os
-from CGRtools.reactor import Reactor
 
 
 class Reaction(ReactionContainer):
