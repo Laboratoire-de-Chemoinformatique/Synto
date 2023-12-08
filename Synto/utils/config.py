@@ -72,6 +72,8 @@ training_config = {
     'ReactionRules': {
         'results_root': None,
         'reaction_data_path': None,
+        'standardize_reactions': True,
+        'standardized_reactions_path': None,
         'min_popularity': 10},
     'PolicyNetwork': {
         'results_root': None,

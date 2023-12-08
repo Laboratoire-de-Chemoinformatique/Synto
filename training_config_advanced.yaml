@@ -20,6 +20,8 @@ Tree:
 ReactionRules:
   results_root: synto_training_test/reaction_rules
   reaction_data_path: synto_training_test/reaction_data/reaction_data.rdf
+  standardize_reactions: True
+  standardized_reactions_path: synto_training_test/reaction_data/reaction_data_standardized.rdf
   min_popularity: 5
 SelfTuning:
   results_root: synto_training_test/value_network
