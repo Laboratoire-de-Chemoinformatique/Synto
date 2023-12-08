@@ -6,11 +6,11 @@ import warnings
 import os
 import shutil
 from pathlib import Path
-
 import click
 import gdown
 
 from Synto.chem.reaction_rules.extraction import extract_rules_from_reactions
+from Synto.chem.reaction import reactions_cleaner
 from Synto.ml.training import create_policy_training_set, run_policy_training
 from Synto.ml.training.reinforcement import run_self_tuning
 from Synto.utils.loading import canonicalize_building_blocks
@@ -52,10 +52,20 @@ def training_data_cli():
 
 
 @main.command(name='building_blocks')
-@click.option("--input", "input_file", required=True, help="Path to the file with original building blocks",
-    type=click.Path(exists=True), )
-@click.option("--output", "output_file", required=True, help="Path to the file with processed building blocks",
-    type=click.Path(exists=True), )
+@click.option(
+    "--input",
+    "input_file",
+    required=True,
+    help="Path to the file with original building blocks",
+    type=click.Path(exists=True),
+)
+@click.option(
+    "--output",
+    "output_file",
+    required=True,
+    help="Path to the file with processed building blocks",
+    type=click.Path(exists=True),
+)
 def building_blocks_cli(input_file, output_file):
     """
     Canonicalizes custom building blocks
@@ -64,14 +74,23 @@ def building_blocks_cli(input_file, output_file):
 
 
 @main.command(name='tree_search')
-@click.option("--targets", "targets_file",
+@click.option(
+    "--targets",
+    "targets_file",
     help="Path to targets SDF molecules_path. The name of molecules_path will be used to save report.",
-    type=click.Path(exists=True), )
-@click.option("--config", "config_path", required=True,
+    type=click.Path(exists=True),
+)
+@click.option("--config", "config_path",
+              required=True,
               help="Path to the config YAML molecules_path. To generate default config, use command Synto_default_config",
-              type=click.Path(exists=True, path_type=Path), )
-@click.option("--results_root", help="Path to the folder where to save all statistics and results", required=True,
-    type=click.Path(path_type=Path), )
+              type=click.Path(exists=True, path_type=Path),
+              )
+@click.option(
+    "--results_root",
+    help="Path to the folder where to save all statistics and results",
+    required=True,
+    type=click.Path(path_type=Path),
+)
 def synto_planning_cli(targets_file, config_path, results_root):
     """
     Launches tree search for the given target molecules and stores search statistics and found retrosynthetic paths
@@ -86,9 +105,12 @@ def synto_planning_cli(targets_file, config_path, results_root):
 
 
 @main.command(name='extract_rules')
-@click.option("--config", "config", required=True,
+@click.option(
+    "--config", "config",
+    required=True,
     help="Path to the config YAML molecules_path. To generate default config, use command Synto_default_config",
-    type=click.Path(exists=True, path_type=Path), )
+    type=click.Path(exists=True, path_type=Path),
+)
 def extract_rules_cli(config):
     """
     Extracts reaction rules from a reaction data file and saves the results in a specified directory
@@ -102,8 +124,13 @@ def extract_rules_cli(config):
 
 
 @main.command(name='policy_training')
-@click.option("--config", "config", required=True, help="Path to the policy training config YAML molecules_path.",
-    type=click.Path(exists=True, path_type=Path), )
+@click.option(
+    "--config",
+    "config",
+    required=True,
+    help="Path to the policy training config YAML molecules_path.",
+    type=click.Path(exists=True, path_type=Path),
+)
 def policy_training_cli(config):
     """
     The function for preparation of the training set abd training a policy network
@@ -118,8 +145,13 @@ def policy_training_cli(config):
 
 
 @main.command(name='self_tuning')
-@click.option("--config", "config", required=True, help="Path to the config YAML file.",
-    type=click.Path(exists=True, path_type=Path), )
+@click.option(
+    "--config",
+    "config",
+    required=True,
+    help="Path to the config YAML file.",
+    type=click.Path(exists=True, path_type=Path),
+)
 def self_tuning_cli(config):
     """
     Runs a self-tuning process for training value network
@@ -131,16 +163,31 @@ def self_tuning_cli(config):
 
 
 @main.command(name='synto_training')
-@click.option("--config", "config", required=True, help="Path to the config YAML file.",
-    type=click.Path(exists=True, path_type=Path))
+@click.option(
+    "--config",
+    "config",
+    required=True,
+    help="Path to the config YAML file.",
+    type=click.Path(exists=True, path_type=Path)
+)
 def synto_training_cli(config):
+
     # read training config
     print('READ CONFIG ...')
     config = read_training_config(config)
     print('Config is read')
 
+    # reaction rules standardization
+    if config['ReactionRules']['standardize_reactions']:
+        print('\nSTANDARDIZE REACTION RULES ...')
+        reactions_cleaner(input_file=config['ReactionRules']['reaction_data_path'],
+                          output_file=config['ReactionRules']['standardized_reactions_path'],
+                          num_cpus=config['General']['num_cpus'], )
+
     # reaction rules extraction
     print('\nEXTRACT REACTION RULES ...')
+    extraction_path = config['ReactionRules']['standardized_reactions_path'] if config['ReactionRules']['standardize_reactions'] \
+        else config['ReactionRules']['reaction_data_path']
     extract_rules_from_reactions(reaction_file=config['ReactionRules']['reaction_data_path'],
                            results_root=config['ReactionRules']['results_root'],
                            min_popularity=config['ReactionRules']['min_popularity'])
