@@ -191,3 +191,13 @@ def remove_reagents(
     new_reaction.name = reaction.name
 
     return new_reaction
+
+
+def to_reaction_smiles_record(reaction):
+    reaction_record = [format(reaction, "m")]
+    sorted_meta = sorted(reaction.meta.items(), key=lambda x: x[0])
+    for _, meta_info in sorted_meta:
+        meta_info = str(meta_info)
+        meta_info = ";".join(meta_info.split("\n"))
+        reaction_record.append(str(meta_info))
+    return "\t".join(reaction_record) + "\n"

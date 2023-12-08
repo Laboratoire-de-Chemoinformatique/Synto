@@ -4,12 +4,13 @@ from pathlib import Path
 from typing import Iterable, Tuple
 
 import numpy as np
+import ray
 from CGRtools.containers import ReactionContainer, MoleculeContainer, CGRContainer
 from CGRtools.files import RDFRead, RDFWrite
 from StructureFingerprint import MorganFingerprint
 from tqdm import tqdm
 
-from Synto.chem.utils import remove_small_molecules, rebalance_reaction, remove_reagents
+from Synto.chem.utils import remove_small_molecules, rebalance_reaction, remove_reagents, to_reaction_smiles_record
 
 
 def tanimoto_kernel(x, y):
@@ -39,6 +40,8 @@ def tanimoto_kernel(x, y):
     >>> tanimoto_kernel(x, y)
     array([[...]])
     """
+    x = x.astype(np.float64)
+    y = y.astype(np.float64)
     x_dot = np.dot(x, y.T)
     x2 = np.sum(x ** 2, axis=1)
     y2 = np.sum(y ** 2, axis=1)
@@ -288,6 +291,8 @@ class CheckWrongCHBreaking:
         :return: True if incorrect C-C bond formation is found, False otherwise.
         """
         reaction.kekule()
+        if reaction.check_valence():
+            return False
         reaction.thiele()
         copy_reaction = reaction.copy()
         copy_reaction.explicify_hydrogens()
@@ -378,7 +383,7 @@ class CheckCCRingBreaking:
                     reactants_center_atoms[n] = atom
 
         # Identify reaction center based on center atoms
-        reaction_center = cgr.augmented_substructure(centers=cgr.center_atoms, deep=0)
+        reaction_center = cgr.augmented_substructure(atoms=cgr.center_atoms, deep=0)
 
         # Iterate over bonds in the reaction center and check for ring C-C bond breaking
         for atom_id, neighbour_id, bond in reaction_center.bonds():
@@ -392,8 +397,11 @@ class CheckCCRingBreaking:
                 # Check if the bond is broken and both atoms are carbons in rings of size 5, 6, or 7
                 is_bond_broken = (bond.order is not None) and (bond.p_order is None)
                 are_atoms_carbons = atom.atomic_symbol == 'C' and neighbour.atomic_symbol == 'C'
-                are_atoms_in_ring = (atom.ring_sizes.intersection({5, 6, 7}) and neighbour.ring_sizes.intersection(
-                    {5, 6, 7}) and any(atom_id in ring and neighbour_id in ring for ring in reactants_rings))
+                are_atoms_in_ring = (
+                        set(atom.ring_sizes).intersection({5, 6, 7}) and
+                        set(neighbour.ring_sizes).intersection({5, 6, 7})
+                        and any(atom_id in ring and neighbour_id in ring for ring in reactants_rings)
+                )
 
                 # If all conditions are met, indicate ring C-C bond breaking
                 if is_bond_broken and are_atoms_carbons and are_atoms_in_ring:
@@ -415,8 +423,12 @@ class ReactionCheckConfig:
     _default_config = {
         'reaction_database_file_name': 'path/to/reaction_database.rdf',
         'result_directory_name': './',
-        'filtered_reactions_file_name': 'filtered_reactions.rdf',
-        'remove_old_results': True,
+        'output_files_format': 'smiles',
+        'result_reactions_file_name': 'clean_reactions',
+        'filtered_reactions_file_name': 'removed_reactions',
+        'append_results': False,
+        'num_cpus': 1,
+        'batch_size': 10,
         'min_popularity': 3,
         'remove_small_molecules': {
             'enabled': False,
@@ -562,6 +574,60 @@ def remove_files_if_exists(directory: Path, file_names):
             logging.warning(f"Removed {file_path}")
 
 
+def filter_reaction(reaction, config, checkers):
+    if config.config['remove_small_molecules']['enabled']:
+        reaction = remove_small_molecules(reaction,
+                                          number_of_atoms=config.config['remove_small_molecules'][
+                                              'number_of_atoms'],
+                                          small_molecules_to_meta=config.config['remove_small_molecules'][
+                                              'small_molecules_to_meta'])
+
+    if config.config['remove_reagents']['enabled']:
+        reaction = remove_reagents(reaction,
+                                   keep_reagents=config.config['remove_reagents']['keep_reagents'],
+                                   reagents_max_size=config.config['remove_reagents']['reagents_max_size'])
+
+    if config.config['rebalance_reaction']['enabled']:
+        reaction = rebalance_reaction(reaction)
+
+    is_filtered = False
+    for checker in checkers:
+        if checker(reaction):
+            reaction.meta["filtration_log"] = checker.__class__.__name__
+            is_filtered = True
+            break
+
+    if config.config["output_files_format"] == "smiles":
+        reaction = to_reaction_smiles_record(reaction)
+
+    return is_filtered, reaction
+
+
+@ray.remote
+def process_batch(batch, config, checkers):
+    results = []
+    for index, reaction in batch:
+        is_filtered, processed_reaction = filter_reaction(reaction, config, checkers)
+        results.append((index, is_filtered, processed_reaction))
+    return results
+
+
+def process_completed_batches(futures, filtered_file, result_file, pbar, batch_size):
+    done, _ = ray.wait(list(futures.keys()), num_returns=1)
+    completed_batch = ray.get(done[0])
+
+    # Write results of the completed batch to file
+    for index, is_filtered, reaction in completed_batch:
+        if is_filtered:
+            filtered_file.write(reaction)
+        else:
+            result_file.write(reaction)
+
+    # Remove completed future and update progress bar
+    del futures[done[0]]
+    pbar.update(batch_size)
+
+
 def filter_reactions(config: ReactionCheckConfig) -> None:
     """
     Processes a database of chemical reactions, applying checks based on the provided configuration,
@@ -574,41 +640,82 @@ def filter_reactions(config: ReactionCheckConfig) -> None:
     result_directory = Path(config.config['result_directory_name'])
     result_directory.mkdir(parents=True, exist_ok=True)
 
-    if config.config["remove_old_results"]:
-        remove_files_if_exists(
-            result_directory,
-            [
-                config.config['filtered_reactions_file_name'],
-                config.config['result_reactions_file_name'],
-            ]
-        )
-
     checkers = config.create_checkers()
 
-    with RDFRead(config.config['reaction_database_file_name'], indexable=True) as reactions, \
-         RDFWrite(str(result_directory / config.config['filtered_reactions_file_name']), append=True) as filtered_file, \
-         RDFWrite(str(result_directory / config.config['result_reactions_file_name']), append=True) as result_file:
+    ray.init(num_cpus=config.config["num_cpus"], ignore_reinit_error=True)
 
-        for reaction_index, reaction in tqdm(enumerate(reactions), total=len(reactions)):
+    max_concurrent_batches = config.config["num_cpus"]  # Limit the number of concurrent batches
 
-            if config.config['remove_small_molecules']['enabled']:
-                reaction = remove_small_molecules(reaction,
-                                                  number_of_atoms=config.config['remove_small_molecules'][
-                                                      'number_of_atoms'],
-                                                  small_molecules_to_meta=config.config['remove_small_molecules'][
-                                                      'small_molecules_to_meta'])
+    if config.config["output_files_format"] == "smiles":
+        open_mode = "a" if config.config["append_results"] else "w"
+        result_file = open(
+            str(result_directory / f"{config.config['result_reactions_file_name']}.smiles"),
+            open_mode
+        )
+        filtered_file = open(
+            str(result_directory / f"{config.config['filtered_reactions_file_name']}.smiles"),
+            open_mode
+        )
+    elif config.config["output_files_format"] == "rdf":
+        result_file = RDFWrite(
+            str(result_directory / f"{config.config['result_reactions_file_name']}.rdf"),
+            append=config.config["append_results"]
+        )
+        filtered_file = RDFWrite(
+            str(result_directory / f"{config.config['filtered_reactions_file_name']}.rdf"),
+            append=config.config["append_results"]
+        )
+    else:
+        raise ValueError(f"I don't know this output files format: {config.config['output_files_format']}")
 
-            if config.config['remove_reagents']['enabled']:
-                reaction = remove_reagents(reaction,
-                                           keep_reagents=config.config['remove_reagents']['keep_reagents'],
-                                           reagents_max_size=config.config['remove_reagents']['reagents_max_size'])
+    with RDFRead(config.config['reaction_database_file_name'], indexable=True) as reactions_file:
+        total_reactions = len(reactions_file)
+        pbar = tqdm(total=total_reactions)
 
-            if config.config['rebalance_reaction']['enabled']:
-                reaction = rebalance_reaction(reaction)
+        futures = {}
+        batch = []
 
-            if any(checker(reaction) for checker in checkers):
-                filtered_file.write(reaction)
-                continue
-            else:
-                reaction.meta['reaction_index'] = reaction_index
-                result_file.write(reaction)
+        for index, reaction in enumerate(reactions_file):
+            reaction.meta['reaction_index'] = index
+            batch.append((index, reaction))
+            if len(batch) == config.config["batch_size"]:
+                future = process_batch.remote(batch, config, checkers)
+                futures[future] = None
+                batch = []
+
+                # Check and process completed tasks if we've reached the concurrency limit
+                while len(futures) >= max_concurrent_batches:
+                    process_completed_batches(futures, filtered_file, result_file, pbar, config.config["batch_size"])
+
+        # Process the last batch if it's not empty
+        if batch:
+            future = process_batch.remote(batch, config, checkers)
+            futures[future] = None
+
+        # Process remaining batches
+        while futures:
+            process_completed_batches(futures, filtered_file, result_file, pbar, config.config["batch_size"])
+
+        pbar.close()
+    result_file.close()
+    filtered_file.close()
+    ray.shutdown()
+
+    # Example usage
+    """
+    Example usage:
+    # Importing config and reaction filtering function
+    from Synto.chem.filtering import ReactionCheckConfig, filter_reactions
+
+    # Creating a configuration object with default parameters
+    config = ReactionCheckConfig()
+    
+    # Changing default parameters
+    config.config["reaction_database_file_name"] = uspto_path
+    config.config["result_directory_name"] = "/data/tagir/main/syntool/filtered_data"
+    config.config['num_cpus'] = 8
+    config.config['batch_size'] = 20
+
+    # Launching filtering of reactions
+    filter_reactions(config)
+    """
