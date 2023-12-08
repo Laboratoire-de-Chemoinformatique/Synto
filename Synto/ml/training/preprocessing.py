@@ -193,12 +193,12 @@ def reaction_rules_appliance(molecule, reaction_rules):
 
                     # check priority rules
                     if len(reaction.products) > 1:
-                        # check coupling retro hardcoded_rules
+                        # check coupling retro manual
                         if all(len(mol) > 6 for mol in reaction.products):
                             if sum(len(mol) for mol in reaction.products) - len(reaction.reactants[0]) < 6:
                                 rule_prioritized = True
                     else:
-                        # check cyclization retro hardcoded_rules
+                        # check cyclization retro manual
                         if sum(len(mol.sssr) for mol in reaction.products) < sum(
                                 len(mol.sssr) for mol in reaction.reactants):
                             rule_prioritized = True

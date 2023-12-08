@@ -1,8 +1,15 @@
+import logging
+import yaml
+from pathlib import Path
 from typing import Iterable, Tuple
 
 import numpy as np
 from CGRtools.containers import ReactionContainer, MoleculeContainer, CGRContainer
+from CGRtools.files import RDFRead, RDFWrite
 from StructureFingerprint import MorganFingerprint
+from tqdm import tqdm
+
+from Synto.chem.utils import remove_small_molecules, rebalance_reaction, remove_reagents
 
 
 def tanimoto_kernel(x, y):
@@ -45,9 +52,13 @@ def tanimoto_kernel(x, y):
 class IsCompeteProducts:
     """Checks if there are compete reactions"""
 
+    def __init__(self, fingerprint_tanimoto_threshold: float = 0.3, mcs_tanimoto_threshold: float = 0.6):
+        self.fingerprint_tanimoto_threshold = fingerprint_tanimoto_threshold
+        self.mcs_tanimoto_threshold = mcs_tanimoto_threshold
+
     def __call__(self, reaction: ReactionContainer) -> bool:
         """
-        Returns True if the reaction has compete products, else False
+        Returns True if the reaction has competing products, else False
 
         :param reaction: input reaction
         :return: True or False
@@ -65,7 +76,7 @@ class IsCompeteProducts:
                     fingerprint_tanimoto = tanimoto_kernel(molf, other_molf)[0][0]
 
                     # If fingerprint similarity is high enough, check for MCS similarity
-                    if fingerprint_tanimoto > 0.3:
+                    if fingerprint_tanimoto > self.fingerprint_tanimoto_threshold:
                         try:
                             # Find the maximum common substructure (MCS) and compute its size
                             clique_size = len(next(mol.get_mcs_mapping(other_mol, limit=100)))
@@ -74,7 +85,7 @@ class IsCompeteProducts:
                             mcs_tanimoto = clique_size / (len(mol) + len(other_mol) - clique_size)
 
                             # If MCS similarity is also high enough, mark the reaction as having compete products
-                            if mcs_tanimoto > 0.6:
+                            if mcs_tanimoto > self.mcs_tanimoto_threshold:
                                 is_compete = True
                                 break
                         except StopIteration:
@@ -123,6 +134,20 @@ class CheckRings:
         else:
             return False
 
+    @staticmethod
+    def _calc_rings(molecules: Iterable) -> Tuple[int, int]:
+        """
+        Calculates number of all rings and number of aromatic rings in molecules
+
+        :param molecules: set of molecules
+        :return: number of all rings and number of aromatic rings in molecules
+        """
+        rings, arom_rings = 0, 0
+        for mol in molecules:
+            rings += mol.rings_count
+            arom_rings += len(mol.aromatic_rings)
+        return rings, arom_rings
+
 
 class CheckDynamicBondsNumber:
     """Allows to check if there is unacceptable number of dynamic bonds in CGR"""
@@ -158,7 +183,7 @@ class CheckSmallMolecules:
         """
         self.limit = limit
 
-    def __call__(self, reaction: ReactionContainer) -> ReactionContainer:
+    def __call__(self, reaction: ReactionContainer) -> bool:
         """
         Returns True if there are only small molecules in the reaction or there is only one small reactant or product,
         else False
@@ -248,20 +273,6 @@ class CheckMultiCenterReaction:
             return True
         return False
 
-    @staticmethod
-    def _calc_rings(molecules: Iterable) -> Tuple[int, int]:
-        """
-        Calculates number of all rings and number of aromatic rings in molecules
-
-        :param molecules: set of molecules
-        :return: number of all rings and number of aromatic rings in molecules
-        """
-        rings, arom_rings = 0, 0
-        for mol in molecules:
-            rings += mol.rings_count
-            arom_rings += len(mol.aromatic_rings)
-        return rings, arom_rings
-
 
 class CheckWrongCHBreaking:
     """
@@ -310,13 +321,10 @@ class CheckWrongCHBreaking:
 
                 if is_c_h_breaking and is_c_c_formation:
                     # Check for presence of heteroatoms in the first environment of 2 bonding carbons
-                    if any(
-                        cgr.atom(neighbour_id).atomic_symbol not in ('C', 'H')
-                        for neighbour_id in cgr._bonds[c_with_h_id]
-                    ) or any(
-                        cgr.atom(neighbour_id).atomic_symbol not in ('C', 'H')
-                        for neighbour_id in cgr._bonds[another_c_id]
-                    ):
+                    if any(cgr.atom(neighbour_id).atomic_symbol not in ('C', 'H') for neighbour_id in
+                           cgr._bonds[c_with_h_id]) or any(
+                        cgr.atom(neighbour_id).atomic_symbol not in ('C', 'H') for neighbour_id in
+                        cgr._bonds[another_c_id]):
                         return False
                     return True
 
@@ -384,9 +392,8 @@ class CheckCCRingBreaking:
                 # Check if the bond is broken and both atoms are carbons in rings of size 5, 6, or 7
                 is_bond_broken = (bond.order is not None) and (bond.p_order is None)
                 are_atoms_carbons = atom.atomic_symbol == 'C' and neighbour.atomic_symbol == 'C'
-                are_atoms_in_ring = (atom.ring_sizes.intersection({5, 6, 7}) and
-                                     neighbour.ring_sizes.intersection({5, 6, 7}) and
-                                     any(atom_id in ring and neighbour_id in ring for ring in reactants_rings))
+                are_atoms_in_ring = (atom.ring_sizes.intersection({5, 6, 7}) and neighbour.ring_sizes.intersection(
+                    {5, 6, 7}) and any(atom_id in ring and neighbour_id in ring for ring in reactants_rings))
 
                 # If all conditions are met, indicate ring C-C bond breaking
                 if is_bond_broken and are_atoms_carbons and are_atoms_in_ring:
@@ -395,22 +402,213 @@ class CheckCCRingBreaking:
         return False
 
 
-class CheckRulesByPopularity:
-    """Allows to check if there is a rare rule (was extracted from small number of reactions)"""
+class ReactionCheckConfig:
+    """
+    A class to hold and manage configuration settings for various reaction checkers.
 
-    def __init__(self, min_popularity: int = 3):
-        """
-        :param min_popularity: min acceptable number of reactions from which rule was extracted
-        """
-        self.min_popularity = min_popularity
+    The configuration can specify which checkers to use and their parameters.
 
-    def __call__(self, rule: ReactionContainer) -> bool:
-        """
-        Returns True if there is a rare rule (was extracted from small number of reactions), else False
+    Attributes:
+        config (dict): A dictionary where keys are checker names and values are their parameters.
+    """
 
-        :param rule: unique reaction rule with information in meta about the number of reactions from which it was
-        extracted
-        :return: True or False
+    _default_config = {
+        'reaction_database_file_name': 'path/to/reaction_database.rdf',
+        'result_directory_name': './',
+        'filtered_reactions_file_name': 'filtered_reactions.rdf',
+        'remove_old_results': True,
+        'min_popularity': 3,
+        'remove_small_molecules': {
+            'enabled': False,
+            'number_of_atoms': 6,
+            'small_molecules_to_meta': True
+        },
+        'remove_reagents': {
+            'enabled': True,
+            'keep_reagents': True,
+            'reagents_max_size': 7
+        },
+        'rebalance_reaction': {
+            'enabled': False
+        },
+        'checkers': {
+            'CheckDynamicBondsNumber': {
+                'min_bonds_number': 1,
+                'max_bonds_number': 6
+            },
+            'CheckSmallMolecules': {
+                'limit': 6
+            },
+            'CheckStrangeCarbons': {},
+            'IsCompeteProducts': {
+                'fingerprint_tanimoto_threshold': 0.3,
+                'mcs_tanimoto_threshold': 0.6
+            },
+            'CheckCGRConnectedComponents': {},
+            'CheckRings': {},
+            'CheckNoReaction': {},
+            'CheckMultiCenterReaction': {},
+            'CheckWrongCHBreaking': {},
+            'CheckCCsp3Breaking': {},
+            'CheckCCRingBreaking': {}
+        }
+    }
+
+    def __init__(self, config=None):
         """
-        # return True if int(rule.meta['Number_of_reactions']) < self.min_popularity else False
-        return True if len(rule._Reactor__meta['reaction_ids']) < self.min_popularity else False
+        Initializes the ReactionCheckConfig with specified checker configurations.
+
+        :param config: A dictionary with checker names as keys and their parameters as values.
+        """
+        if config is None:
+            config = self._default_config
+        self.config = config
+
+    def to_yaml(self, file_path):
+        """
+        Serializes the configuration to a YAML file.
+
+        :param file_path: The path to the file where the configuration will be saved.
+        """
+        with open(file_path, 'w') as file:
+            yaml.dump(self.config, file, default_flow_style=False)
+
+    @classmethod
+    def from_yaml(cls, file_path):
+        """
+        Deserializes a YAML file into a ReactionCheckConfig object.
+
+        :param file_path: The path to the YAML file to be loaded.
+        :return: An instance of ReactionCheckConfig.
+        """
+        with open(file_path, 'r') as file:
+            checkers_config = yaml.load(file, Loader=yaml.FullLoader)
+            return cls(checkers_config)
+
+    def create_checkers(self):
+        """
+        Creates instances of enabled checker classes based on the stored configuration.
+
+        :return: A list of enabled checker instances.
+        """
+        checker_instances = []
+
+        if 'CheckDynamicBondsNumber' in self.config['checkers']:
+            params = self.config['checkers']['CheckDynamicBondsNumber']
+            checker_instances.append(CheckDynamicBondsNumber(**params))
+
+        if 'CheckSmallMolecules' in self.config['checkers']:
+            params = self.config['checkers']['CheckSmallMolecules']
+            checker_instances.append(CheckSmallMolecules(**params))
+
+        if 'CheckStrangeCarbons' in self.config['checkers']:
+            checker_instances.append(CheckStrangeCarbons())
+
+        if 'IsCompeteProducts' in self.config['checkers']:
+            params = self.config['checkers']['IsCompeteProducts']
+            checker_instances.append(IsCompeteProducts(**params))
+
+        if 'CheckCGRConnectedComponents' in self.config['checkers']:
+            checker_instances.append(CheckCGRConnectedComponents())
+
+        if 'CheckRings' in self.config['checkers']:
+            checker_instances.append(CheckRings())
+
+        if 'CheckNoReaction' in  self.config['checkers']:
+            checker_instances.append(CheckNoReaction())
+
+        if 'CheckMultiCenterReaction' in self.config['checkers']:
+            checker_instances.append(CheckMultiCenterReaction())
+
+        if 'CheckWrongCHBreaking' in self.config['checkers']:
+            checker_instances.append(CheckWrongCHBreaking())
+
+        if 'CheckCCsp3Breaking' in self.config['checkers']:
+            checker_instances.append(CheckCCsp3Breaking())
+
+        if 'CheckCCRingBreaking' in self.config['checkers']:
+            checker_instances.append(CheckCCRingBreaking())
+
+        return checker_instances
+
+    # Example usage
+    """
+    Example usage:
+
+    # Creating a configuration object
+    config = ReactionCheckConfig(dynamic_bonds_min=2, dynamic_bonds_max=5, small_molecules_limit=5)
+
+    # Saving to YAML
+    config.to_yaml('config.yml')
+
+    # Loading from YAML
+    loaded_config = ReactionCheckConfig.from_yaml('config.yml')
+
+    # Creating checker instances
+    checkers = loaded_config.create_checkers()
+
+    # Assuming you have a 'ReactionContainer' object named 'my_reaction'
+    for checker in checkers:
+        result = checker(my_reaction)
+        print(f"{checker.__class__.__name__}: {result}")
+    """
+
+
+def remove_files_if_exists(directory: Path, file_names):
+    for file_name in file_names:
+        file_path = directory / file_name
+        if file_path.is_file():
+            file_path.unlink()
+            logging.warning(f"Removed {file_path}")
+
+
+def filter_reactions(config: ReactionCheckConfig) -> None:
+    """
+    Processes a database of chemical reactions, applying checks based on the provided configuration,
+    and writes the results to specified files. All configurations are provided by the ReactionCheckConfig object.
+
+    :param config: ReactionCheckConfig object containing all configuration settings.
+    :return: None. The function writes the processed reactions to specified RDF and pickle files.
+             Unique reactions are written if save_only_unique is True.
+    """
+    result_directory = Path(config.config['result_directory_name'])
+    result_directory.mkdir(parents=True, exist_ok=True)
+
+    if config.config["remove_old_results"]:
+        remove_files_if_exists(
+            result_directory,
+            [
+                config.config['filtered_reactions_file_name'],
+                config.config['result_reactions_file_name'],
+            ]
+        )
+
+    checkers = config.create_checkers()
+
+    with RDFRead(config.config['reaction_database_file_name'], indexable=True) as reactions, \
+         RDFWrite(str(result_directory / config.config['filtered_reactions_file_name']), append=True) as filtered_file, \
+         RDFWrite(str(result_directory / config.config['result_reactions_file_name']), append=True) as result_file:
+
+        for reaction_index, reaction in tqdm(enumerate(reactions), total=len(reactions)):
+
+            if config.config['remove_small_molecules']['enabled']:
+                reaction = remove_small_molecules(reaction,
+                                                  number_of_atoms=config.config['remove_small_molecules'][
+                                                      'number_of_atoms'],
+                                                  small_molecules_to_meta=config.config['remove_small_molecules'][
+                                                      'small_molecules_to_meta'])
+
+            if config.config['remove_reagents']['enabled']:
+                reaction = remove_reagents(reaction,
+                                           keep_reagents=config.config['remove_reagents']['keep_reagents'],
+                                           reagents_max_size=config.config['remove_reagents']['reagents_max_size'])
+
+            if config.config['rebalance_reaction']['enabled']:
+                reaction = rebalance_reaction(reaction)
+
+            if any(checker(reaction) for checker in checkers):
+                filtered_file.write(reaction)
+                continue
+            else:
+                reaction.meta['reaction_index'] = reaction_index
+                result_file.write(reaction)

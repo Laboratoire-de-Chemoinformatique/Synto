@@ -354,7 +354,7 @@ class Tree:
 
             # check loops
             if any(x in occurred_retrons for x in products) and products:
-                # Sometimes hardcoded_rules can create a loop, when
+                # Sometimes manual can create a loop, when
                 logging.debug('Rollout got in the loop: %s', history)
                 # print('occurred_retrons')
                 reward = -1.0
