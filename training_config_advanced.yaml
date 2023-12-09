@@ -1,7 +1,7 @@
 General:
   results_root: synto_training_test
   reaction_rules_path: synto_training_test/reaction_rules/reaction_rules.pickle
-  building_blocks_path: synto_training_test/building_blocks/building_blocks.pickle
+  building_blocks_path: synto_training_test/building_blocks/building_blocks.smi
   num_cpus: 5
   num_gpus: 1
 Tree:
@@ -17,11 +17,13 @@ Tree:
   backprop_type: muzero
   init_new_node_value: null
   epsilon: 0.0
+DataCleaning:
+  standardize_reactions: True
+  reaction_data_path: synto_training_test/reaction_data/reaction_data.rdf
+  standardized_reactions_path: synto_training_test/reaction_data/reaction_data_standardized.rdf
 ReactionRules:
   results_root: synto_training_test/reaction_rules
-  reaction_data_path: synto_training_test/reaction_data/reaction_data.rdf
-  standardize_reactions: True
-  standardized_reactions_path: synto_training_test/reaction_data/reaction_data_standardized.rdf
+  reaction_data_path: synto_training_test/reaction_data/reaction_data_standardized.rdf
   min_popularity: 5
 SelfTuning:
   results_root: synto_training_test/value_network

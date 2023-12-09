@@ -69,11 +69,13 @@ training_config = {
         'backprop_type': 'muzero',
         'init_new_node_value': None,
         'epsilon': 0.0},
+    'DataCleaning': {
+        'standardize_reactions': True,
+        'reaction_data_path': None,
+        'standardized_reactions_path': True},
     'ReactionRules': {
         'results_root': None,
         'reaction_data_path': None,
-        'standardize_reactions': True,
-        'standardized_reactions_path': None,
         'min_popularity': 10},
     'PolicyNetwork': {
         'results_root': None,
