@@ -21,11 +21,6 @@ from Synto.chem.utils import reverse_reaction
 class ExtractRuleConfig:
     def __init__(
             self,
-            reaction_database_path,
-            result_directory_name,
-            rules_file_name,
-            num_cpus: int = 4,
-            batch_size: int = 10,
             multicenter_rules: bool = True,
             as_query_container: bool = True,
             reverse_rule: bool = True,
@@ -47,11 +42,6 @@ class ExtractRuleConfig:
         """
         Initializes the configuration for extracting reaction rules.
 
-        :param reaction_database_path: Path to the file containing reaction database.
-        :param result_directory_name: Name of the directory where the results will be stored.
-        :param rules_file_name: Name of the file to store the extracted rules.
-        :param num_cpus: Number of CPU cores to use for processing. Defaults to 4.
-        :param batch_size: Number of reactions to process in each batch. Defaults to 10.
         :param multicenter_rules: If True, extracts a single rule encompassing all centers.
         If False, extracts separate reaction rules for each reaction center in a multicenter reaction.
         :param as_query_container: If True, the extracted rules are generated as QueryContainer objects,
@@ -79,12 +69,6 @@ class ExtractRuleConfig:
         The configuration settings provided in this method allow for a detailed and customized approach to the
         extraction and representation of chemical reaction rules.
         """
-        self.reaction_database_path = Path(reaction_database_path).resolve(strict=True)
-        self.result_directory = Path(result_directory_name)
-        self.rules_file_name = rules_file_name
-        self.batch_size = batch_size
-        self.num_cpus = num_cpus
-
         self.multicenter_rules = multicenter_rules
         self.as_query_container = as_query_container
         self.reverse_rule = reverse_rule
@@ -111,10 +95,14 @@ class ExtractRuleConfig:
             return yaml.load(file, Loader=yaml.FullLoader)
 
 
-def extract_rules_from_reactions(reaction_file=None,
-                                 results_root=None,
-                                 min_popularity=None,
-                                 num_cpus=1) -> None:
+def extract_rules_from_reactions(
+        config: ExtractRuleConfig,
+        reaction_file: str,
+        results_root: str,
+        rules_file_name: str,
+        num_cpus: int = 1,
+        batch_size: int = 10
+) -> None:
     """
     Extracts reaction rules from a set of reactions based on the given configuration.
 
@@ -123,61 +111,58 @@ def extract_rules_from_reactions(reaction_file=None,
     parallelizing the rule extraction process. Extracted rules are written to RDF files and their statistics
     are recorded. The function also sorts the rules based on their popularity and saves the sorted rules.
 
-    :param num_cpus:
-    :param min_popularity:
-    :param results_root:
-    :param reaction_file:
     :param config: Configuration settings for rule extraction, including file paths, batch size, and other parameters.
-    :type config: ExtractRuleConfig
+    :param reaction_file: Path to the file containing reaction database.
+    :param results_root: Path of the directory where the results will be stored.
+    :param rules_file_name: Name of the file to store the extracted rules.
+    :param num_cpus: Number of CPU cores to use for processing. Defaults to 1.
+    :param batch_size: Number of reactions to process in each batch. Defaults to 10.
 
     :return: None
     """
 
-    config = ExtractRuleConfig(reaction_database_path=reaction_file,
-                               result_directory_name=results_root,
-                               rules_file_name='reaction_rules',
-                               min_popularity=min_popularity,
-                               num_cpus=num_cpus
-                               )
+    reaction_file = Path(reaction_file).resolve(strict=True)
+    results_root = Path(results_root)
+    results_root.mkdir(parents=True, exist_ok=True)
 
     ray.init(ignore_reinit_error=True, logging_level='ERROR')
 
-    with RDFRead(config.reaction_database_path, indexable=True) as reactions:
+    with RDFRead(reaction_file, indexable=True) as reactions:
         total_reactions = len(reactions)
         pbar = tqdm(total=total_reactions, disable=False)  # TODO progress bar disappears after finishing
 
         futures = {}
         batch = []
-        max_concurrent_batches = config.num_cpus
+        max_concurrent_batches = num_cpus
 
         rules_statistics = defaultdict(list)
-        with RDFWrite(config.result_directory / f"{config.rules_file_name}_full.rdf", append=True) as result_file:
+        with RDFWrite(results_root / f"{rules_file_name}_full.rdf", append=True) as result_file:
             for index, reaction in enumerate(reactions):
                 batch.append((index, reaction))
-                if len(batch) == config.batch_size:
+                if len(batch) == batch_size:
                     future = process_reaction_batch.remote(batch, config)
                     futures[future] = None
                     batch = []
 
                     while len(futures) >= max_concurrent_batches:
-                        process_completed_batches(futures, result_file, rules_statistics, pbar, config.batch_size)
+                        process_completed_batches(futures, result_file, rules_statistics, pbar, batch_size)
 
             if batch:
                 future = process_reaction_batch.remote(batch, config)
                 futures[future] = None
 
             while futures:
-                process_completed_batches(futures, result_file, rules_statistics, pbar, config.batch_size)
+                process_completed_batches(futures, result_file, rules_statistics, pbar, batch_size)
 
             pbar.close()
 
-        with open(config.result_directory / f"{config.rules_file_name}_full.pickle", "wb") as statistics_file:
-            pickle.dump([i[0] for i in rules_statistics], statistics_file)
+        with open(results_root / f"{rules_file_name}_full.pickle", "wb") as statistics_file:
+            pickle.dump(rules_statistics, statistics_file)
 
         sorted_rules = sort_rules(rules_statistics, min_popularity=config.min_popularity)
 
-        with open(config.result_directory / f"{config.rules_file_name}_filtered.pickle", "wb") as statistics_file:
-            pickle.dump([i[0] for i in sorted_rules], statistics_file)
+        with open(results_root / f"{rules_file_name}_filtered.pickle", "wb") as statistics_file:
+            pickle.dump(sorted_rules, statistics_file)
 
     ray.shutdown()
 

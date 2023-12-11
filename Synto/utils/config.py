@@ -22,7 +22,9 @@ planning_config = {
         'weights_path': 'synto_planning_data/policy_network.ckpt',
         'priority_rules_fraction': 0.5,
         'top_rules': 50,
-        'rule_prob_threshold': 0.0},
+        'rule_prob_threshold': 0.0,
+        'mode': 'filtering'
+    },
     'ValueNetwork': {
         'weights_path': 'synto_planning_data/value_network.ckpt'},
     'Tree': {
@@ -77,7 +79,9 @@ training_config = {
         'priority_rules_fraction': 0.5,
         'rule_prob_threshold': 0.0,
         'top_rules': 50,
-        'vector_dim': 512},
+        'vector_dim': 512,
+        'mode': 'filtering'
+    },
     'ValueNetwork': {
         'batch_size': 500,
         'dropout': 0.4,

@@ -63,8 +63,10 @@ class PolicyNetwork(MCTSNetwork, LightningModule, ABC):
         loss_y = binary_cross_entropy_with_logits(pred_y, true_y)
         loss = loss_y
         true_y = true_y.long()
-        ba_y = (multilabel_recall(pred_y, true_y, num_labels=self.n_rules) + multilabel_specificity(pred_y, true_y,
-                                                                                                    num_labels=self.n_rules)) / 2
+        ba_y = (
+                       multilabel_recall(pred_y, true_y, num_labels=self.n_rules) +
+                       multilabel_specificity(pred_y, true_y, num_labels=self.n_rules)
+               ) / 2
         f1_y = multilabel_f1_score(pred_y, true_y, num_labels=self.n_rules)
 
         metrics = {'balanced_accuracy_y': ba_y, 'f1_score_y': f1_y}
@@ -78,10 +80,10 @@ class PolicyNetwork(MCTSNetwork, LightningModule, ABC):
 
             true_priority = true_priority.long()
 
-            ba_priority = (multilabel_recall(pred_priority, true_priority,
-                                             num_labels=self.n_rules) + multilabel_specificity(pred_priority,
-                                                                                               true_priority,
-                                                                                               num_labels=self.n_rules)) / 2
+            ba_priority = (
+                                  multilabel_recall(pred_priority, true_priority, num_labels=self.n_rules) +
+                                  multilabel_specificity(pred_priority, true_priority, num_labels=self.n_rules)
+                          ) / 2
             f1_priority = multilabel_f1_score(pred_priority, true_priority, num_labels=self.n_rules)
 
             metrics['balanced_accuracy_priority'] = ba_priority
