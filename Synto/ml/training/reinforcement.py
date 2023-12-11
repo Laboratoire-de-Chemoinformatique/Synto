@@ -4,6 +4,7 @@ Module containing functions for running value network tuning with self-tuning ap
 
 import csv
 import logging
+import os.path
 from collections import defaultdict
 from pathlib import Path
 from random import shuffle
@@ -26,7 +27,7 @@ from Synto.ml.training.loading import load_value_net
 from Synto.ml.training.preprocessing import ValueNetworkDataset
 from Synto.chem.retron import compose_retrons
 from Synto.utils.logging import DisableLogger, HiddenPrints
-from Synto.utils.search import extract_tree_stats
+from Synto.mcts.search import extract_tree_stats
 
 
 def create_targets_batch(experiment_root=None, targets_file=None, tmp_file_id=None, batch_slices=None):
@@ -234,12 +235,14 @@ def run_training(processed_molecules_path=None, simul_id=None, config=None, expe
     tune_value_network(value_net, training_set, experiment_root, simul_id, n_epoch=config["ValueNetwork"]["num_epoch"])
 
 
-def run_planning(simul_id: int, config: dict, targets_file: Path, processed_molecules_path: Path = None,
-        targets_batch_id: int = None):
+def run_planning(simul_id: int, config: dict,
+                 targets_file: Path, results_root=None,
+                 processed_molecules_path: Path = None, targets_batch_id: int = None):
     """
     Performs planning stage (tree search) for target molecules and save extracted from built trees retrons for further
     tuning the value network in the training stage.
 
+    :param results_root:
     :param simul_id: The simulation identifier
     :type simul_id: int
     :param config: The dictionary containing configuration settings for the planning stage
@@ -252,7 +255,7 @@ def run_planning(simul_id: int, config: dict, targets_file: Path, processed_mole
     :type targets_batch_id: int
     """
 
-    experiment_root = Path(config['SelfTuning']['results_root'])
+    experiment_root = Path(results_root)
 
     # load value network
     if config["Tree"]["evaluation_mode"] == "gcn":
@@ -356,18 +359,19 @@ def run_planning(simul_id: int, config: dict, targets_file: Path, processed_mole
     del processed_molecules
 
 
-def run_self_tuning(config: dict):
+def run_self_tuning(config: dict, results_root=None):
     """
     Performs self-tuning simulations with alternating planning and training stages
 
+    :param results_root:
     :param config: The configuration settings for the self-tuning process
     :type config: dict
     """
 
     restart_batch = -1
 
-    experiment_root = Path(config['SelfTuning']['results_root'])
-    targets_file = Path(config['SelfTuning']['dataset_path'])
+    experiment_root = Path(results_root)
+    targets_file = Path(config['InputData']['value_data_path'])
 
     # create results root folder
     if not experiment_root.exists():
@@ -404,7 +408,8 @@ def run_self_tuning(config: dict):
 
                 # start tree planning simulation for batch of targets
                 run_planning(simul_id=simul_id, config=config, targets_file=targets_batch_file,
-                    processed_molecules_path=processed_molecules_path, targets_batch_id=batch_id)
+                             results_root=results_root, processed_molecules_path=processed_molecules_path,
+                             targets_batch_id=batch_id)
 
                 # train value network for extracted retrons
                 run_training(processed_molecules_path=processed_molecules_path, simul_id=simul_id, config=config,

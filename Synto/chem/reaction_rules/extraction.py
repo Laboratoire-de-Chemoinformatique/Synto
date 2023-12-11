@@ -81,7 +81,6 @@ class ExtractRuleConfig:
         """
         self.reaction_database_path = Path(reaction_database_path).resolve(strict=True)
         self.result_directory = Path(result_directory_name)
-        self.result_directory.mkdir(parents=True, exist_ok=True)
         self.rules_file_name = rules_file_name
         self.batch_size = batch_size
         self.num_cpus = num_cpus
@@ -112,7 +111,10 @@ class ExtractRuleConfig:
             return yaml.load(file, Loader=yaml.FullLoader)
 
 
-def extract_rules_from_reactions(config: ExtractRuleConfig) -> None:
+def extract_rules_from_reactions(reaction_file=None,
+                                 results_root=None,
+                                 min_popularity=None,
+                                 num_cpus=1) -> None:
     """
     Extracts reaction rules from a set of reactions based on the given configuration.
 
@@ -121,25 +123,34 @@ def extract_rules_from_reactions(config: ExtractRuleConfig) -> None:
     parallelizing the rule extraction process. Extracted rules are written to RDF files and their statistics
     are recorded. The function also sorts the rules based on their popularity and saves the sorted rules.
 
+    :param num_cpus:
+    :param min_popularity:
+    :param results_root:
+    :param reaction_file:
     :param config: Configuration settings for rule extraction, including file paths, batch size, and other parameters.
     :type config: ExtractRuleConfig
 
     :return: None
     """
-    ray.init(ignore_reinit_error=True)
 
-    config.result_directory.mkdir(parents=True, exist_ok=True)
+    config = ExtractRuleConfig(reaction_database_path=reaction_file,
+                               result_directory_name=results_root,
+                               rules_file_name='reaction_rules',
+                               min_popularity=min_popularity,
+                               num_cpus=num_cpus
+                               )
+
+    ray.init(ignore_reinit_error=True, logging_level='ERROR')
 
     with RDFRead(config.reaction_database_path, indexable=True) as reactions:
         total_reactions = len(reactions)
-        pbar = tqdm(total=total_reactions)
+        pbar = tqdm(total=total_reactions, disable=False)  # TODO progress bar disappears after finishing
 
         futures = {}
         batch = []
         max_concurrent_batches = config.num_cpus
 
         rules_statistics = defaultdict(list)
-
         with RDFWrite(config.result_directory / f"{config.rules_file_name}_full.rdf", append=True) as result_file:
             for index, reaction in enumerate(reactions):
                 batch.append((index, reaction))
@@ -161,12 +172,12 @@ def extract_rules_from_reactions(config: ExtractRuleConfig) -> None:
             pbar.close()
 
         with open(config.result_directory / f"{config.rules_file_name}_full.pickle", "wb") as statistics_file:
-            pickle.dump(rules_statistics, statistics_file)
+            pickle.dump([i[0] for i in rules_statistics], statistics_file)
 
         sorted_rules = sort_rules(rules_statistics, min_popularity=config.min_popularity)
 
         with open(config.result_directory / f"{config.rules_file_name}_filtered.pickle", "wb") as statistics_file:
-            pickle.dump(sorted_rules, statistics_file)
+            pickle.dump([i[0] for i in sorted_rules], statistics_file)
 
     ray.shutdown()
 

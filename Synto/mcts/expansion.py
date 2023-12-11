@@ -26,7 +26,7 @@ class PolicyFunction:
         self.top_rules = config['PolicyNetwork']['top_rules']
         self.threshold = config['PolicyNetwork']['rule_prob_threshold']
         self.priority_rules_fraction = config['PolicyNetwork']['priority_rules_fraction']
-        self.n_rules = len(load_reaction_rules(config['General']['reaction_rules_path']))
+        self.n_rules = len(load_reaction_rules(config['InputData']['reaction_rules_path']))
 
         self.policy_net = load_policy_net(PolicyNetwork, config, n_rules=self.n_rules, vector_dim=512)
         self.policy_net.eval()

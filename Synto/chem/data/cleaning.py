@@ -88,8 +88,9 @@ def reactions_cleaner(input_file: str, output_file: str, num_cpus: int, batch_pr
             for n, raw_reaction in tqdm(enumerate(reactions), total=len(reactions)):
                 to_clean.put(raw_reaction)
         #
-        n_removed = len(reactions) - len(RDFRead(output_file, indexable=True))
-        print(f'Removed number of reactions: {n_removed} ({100 * n_removed / len(reactions):.1f} %)')
+        # TODO finish it
+        # n_removed = len(reactions) - len(RDFRead(output_file, indexable=True))
+        # print(f'Removed number of reactions: {n_removed} ({100 * n_removed / len(reactions):.1f} %)')
 
         for _ in workers:
             to_clean.put("Quit")

@@ -14,13 +14,17 @@ from torch_geometric.data.lightning import LightningDataset
 
 from Synto.ml.networks.policy import PolicyNetwork
 from Synto.ml.training.preprocessing import FilteringPolicyDataset
-from Synto.utils.loading import load_reaction_rules
+from Synto.chem.loading import load_reaction_rules
 from Synto.utils.logging import DisableLogger, HiddenPrints
 
 warnings.filterwarnings('ignore')
 
 
-def create_policy_training_set(config):
+def create_policy_training_set(reaction_rules_path=None,
+                               molecules_path=None,
+                               output_path=None,
+                               batch_size=None,
+                               num_cpus=None):
     """
     Creates a training set for a policy network using a given configuration. Configuration dictionary specifies the path
     to the extracted reaction rules and molecules for generating the training set. Each reaction rule is applied to the
@@ -29,17 +33,19 @@ def create_policy_training_set(config):
     applicable reaction rules. Each training molecule is encoded with atom/bonds vectors and stored as PyTorch Geometric
     graphs.
 
-    :param config: The dictionary that contains paths for data settings for creating the policy training set.
+    :param num_cpus:
+    :param batch_size:
+    :param output_path:
+    :param molecules_path:
+    :param reaction_rules_path:
     :return: A `LightningDataset` object containing PyTorch Geometric graphs for training molecules and label vectors.
     """
     #
-    n_rules = len(load_reaction_rules(config['General']['reaction_rules_path']))
-
     with DisableLogger() as DL:
-        full_dataset = FilteringPolicyDataset(molecules_path=config['PolicyNetwork']['dataset_path'],
-                                              reaction_rules_path=config['General']['reaction_rules_path'],
-                                              output_path=config['PolicyNetwork']['datamodule_path'],
-                                              num_cpus=config['General']['num_cpus'])
+        full_dataset = FilteringPolicyDataset(molecules_path=molecules_path,
+                                              reaction_rules_path=reaction_rules_path,
+                                              output_path=output_path,
+                                              num_cpus=num_cpus)
 
     train_size = int(0.8 * len(full_dataset))
     val_size = len(full_dataset) - train_size
@@ -47,24 +53,23 @@ def create_policy_training_set(config):
     train_dataset, val_dataset = random_split(full_dataset, [train_size, val_size], torch.Generator().manual_seed(42))
     print(f'Training set size: {len(train_dataset)}, validation set size: {len(val_dataset)}')
     #
-    datamodule = LightningDataset(train_dataset, val_dataset, batch_size=config['PolicyNetwork']['batch_size'],
-                                  pin_memory=True)
+    datamodule = LightningDataset(train_dataset, val_dataset, batch_size=batch_size, pin_memory=True)
 
     return datamodule
 
 
-def run_policy_training(datamodule, config):
+def run_policy_training(datamodule, config, n_rules=None, results_path=None):
     """
     Trains a policy network using a given datamodule and training configuration.
 
+    :param results_path:
+    :param n_rules:
     :param datamodule: The PyTorch Lightning `DataModule` class. It is responsible for loading and preparing the
     training data for the model.
     :param config: The dictionary that contains various configuration settings (path to the reaction rules file, vector
     dimension, batch size, dropout rate, number of convolutional layers, learning rate, number of epochs, etc.) for the
     policy training process.
     """
-
-    n_rules = len(load_reaction_rules(config['General']['reaction_rules_path']))
     #
     network = PolicyNetwork(vector_dim=config['PolicyNetwork']['vector_dim'], n_rules=n_rules,
                             batch_size=config['PolicyNetwork']['batch_size'],
@@ -72,7 +77,6 @@ def run_policy_training(datamodule, config):
                             num_conv_layers=config['PolicyNetwork']['num_conv_layers'],
                             learning_rate=config['PolicyNetwork']['learning_rate'])
     #
-    results_path = config['PolicyNetwork']['results_root']
     weights_path = osp.join(results_path)
     logs_path = osp.join(results_path)
 
@@ -90,5 +94,3 @@ def run_policy_training(datamodule, config):
 
     ba = round(trainer.logged_metrics['train_balanced_accuracy_y_step'].item(), 3)
     print(f'Policy network balanced accuracy: {ba}')
-
-    return trainer

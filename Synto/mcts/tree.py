@@ -20,7 +20,7 @@ from Synto.mcts.evaluation import ValueFunction
 from Synto.mcts.expansion import PolicyFunction
 from Synto.mcts.node import Node
 from Synto.chem.utils import safe_canonicalization
-from Synto.utils.loading import load_building_blocks, load_reaction_rules
+from Synto.chem.loading import load_building_blocks, load_reaction_rules
 
 
 class Tree:
@@ -85,8 +85,8 @@ class Tree:
         self.value_function = ValueFunction(config)
 
         # building blocks and reaction reaction_rules
-        self.reaction_rules = load_reaction_rules(config['General']['reaction_rules_path'])
-        self.building_blocks = load_building_blocks(config['General']['building_blocks_path'])
+        self.reaction_rules = load_reaction_rules(config['InputData']['reaction_rules_path'])
+        self.building_blocks = load_building_blocks(config['InputData']['building_blocks_path'])
 
     def __len__(self) -> int:
         """

@@ -4,7 +4,7 @@ Module containing functions for preparation of the training sets for policy and 
 
 import os
 from abc import ABC
-from multiprocessing import Manager, Process, Pool
+from multiprocessing import Manager, Pool
 from typing import List
 from tqdm import tqdm
 
@@ -21,7 +21,7 @@ from torch_geometric.data import Data, InMemoryDataset
 from torch_geometric.data.makedirs import makedirs
 from torch_geometric.transforms import ToUndirected
 
-from Synto.utils.loading import load_reaction_rules
+from Synto.chem.loading import load_reaction_rules
 
 
 class ValueNetworkDataset(InMemoryDataset, ABC):

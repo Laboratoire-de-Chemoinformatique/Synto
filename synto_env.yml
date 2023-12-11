@@ -227,4 +227,4 @@ dependencies:
       - tabulate==0.9.0
       - toyplot==1.0.3
       - toytree==2.0.1
-prefix: /home/tagir/mambaforge/envs/syntool_env
+prefix: /home/tagir/mambaforge/envs/syntool_env #TODO change

@@ -13,12 +13,13 @@ from Synto.chem.reaction_rules.extraction import extract_rules_from_reactions
 from Synto.chem.data.cleaning import reactions_cleaner
 from Synto.ml.training import create_policy_training_set, run_policy_training
 from Synto.ml.training.reinforcement import run_self_tuning
-from Synto.utils.loading import canonicalize_building_blocks
+from Synto.chem.loading import canonicalize_building_blocks
 from Synto.utils.config import read_planning_config, read_training_config
-from Synto.utils.search import tree_search
+from Synto.mcts.search import tree_search
+from Synto.chem.loading import load_reaction_rules
 
-main = click.Group()
 warnings.filterwarnings("ignore")
+main = click.Group()
 
 
 @main.command(name='planning_data')
@@ -73,7 +74,7 @@ def building_blocks_cli(input_file, output_file):
     canonicalize_building_blocks(input_file, output_file)
 
 
-@main.command(name='tree_search')
+@main.command(name='synto_planning')
 @click.option(
     "--targets",
     "targets_file",
@@ -104,64 +105,6 @@ def synto_planning_cli(targets_file, config_path, results_root):
     tree_search(results_root, targets_file, config)
 
 
-@main.command(name='extract_rules')
-@click.option(
-    "--config", "config",
-    required=True,
-    help="Path to the config YAML molecules_path. To generate default config, use command Synto_default_config",
-    type=click.Path(exists=True, path_type=Path),
-)
-def extract_rules_cli(config):
-    """
-    Extracts reaction rules from a reaction data file and saves the results in a specified directory
-
-    :param config: The configuration file that contains settings for the reaction rule extraction
-    """
-    config = read_training_config(config)
-    extract_rules_from_reactions(reaction_file=config['ReactionRules']['reaction_data_path'],
-                           results_root=config['ReactionRules']['results_root'],
-                           min_popularity=config['ReactionRules']['min_popularity'])
-
-
-@main.command(name='policy_training')
-@click.option(
-    "--config",
-    "config",
-    required=True,
-    help="Path to the policy training config YAML molecules_path.",
-    type=click.Path(exists=True, path_type=Path),
-)
-def policy_training_cli(config):
-    """
-    The function for preparation of the training set abd training a policy network
-
-    :param config: The configuration file that contains settings for the policy training.
-    specific requirements
-    """
-    config = read_training_config(config)
-
-    datamodule = create_policy_training_set(config)
-    run_policy_training(datamodule, config)
-
-
-@main.command(name='self_tuning')
-@click.option(
-    "--config",
-    "config",
-    required=True,
-    help="Path to the config YAML file.",
-    type=click.Path(exists=True, path_type=Path),
-)
-def self_tuning_cli(config):
-    """
-    Runs a self-tuning process for training value network
-
-    :param config: The configuration file with settings for running the self-tuning process
-    """
-    config = read_training_config(config)
-    run_self_tuning(config)
-
-
 @main.command(name='synto_training')
 @click.option(
     "--config",
@@ -181,31 +124,61 @@ def synto_training_cli(config):
     pass
 
     # reaction data cleaning
-    if config['DataCleaning']['standardize_reactions']:
+    if config['DataCleaning']['clean_reactions']:
         print('\nCLEAN REACTION DATA ...')
-        reactions_cleaner(input_file=config['DataCleaning']['reaction_data_path'],
-                          output_file=config['DataCleaning']['standardized_reactions_path'],
+
+        output_folder = os.path.join(config['General']['results_root'], 'reaction_data')
+        Path(output_folder).mkdir(parents=True, exist_ok=True)
+        cleaned_data_file = os.path.join(output_folder, 'reaction_data_cleaned.rdf')
+
+        reactions_cleaner(input_file=config['InputData']['reaction_data_path'],
+                          output_file=cleaned_data_file,
                           num_cpus=config['General']['num_cpus'])
 
     # reaction rules extraction
     print('\nEXTRACT REACTION RULES ...')
-    extraction_path = config['ReactionRules']['standardized_reactions_path'] if config['ReactionRules']['standardize_reactions'] \
-        else config['ReactionRules']['reaction_data_path']
-    extract_rules_from_reactions(reaction_file=config['ReactionRules']['reaction_data_path'],
-                           results_root=config['ReactionRules']['results_root'],
-                           min_popularity=config['ReactionRules']['min_popularity'])
+    if config['DataCleaning']['clean_reactions']:
+        reaction_file = cleaned_data_file
+    else:
+        reaction_file = config['InputData']['reaction_data_path']
+
+    reaction_rules_folder = os.path.join(config['General']['results_root'], 'reaction_rules')
+    Path(reaction_rules_folder).mkdir(parents=True, exist_ok=True)
+
+    extract_rules_from_reactions(reaction_file=reaction_file,
+                                 results_root=reaction_rules_folder,
+                                 min_popularity=config['ReactionRules']['min_popularity'],
+                                 num_cpus=config['General']['num_cpus'])
 
     # create policy network dataset
     print('\nCREATE POLICY NETWORK DATASET ...')
-    datamodule = create_policy_training_set(config)
+
+    reaction_rules_path = os.path.join(reaction_rules_folder, 'reaction_rules_filtered.pickle')
+    config['InputData']['reaction_rules_path'] = reaction_rules_path
+
+    policy_output_folder = os.path.join(config['General']['results_root'], 'policy_network')
+    Path(policy_output_folder).mkdir(parents=True, exist_ok=True)
+    policy_data_file = os.path.join(policy_output_folder, 'policy_dataset.pt')
+
+    datamodule = create_policy_training_set(reaction_rules_path=reaction_rules_path,
+                                            molecules_path=config['InputData']['policy_data_path'],
+                                            output_path=policy_data_file,
+                                            batch_size=config['PolicyNetwork']['batch_size'],
+                                            num_cpus=config['General']['num_cpus'])
 
     # train policy network
     print('\nTRAIN POLICY NETWORK ...')
-    run_policy_training(datamodule, config)
+    n_rules = len(load_reaction_rules(reaction_rules_path))
+    run_policy_training(datamodule, config, n_rules=n_rules, results_path=policy_output_folder)
+    config['PolicyNetwork']['weights_path'] = os.path.join(policy_output_folder, 'policy_network.ckpt')
 
     # self-tuning value network training
     print('\nTRAIN VALUE NETWORK ...')
-    run_self_tuning(config)
+    value_output_folder = os.path.join(config['General']['results_root'], 'value_network')
+    Path(value_output_folder).mkdir(parents=True, exist_ok=True)
+
+    config['ValueNetwork']['weights_path'] = os.path.join(value_output_folder, 'value_network.ckpt')
+    run_self_tuning(config, results_root=value_output_folder)
 
 
 if __name__ == '__main__':
