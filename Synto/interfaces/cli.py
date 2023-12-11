@@ -10,7 +10,7 @@ import click
 import gdown
 
 from Synto.chem.reaction_rules.extraction import extract_rules_from_reactions
-from Synto.chem.reaction import reactions_cleaner
+from Synto.chem.data_cleaning.cleaner import reactions_cleaner
 from Synto.ml.training import create_policy_training_set, run_policy_training
 from Synto.ml.training.reinforcement import run_self_tuning
 from Synto.utils.loading import canonicalize_building_blocks
@@ -177,12 +177,15 @@ def synto_training_cli(config):
     config = read_training_config(config)
     print('Config is read')
 
-    # reaction rules standardization
-    if config['ReactionRules']['standardize_reactions']:
-        print('\nSTANDARDIZE REACTION RULES ...')
-        reactions_cleaner(input_file=config['ReactionRules']['reaction_data_path'],
-                          output_file=config['ReactionRules']['standardized_reactions_path'],
-                          num_cpus=config['General']['num_cpus'], )
+    # reaction mapping
+    pass
+
+    # reaction data cleaning
+    if config['DataCleaning']['standardize_reactions']:
+        print('\nCLEAN REACTION DATA ...')
+        reactions_cleaner(input_file=config['DataCleaning']['reaction_data_path'],
+                          output_file=config['DataCleaning']['standardized_reactions_path'],
+                          num_cpus=config['General']['num_cpus'])
 
     # reaction rules extraction
     print('\nEXTRACT REACTION RULES ...')
