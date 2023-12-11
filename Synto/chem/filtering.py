@@ -326,10 +326,13 @@ class CheckWrongCHBreaking:
 
                 if is_c_h_breaking and is_c_c_formation:
                     # Check for presence of heteroatoms in the first environment of 2 bonding carbons
-                    if any(cgr.atom(neighbour_id).atomic_symbol not in ('C', 'H') for neighbour_id in
-                           cgr._bonds[c_with_h_id]) or any(
-                        cgr.atom(neighbour_id).atomic_symbol not in ('C', 'H') for neighbour_id in
-                        cgr._bonds[another_c_id]):
+                    if any(
+                            cgr.atom(neighbour_id).atomic_symbol not in ('C', 'H')
+                            for neighbour_id in cgr._bonds[c_with_h_id]
+                    ) or any(
+                        cgr.atom(neighbour_id).atomic_symbol not in ('C', 'H')
+                        for neighbour_id in cgr._bonds[another_c_id]
+                    ):
                         return False
                     return True
 
@@ -421,9 +424,9 @@ class ReactionCheckConfig:
     """
 
     _default_config = {
-        'reaction_database_file_name': 'path/to/reaction_database.rdf',
+        'reaction_database_path': 'path/to/reaction_database.rdf',
         'result_directory_name': './',
-        'output_files_format': 'smiles',
+        'output_files_format': 'rdf',
         'result_reactions_file_name': 'clean_reactions',
         'filtered_reactions_file_name': 'removed_reactions',
         'append_results': False,
@@ -668,7 +671,7 @@ def filter_reactions(config: ReactionCheckConfig) -> None:
     else:
         raise ValueError(f"I don't know this output files format: {config.config['output_files_format']}")
 
-    with RDFRead(config.config['reaction_database_file_name'], indexable=True) as reactions_file:
+    with RDFRead(config.config['reaction_database_path'], indexable=True) as reactions_file:
         total_reactions = len(reactions_file)
         pbar = tqdm(total=total_reactions)
 
@@ -711,8 +714,8 @@ def filter_reactions(config: ReactionCheckConfig) -> None:
     config = ReactionCheckConfig()
     
     # Changing default parameters
-    config.config["reaction_database_file_name"] = uspto_path
-    config.config["result_directory_name"] = "/data/tagir/main/syntool/filtered_data"
+    config.config["reaction_database_path"] = ./uspto.rdf
+    config.config["result_directory_name"] = results/
     config.config['num_cpus'] = 8
     config.config['batch_size'] = 20
 

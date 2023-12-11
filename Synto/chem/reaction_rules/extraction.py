@@ -1,58 +1,75 @@
 """
 Module containing functions with fixed protocol for reaction rules extraction
 """
+import pickle
+from collections import defaultdict
 from itertools import islice
 from pathlib import Path
-from typing import List, Union, Literal
+from typing import List, Union, Literal, Tuple, IO, Dict
 
+import ray
 import yaml
 from CGRtools.containers import MoleculeContainer, QueryContainer, ReactionContainer
-from CGRtools.reactor import Reactor
+from CGRtools.exceptions import InvalidAromaticRing
 from CGRtools.files import RDFRead, RDFWrite
+from CGRtools.reactor import Reactor
 from tqdm import tqdm
-from Synto.chem.utils import reaction_query_to_reaction
+
+from Synto.chem.utils import reverse_reaction
 
 
 class ExtractRuleConfig:
     def __init__(
             self,
-            reaction_database_file_name,
+            reaction_database_path,
             result_directory_name,
             rules_file_name,
+            num_cpus: int = 4,
+            batch_size: int = 10,
             multicenter_rules: bool = True,
             as_query_container: bool = True,
-            reactor_validation: bool = False,
+            reverse_rule: bool = True,
+            reactor_validation: bool = True,
             include_func_groups: bool = False,
             func_groups_list: List[Union[MoleculeContainer, QueryContainer]] = None,
             include_rings: bool = False,
             keep_leaving_groups: bool = False,
             keep_incoming_groups: bool = False,
-            keep_reagents: bool = True,
+            keep_reagents: bool = False,
             environment_atom_count: int = 1,
-            keep_metadata: bool = True,
-            atom_info_retention: Literal["none", "reaction_center", "all"] = "reaction_center",
+            min_popularity: int = 3,
+            keep_metadata: bool = False,
+            atom_info_retention: Literal["none", "reaction_center", "all"] = "none",
             info_to_clean: Union[frozenset[str], str] = frozenset(
-                {"neighbors", "hybridization", "implicit_hydrogens", "ring_sizes"})
+                {"neighbors", "hybridization", "implicit_hydrogens", "ring_sizes"}
+            )
     ):
         """
         Initializes the configuration for extracting reaction rules.
 
+        :param reaction_database_path: Path to the file containing reaction database.
+        :param result_directory_name: Name of the directory where the results will be stored.
+        :param rules_file_name: Name of the file to store the extracted rules.
+        :param num_cpus: Number of CPU cores to use for processing. Defaults to 4.
+        :param batch_size: Number of reactions to process in each batch. Defaults to 10.
         :param multicenter_rules: If True, extracts a single rule encompassing all centers.
         If False, extracts separate reaction rules for each reaction center in a multicenter reaction.
         :param as_query_container: If True, the extracted rules are generated as QueryContainer objects,
-        analogous to SMARTS objects for pattern matching in chemical structures.
+                                   analogous to SMARTS objects for pattern matching in chemical structures.
+        :param reverse_rule: If True, reverses the direction of the reaction for rule extraction.
         :param reactor_validation: If True, validates each generated rule in a chemical reactor to ensure correct
-                                    generation of products from reactants.
+                                   generation of products from reactants.
         :param include_func_groups: If True, includes specific functional groups in the reaction rule in addition
-                                          to the reaction center and its environment.
+                                    to the reaction center and its environment.
         :param func_groups_list: A list of functional groups to be considered when include_functional_groups
-                                          is True.
+                                 is True.
         :param include_rings: If True, includes ring structures in the reaction rules.
         :param keep_leaving_groups: If True, retains leaving groups in the extracted reaction rule.
         :param keep_incoming_groups: If True, retains incoming groups in the extracted reaction rule.
         :param keep_reagents: If True, includes reagents in the extracted reaction rule.
         :param environment_atom_count: Defines the size of the environment around the reaction center to be included
                                        in the rule (0 for only the reaction center, 1 for the first environment, etc.).
+        :param min_popularity: Minimum number of times a rule must be applied to be considered for further analysis.
         :param keep_metadata: If True, retains metadata associated with the reaction in the extracted rule.
         :param atom_info_retention: Controls the amount of information about each atom to retain ('none',
                                     'reaction_center', or 'all').
@@ -62,13 +79,16 @@ class ExtractRuleConfig:
         The configuration settings provided in this method allow for a detailed and customized approach to the
         extraction and representation of chemical reaction rules.
         """
-        self.reaction_database_file = Path(reaction_database_file_name)
+        self.reaction_database_path = Path(reaction_database_path).resolve(strict=True)
         self.result_directory = Path(result_directory_name)
         self.result_directory.mkdir(parents=True, exist_ok=True)
         self.rules_file_name = rules_file_name
+        self.batch_size = batch_size
+        self.num_cpus = num_cpus
 
         self.multicenter_rules = multicenter_rules
         self.as_query_container = as_query_container
+        self.reverse_rule = reverse_rule
         self.reactor_validation = reactor_validation
         self.include_func_groups = include_func_groups
         self.func_groups_list = func_groups_list
@@ -77,6 +97,7 @@ class ExtractRuleConfig:
         self.keep_incoming_groups = keep_incoming_groups
         self.keep_reagents = keep_reagents
         self.environment_atom_count = environment_atom_count
+        self.min_popularity = min_popularity
         self.keep_metadata = keep_metadata
         self.atom_info_retention = atom_info_retention
         self.info_to_clean = info_to_clean
@@ -91,22 +112,146 @@ class ExtractRuleConfig:
             return yaml.load(file, Loader=yaml.FullLoader)
 
 
-def extract_rules_from_reactions(config: ExtractRuleConfig):
-    with RDFRead(config.reaction_database_file, indexable=True) as reactions, \
-            RDFWrite(str(config.result_directory / config.rules_file_name), append=True) as result_file:
-        for reaction_index, reaction in tqdm(enumerate(reactions), total=len(reactions)):
-            rule = extract_rules(config, reaction)
+def extract_rules_from_reactions(config: ExtractRuleConfig) -> None:
+    """
+    Extracts reaction rules from a set of reactions based on the given configuration.
 
-            result_file.write(rule)
+    This function initializes a Ray environment for distributed computing and processes each reaction
+    in the provided reaction database to extract reaction rules. It handles the reactions in batches,
+    parallelizing the rule extraction process. Extracted rules are written to RDF files and their statistics
+    are recorded. The function also sorts the rules based on their popularity and saves the sorted rules.
+
+    :param config: Configuration settings for rule extraction, including file paths, batch size, and other parameters.
+    :type config: ExtractRuleConfig
+
+    :return: None
+    """
+    ray.init(ignore_reinit_error=True)
+
+    config.result_directory.mkdir(parents=True, exist_ok=True)
+
+    with RDFRead(config.reaction_database_path, indexable=True) as reactions:
+        total_reactions = len(reactions)
+        pbar = tqdm(total=total_reactions)
+
+        futures = {}
+        batch = []
+        max_concurrent_batches = config.num_cpus
+
+        rules_statistics = defaultdict(list)
+
+        with RDFWrite(config.result_directory / f"{config.rules_file_name}_full.rdf", append=True) as result_file:
+            for index, reaction in enumerate(reactions):
+                batch.append((index, reaction))
+                if len(batch) == config.batch_size:
+                    future = process_reaction_batch.remote(batch, config)
+                    futures[future] = None
+                    batch = []
+
+                    while len(futures) >= max_concurrent_batches:
+                        process_completed_batches(futures, result_file, rules_statistics, pbar, config.batch_size)
+
+            if batch:
+                future = process_reaction_batch.remote(batch, config)
+                futures[future] = None
+
+            while futures:
+                process_completed_batches(futures, result_file, rules_statistics, pbar, config.batch_size)
+
+            pbar.close()
+
+        with open(config.result_directory / f"{config.rules_file_name}_full.pickle", "wb") as statistics_file:
+            pickle.dump(rules_statistics, statistics_file)
+
+        sorted_rules = sort_rules(rules_statistics, min_popularity=config.min_popularity)
+
+        with open(config.result_directory / f"{config.rules_file_name}_filtered.pickle", "wb") as statistics_file:
+            pickle.dump(sorted_rules, statistics_file)
+
+    ray.shutdown()
 
 
-def cgr_from_rule(rule: ReactionContainer):
-    reaction_rule = reaction_query_to_reaction(rule)
-    cgr_rule = ~reaction_rule
-    return cgr_rule
+@ray.remote
+def process_reaction_batch(
+        batch: List[Tuple[int, ReactionContainer]],
+        config: ExtractRuleConfig
+) -> list[tuple[int, list[ReactionContainer]]]:
+    """
+    Processes a batch of reactions to extract reaction rules based on the given configuration.
+
+    This function operates as a remote task in a distributed system using Ray. It takes a batch of reactions,
+    where each reaction is paired with an index. For each reaction in the batch, it extracts reaction rules
+    as specified by the configuration object. The extracted rules for each reaction are then returned along
+    with the corresponding index.
+
+    :param batch: A list where each element is a tuple containing an index (int) and a ReactionContainer object.
+                  The index is typically used to keep track of the reaction's position in a larger dataset.
+    :type batch: List[Tuple[int, ReactionContainer]]
+
+    :param config: An instance of ExtractRuleConfig that provides settings and parameters for the rule extraction process.
+    :type config: ExtractRuleConfig
+
+    :return: A list where each element is a tuple. The first element of the tuple is an index (int), and the second
+             is a list of ReactionContainer objects representing the extracted rules for the corresponding reaction.
+    :rtype: list[tuple[int, list[ReactionContainer]]]
+
+    This function is intended to be used in a distributed manner with Ray to parallelize the rule extraction
+    process across multiple reactions.
+    """
+    processed_batch = []
+    for index, reaction in batch:
+        extracted_rules = extract_rules(config, reaction)
+        processed_batch.append((index, extracted_rules))
+    return processed_batch
 
 
-def extract_rules(config: ExtractRuleConfig, reaction: ReactionContainer) -> List[ReactionContainer]:
+def process_completed_batches(
+        futures: dict,
+        result_file: IO,
+        rules_statistics: Dict[ReactionContainer, List[int]],
+        pbar: tqdm,
+        batch_size: int
+) -> None:
+    """
+    Processes completed batches of reactions, updating the rules statistics and writing rules to a file.
+
+    This function waits for the completion of a batch of reactions processed in parallel (using Ray),
+    updates the statistics for each extracted rule, and writes the rules to a result file if they are new.
+    It also updates the progress bar with the size of the processed batch.
+
+    :param futures: A dictionary of futures representing ongoing batch processing tasks.
+    :type futures: dict
+
+    :param result_file: An open file object to which extracted rules are written.
+    :type result_file: IO
+
+    :param rules_statistics: A dictionary to keep track of statistics for each rule.
+    :type rules_statistics: Dict[ReactionContainer, List[int]]
+
+    :param pbar: A tqdm progress bar instance for updating the progress of batch processing.
+    :type pbar: tqdm
+
+    :param batch_size: The number of reactions processed in each batch.
+    :type batch_size: int
+
+    :return: None
+    """
+    done, _ = ray.wait(list(futures.keys()), num_returns=1)
+    completed_batch = ray.get(done[0])
+
+    for index, extracted_rules in completed_batch:
+        for rule in extracted_rules:
+            prev_stats_len = len(rules_statistics)
+            rules_statistics[rule].append(index)
+            if len(rules_statistics) != prev_stats_len:
+                rule.meta["first_reaction_index"] = index
+                result_file.write(rule)
+
+    del futures[done[0]]
+    pbar.update(batch_size)
+
+
+def extract_rules(config: ExtractRuleConfig, reaction: ReactionContainer) -> list[ReactionContainer]:
     """
     Extracts reaction rules from a given reaction based on the specified configuration.
 
@@ -153,73 +298,47 @@ def create_rule(config: ExtractRuleConfig, reaction: ReactionContainer) -> React
     center_atoms = set(cgr.center_atoms)
 
     # Add atoms of reaction environment based on config settings
-    center_atoms = add_environment_atoms(
-        cgr,
-        center_atoms,
-        config.environment_atom_count
-    )
+    center_atoms = add_environment_atoms(cgr, center_atoms, config.environment_atom_count)
 
     # Include functional groups in the rule if specified in config
     if config.include_func_groups:
-        rule_atoms = add_functional_groups(
-            reaction,
-            center_atoms,
-            config.func_groups_list
-        )
+        rule_atoms = add_functional_groups(reaction, center_atoms, config.func_groups_list)
     else:
         rule_atoms = center_atoms.copy()
 
     # Include ring structures in the rule if specified in config
     if config.include_rings:
-        rule_atoms = add_ring_structures(
-            cgr,
-            rule_atoms,
-        )
+        rule_atoms = add_ring_structures(cgr, rule_atoms, )
 
     # Add leaving and incoming groups to the rule based on config settings
-    rule_atoms, meta_debug = add_leaving_incoming_groups(
-        reaction,
-        rule_atoms,
-        config.keep_leaving_groups,
-        config.keep_incoming_groups
-    )
+    rule_atoms, meta_debug = add_leaving_incoming_groups(reaction, rule_atoms, config.keep_leaving_groups,
+        config.keep_incoming_groups)
 
     # Create substructures for reactants, products, and reagents
-    reactant_substructures, product_substructures, reagents = create_substructures_and_reagents(
-        reaction,
-        rule_atoms,
-        config.as_query_container,
-        config.keep_reagents
-    )
+    reactant_substructures, product_substructures, reagents = create_substructures_and_reagents(reaction, rule_atoms,
+        config.as_query_container, config.keep_reagents)
 
     # Clean atom marks in the molecules if they are being converted to query containers
     if config.as_query_container:
-        reactant_substructures = clean_molecules(
-            reactant_substructures,
-            reaction.reactants,
-            center_atoms,
+        reactant_substructures = clean_molecules(reactant_substructures, reaction.reactants, center_atoms,
             config.atom_info_retention, config.info_to_clean)
-        product_substructures = clean_molecules(
-            product_substructures,
-            reaction.products,
-            center_atoms,
-            config.atom_info_retention,
-            config.info_to_clean
-        )
+        product_substructures = clean_molecules(product_substructures, reaction.products, center_atoms,
+            config.atom_info_retention, config.info_to_clean)
 
     # Assemble the final rule including metadata if specified
-    rule = assemble_final_rule(
-        reactant_substructures,
-        product_substructures,
-        reagents,
-        meta_debug,
-        config.keep_metadata,
-        reaction
-    )
+    rule = assemble_final_rule(reactant_substructures, product_substructures, reagents, meta_debug,
+        config.keep_metadata, reaction)
+
+    if config.reverse_rule:
+        rule = reverse_reaction(rule)
+        reaction = reverse_reaction(reaction)
 
     # Validate the rule using a reactor if validation is enabled in config
     if config.reactor_validation:
-        validate_rule(rule, reaction)
+        if validate_rule(rule, reaction):
+            rule.meta["reactor_validation"] = "passed"
+        else:
+            rule.meta["reactor_validation"] = "failed"
 
     return rule
 
@@ -340,6 +459,8 @@ def clean_molecules(
     """
     Cleans rule molecules by removing specified information about atoms.
 
+    :param keep_info:
+    :param info_to_remove:
     :param rule_mols: a list of rule molecules
     :param react_mols: a list of reaction molecules
     :param center_atoms: atoms in the reaction center
@@ -349,9 +470,8 @@ def clean_molecules(
     for rule_mol in rule_mols:
         for react_mol in react_mols:
             if set(rule_mol.atoms_numbers) <= set(react_mol.atoms_numbers):
-                query_react_mol = react_mol.substructure(as_query=True)
+                query_react_mol = react_mol.substructure(react_mol, as_query=True)
                 query_rule_mol = query_react_mol.substructure(rule_mol)
-
                 if keep_info == "reaction_center":
                     for atom_num in set(rule_mol.atoms_numbers) - center_atoms:
                         query_rule_mol = clean_atom(query_rule_mol, info_to_remove, atom_num)
@@ -365,11 +485,7 @@ def clean_molecules(
     return cleaned_mols
 
 
-def clean_atom(
-        query_mol: QueryContainer,
-        info_to_remove,
-        atom_num: int
-) -> QueryContainer:
+def clean_atom(query_mol: QueryContainer, info_to_remove, atom_num: int) -> QueryContainer:
     """
     Removes specified information from a given atom in a query molecule.
 
@@ -411,11 +527,11 @@ def create_substructures_and_reagents(reaction, rule_atoms, as_query_container, 
     It also handles the inclusion of reagents based on the keep_reagents flag and converts these structures to query
     containers if required.
     """
-    reactant_substructures = [reactant.substructure(rule_atoms.intersection(reactant.atoms_numbers))
-                              for reactant in reaction.reactants if rule_atoms.intersection(reactant.atoms_numbers)]
+    reactant_substructures = [reactant.substructure(rule_atoms.intersection(reactant.atoms_numbers)) for reactant in
+                              reaction.reactants if rule_atoms.intersection(reactant.atoms_numbers)]
 
-    product_substructures = [product.substructure(rule_atoms.intersection(product.atoms_numbers))
-                             for product in reaction.products if rule_atoms.intersection(product.atoms_numbers)]
+    product_substructures = [product.substructure(rule_atoms.intersection(product.atoms_numbers)) for product in
+                             reaction.products if rule_atoms.intersection(product.atoms_numbers)]
 
     reagents = []
     if keep_reagents:
@@ -480,11 +596,50 @@ def validate_rule(rule: ReactionContainer, reaction: ReactionContainer):
     """
     # Create a reactor with the given rule
     reactor = Reactor(rule)
+    try:
+        for result_reaction in reactor(reaction.reactants):
+            result_products = []
+            for result_product in result_reaction.products:
+                tmp = result_product.copy()
+                try:
+                    tmp.kekule()
+                    if tmp.check_valence():
+                        continue
+                except InvalidAromaticRing:
+                    continue
+                result_products.append(result_product)
+            if set(reaction.products) == set(result_products) and len(reaction.products) == len(result_products):
+                return True
+    except (KeyError, IndexError):
+        # KeyError - iteration over reactor is finished and products are different from the original reaction
+        # IndexError - mistake in __contract_ions, possibly problems with charges in rule?
+        return False
 
-    # Simulate the reaction and compare the generated products with the actual reactants
-    for result in reactor(reaction.products):
-        if sorted(result.products) == sorted(reaction.reactants):
-            return rule
 
-    # Raise an error if the rule does not correctly generate the products
-    raise ValueError("Incorrect product generation in reactor from the rule.")
+def sort_rules(
+        rules_stats: Dict[ReactionContainer, List[int]],
+        min_popularity: int = 3
+) -> List[Tuple[ReactionContainer, List[int]]]:
+    """
+    Sorts reaction rules based on their popularity and validation status.
+
+    This function sorts the given rules according to their popularity (i.e., the number of times they have been
+    applied) and filters out rules that haven't passed reactor validation or are less popular than the specified
+    minimum popularity threshold.
+
+    :param rules_stats: A dictionary where each key is a reaction rule and the value is a list of integers.
+                        Each integer represents an index where the rule was applied.
+    :type rules_stats: Dict[ReactionContainer, List[int]]
+
+    :param min_popularity: The minimum number of times a rule must be applied to be considered. Default is 3.
+    :type min_popularity: int
+
+    :return: A list of tuples, where each tuple contains a reaction rule and a list of indices representing
+             the rule's applications. The list is sorted in descending order of the rule's popularity.
+    :rtype: List[Tuple[ReactionContainer, List[int]]]
+    """
+    return sorted(
+        ((r, idx) for r, idx in rules_stats.items() if len(idx) >= min_popularity and
+         r.meta['reactor_validation'] == 'passed'),
+        key=lambda x: -len(x[1])
+    )

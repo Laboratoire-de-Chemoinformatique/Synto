@@ -201,3 +201,16 @@ def to_reaction_smiles_record(reaction):
         meta_info = ";".join(meta_info.split("\n"))
         reaction_record.append(str(meta_info))
     return "\t".join(reaction_record) + "\n"
+
+
+def cgr_from_rule(rule: ReactionContainer):
+    reaction_rule = reaction_query_to_reaction(rule)
+    cgr_rule = ~reaction_rule
+    return cgr_rule
+
+
+def hash_from_rule(reaction_rule: ReactionContainer):
+    reactants_hash = tuple(sorted(hash(r) for r in reaction_rule.reactants))
+    reagents_hash = tuple(sorted(hash(r) for r in reaction_rule.reagents))
+    products_hash = tuple(sorted(hash(r) for r in reaction_rule.products))
+    return hash((reactants_hash, reagents_hash, products_hash))
