@@ -10,7 +10,7 @@ import click
 import gdown
 
 from Synto.chem.reaction_rules.extraction import extract_rules_from_reactions
-from Synto.chem.data_cleaning.cleaner import reactions_cleaner
+from Synto.chem.data.cleaning import reactions_cleaner
 from Synto.ml.training import create_policy_training_set, run_policy_training
 from Synto.ml.training.reinforcement import run_self_tuning
 from Synto.utils.loading import canonicalize_building_blocks
