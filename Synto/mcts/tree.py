@@ -9,17 +9,17 @@ from random import choice, uniform
 from time import time
 from typing import Dict, Set, List, Tuple
 
+from CGRtools.containers import MoleculeContainer
 from numpy.random import uniform
-from CGRtools import MoleculeContainer
 
 from Synto.chem.reaction import Reaction
 from Synto.chem.reaction import apply_reaction_rule
 from Synto.chem.retron import Retron
 from Synto.interfaces.visualisation import tqdm
-from Synto.mcts.evaluation.networks import ValueFunction
-from Synto.mcts.expansion.filter_policy import PolicyFunction
+from Synto.mcts.evaluation import ValueFunction
+from Synto.mcts.expansion import PolicyFunction
 from Synto.mcts.node import Node
-from Synto.ml.training.preprocessing import safe_canonicalization
+from Synto.chem.utils import safe_canonicalization
 from Synto.utils.loading import load_building_blocks, load_reaction_rules
 
 
@@ -38,7 +38,8 @@ class Tree:
         :type config: dict
         """
 
-        assert target and type(target) is MoleculeContainer and target.atoms, 'Target is not defined, is not a MoleculeContainer or have no atoms'
+        assert target and type(
+            target) is MoleculeContainer and target.atoms, 'Target is not defined, is not a MoleculeContainer or have no atoms'
         target_retron = Retron(target)
         target_retron.prev_retrons.append(Retron(target))
         target_node = Node(retrons_to_expand=(target_retron,), new_retrons=(target_retron,))
@@ -329,7 +330,8 @@ class Tree:
             # Pick the first successful reaction while iterating through reactors
             # Predict top-10 reactors for every molecule in simulation (time-consuming)
             reaction_rules = [(prob, rule, rule_id) for prob, rule, rule_id in
-                              self.policy_function.predict_reaction_rules(Retron(current_mol), self.reaction_rules)][:10]
+                              self.policy_function.predict_reaction_rules(Retron(current_mol), self.reaction_rules)][
+                             :10]
             #
             reaction_rule_applied = False
             for prob, rule, rule_id in reaction_rules:
@@ -352,7 +354,7 @@ class Tree:
 
             # check loops
             if any(x in occurred_retrons for x in products) and products:
-                # Sometimes hardcoded_rules can create a loop, when
+                # Sometimes manual can create a loop, when
                 logging.debug('Rollout got in the loop: %s', history)
                 # print('occurred_retrons')
                 reward = -1.0
@@ -392,8 +394,9 @@ class Tree:
 
         elif self.evaluation_mode == "rollout":
             curr_depth = self.nodes_depth[node_id]
-            new_node_synth = min((self._rollout_node(retron, curr_depth=curr_depth)
-                                  for retron in new_node.retrons_to_expand), default=1.0)
+            new_node_synth = min(
+                (self._rollout_node(retron, curr_depth=curr_depth) for retron in new_node.retrons_to_expand),
+                default=1.0)
 
         elif self.evaluation_mode == 'gcn':
             new_node_synth = self.value_function.predict_value(new_node.new_retrons)
@@ -446,11 +449,9 @@ class Tree:
         Returns the string representation of the tree.
         """
 
-        return (
-            f"Tree for: {str(self.nodes[1].retrons_to_expand[0])}\n"
-            f"Number of nodes: {len(self)}\nNumber of visited nodes: {len(self.visited_nodes)}\n"
-            f"Found paths: {len(self.winning_nodes)}\nTime: {round(self.curr_time, 1)} seconds"
-        )
+        return (f"Tree for: {str(self.nodes[1].retrons_to_expand[0])}\n"
+                f"Number of nodes: {len(self)}\nNumber of visited nodes: {len(self.visited_nodes)}\n"
+                f"Found paths: {len(self.winning_nodes)}\nTime: {round(self.curr_time, 1)} seconds")
 
     def path_score(self, node_id) -> float:
         """

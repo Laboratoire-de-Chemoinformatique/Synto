@@ -3,25 +3,22 @@ Module containing commands line scripts for training and planning mode
 """
 
 import warnings
-warnings.filterwarnings("ignore")
-
 import os
 import shutil
 from pathlib import Path
 import click
 import gdown
 
-from ..chem.reaction_rules.rule_extraction import extract_reaction_rules
-from ..chem.data_cleaning.cleaner import reactions_cleaner
-from ..ml.training import create_policy_training_set, run_policy_training
-from ..ml.training.self_tuning import run_self_tuning
-from ..utils.loading import canonicalize_building_blocks
-from ..utils.config import read_planning_config, read_training_config
-from ..utils.search import tree_search
-
-warnings.filterwarnings("ignore")
+from Synto.chem.reaction_rules.extraction import extract_rules_from_reactions
+from Synto.chem.data.cleaning import reactions_cleaner
+from Synto.ml.training import create_policy_training_set, run_policy_training
+from Synto.ml.training.reinforcement import run_self_tuning
+from Synto.utils.loading import canonicalize_building_blocks
+from Synto.utils.config import read_planning_config, read_training_config
+from Synto.utils.search import tree_search
 
 main = click.Group()
+warnings.filterwarnings("ignore")
 
 
 @main.command(name='planning_data')
@@ -121,7 +118,7 @@ def extract_rules_cli(config):
     :param config: The configuration file that contains settings for the reaction rule extraction
     """
     config = read_training_config(config)
-    extract_reaction_rules(reaction_file=config['ReactionRules']['reaction_data_path'],
+    extract_rules_from_reactions(reaction_file=config['ReactionRules']['reaction_data_path'],
                            results_root=config['ReactionRules']['results_root'],
                            min_popularity=config['ReactionRules']['min_popularity'])
 
@@ -192,7 +189,9 @@ def synto_training_cli(config):
 
     # reaction rules extraction
     print('\nEXTRACT REACTION RULES ...')
-    extract_reaction_rules(reaction_file=config['ReactionRules']['reaction_data_path'],
+    extraction_path = config['ReactionRules']['standardized_reactions_path'] if config['ReactionRules']['standardize_reactions'] \
+        else config['ReactionRules']['reaction_data_path']
+    extract_rules_from_reactions(reaction_file=config['ReactionRules']['reaction_data_path'],
                            results_root=config['ReactionRules']['results_root'],
                            min_popularity=config['ReactionRules']['min_popularity'])
 

@@ -21,26 +21,7 @@ from torch_geometric.data import Data, InMemoryDataset
 from torch_geometric.data.makedirs import makedirs
 from torch_geometric.transforms import ToUndirected
 
-from ...utils.loading import load_reaction_rules
-
-
-def safe_canonicalization(molecule: MoleculeContainer):
-    """
-    The function takes a molecule, attempts to canonicalize it, and returns the
-    canonicalized molecule if successful, otherwise it returns the original object.
-
-    :param molecule: The given molecule
-    :type molecule: MoleculeContainer
-    :return: The canonicalized molecule.
-    """
-    molecule._atoms = dict(sorted(molecule._atoms.items()))
-
-    tmp = molecule.copy()
-    try:
-        tmp.canonicalize()
-        return tmp
-    except InvalidAromaticRing:
-        return molecule
+from Synto.utils.loading import load_reaction_rules
 
 
 class ValueNetworkDataset(InMemoryDataset, ABC):
@@ -103,7 +84,7 @@ class ValueNetworkDataset(InMemoryDataset, ABC):
         return data, slices
 
 
-class PolicyNetworkDataset(InMemoryDataset):
+class FilteringPolicyDataset(InMemoryDataset):
     """
     Policy network dataset
     """
@@ -143,7 +124,7 @@ class PolicyNetworkDataset(InMemoryDataset):
 
         to_process = Queue(maxsize=self.batch_prep_size * self.num_cpus)
         processed_data = []
-        results_ids = [preprocess_policy_molecules.remote(to_process, reaction_rules_ids) for _ in range(self.num_cpus)]
+        results_ids = [preprocess_filtering_policy_molecules.remote(to_process, reaction_rules_ids) for _ in range(self.num_cpus)]
 
         with open(self.molecules_path, "r") as inp_data:
             for molecule in tqdm(inp_data.read().splitlines()):
@@ -188,7 +169,7 @@ class PolicyNetworkDataset(InMemoryDataset):
                         mols_batch = []
                         workers_results = m.list()
 
-                        workers = [p.apply_async(preprocess_policy_molecules, (to_process, workers_results)) for _ in range(40)]
+                        workers = [p.apply_async(preprocess_filtering_policy_molecules, (to_process, workers_results)) for _ in range(40)]
                         print([res.get() for res in workers])
                         # # for i in range(40):
                         # #     w = Process(target=preprocess_policy_molecules, args=(to_process, workers_results))
@@ -241,12 +222,12 @@ def reaction_rules_appliance(molecule, reaction_rules):
 
                     # check priority rules
                     if len(reaction.products) > 1:
-                        # check coupling retro hardcoded_rules
+                        # check coupling retro manual
                         if all(len(mol) > 6 for mol in reaction.products):
                             if sum(len(mol) for mol in reaction.products) - len(reaction.reactants[0]) < 6:
                                 rule_prioritized = True
                     else:
-                        # check cyclization retro hardcoded_rules
+                        # check cyclization retro manual
                         if sum(len(mol.sssr) for mol in reaction.products) < sum(
                                 len(mol.sssr) for mol in reaction.reactants):
                             rule_prioritized = True
@@ -264,7 +245,7 @@ def reaction_rules_appliance(molecule, reaction_rules):
 
 
 @ray.remote
-def preprocess_policy_molecules(to_process: Queue, reaction_rules: List[Reactor]):
+def preprocess_filtering_policy_molecules(to_process: Queue, reaction_rules: List[Reactor]):
     """
     The function preprocesses a list of molecules by applying reaction rules and converting molecules into PyTorch
     geometric graphs. Successfully applied rules are converted to binary vectors for policy network training.
@@ -319,8 +300,8 @@ def preprocess_policy_molecules_no_ray(to_process: Queue, workers_results):
 
             # reaction reaction_rules application
             applied_rules, priority_rules = reaction_rules_appliance(molecule, reaction_rules)
-            y_rules = torch.sparse_coo_tensor([applied_rules], torch.ones(len(applied_rules)),
-                                              (len(reaction_rules),), dtype=torch.uint8)
+            y_rules = torch.sparse_coo_tensor([applied_rules], torch.ones(len(applied_rules)), (len(reaction_rules),),
+                                              dtype=torch.uint8)
             y_priority = torch.sparse_coo_tensor([priority_rules], torch.ones(len(priority_rules)),
                                                  (len(reaction_rules),), dtype=torch.uint8)
 
@@ -446,89 +427,14 @@ def mol_to_pyg(molecule: MoleculeContainer):
     return mol_pyg_graph
 
 
-def compose_retrons(retrons: list = None, exclude_small=True) -> MoleculeContainer:
-    """
-    The function takes a list of retrons, excludes small retrons if specified, and composes them into a single molecule.
-    This molecule is used for the prediction of synthesisability of the characterizing the possible success of the path
-    including the nodes with the given retrons.
-
-    :param retrons: The list of retrons to be composed.
-    :type retrons: list
-    :param exclude_small: The parameter that determines whether small retrons should be
-    excluded from the composition process. If `exclude_small` is set to `True`, only retrons with a length greater than
-    6 will be considered for composition.
-    :return: A composed retrons as a MoleculeContainer object.
-    """
-
-    if len(retrons) == 1:
-        return retrons[0].molecule
-    elif len(retrons) > 1:
-        if exclude_small:
-            big_retrons = [retron for retron in retrons if len(retron.molecule) > 6]
-            if big_retrons:
-                retrons = big_retrons
-        tmp_mol = retrons[0].molecule.copy()
-        transition_mapping = {}
-        for mol in retrons[1:]:
-            for n, atom in mol.molecule.atoms():
-                new_number = tmp_mol.add_atom(atom.atomic_symbol)
-                transition_mapping[n] = new_number
-            for atom, neighbor, bond in mol.molecule.bonds():
-                tmp_mol.add_bond(transition_mapping[atom], transition_mapping[neighbor], bond)
-            transition_mapping = {}
-        return tmp_mol
-
-
-MENDEL_INFO = {
-    "Ag": (5, 11, 1, 1),
-    "Al": (3, 13, 2, 1),
-    "Ar": (3, 18, 2, 6),
-    "As": (4, 15, 2, 3),
-    "B": (2, 13, 2, 1),
-    "Ba": (6, 2, 1, 2),
-    "Bi": (6, 15, 2, 3),
-    "Br": (4, 17, 2, 5),
-    "C": (2, 14, 2, 2),
-    "Ca": (4, 2, 1, 2),
-    "Ce": (6, None, 1, 2),
-    "Cl": (3, 17, 2, 5),
-    "Cr": (4, 6, 1, 1),
-    "Cs": (6, 1, 1, 1),
-    "Cu": (4, 11, 1, 1),
-    "Dy": (6, None, 1, 2),
-    "Er": (6, None, 1, 2),
-    "F": (2, 17, 2, 5),
-    "Fe": (4, 8, 1, 2),
-    "Ga": (4, 13, 2, 1),
-    "Gd": (6, None, 1, 2),
-    "Ge": (4, 14, 2, 2),
-    "Hg": (6, 12, 1, 2),
-    "I": (5, 17, 2, 5),
-    "In": (5, 13, 2, 1),
-    "K": (4, 1, 1, 1),
-    "La": (6, 3, 1, 2),
-    "Li": (2, 1, 1, 1),
-    "Mg": (3, 2, 1, 2),
-    "Mn": (4, 7, 1, 2),
-    "N": (2, 15, 2, 3),
-    "Na": (3, 1, 1, 1),
-    "Nd": (6, None, 1, 2),
-    "O": (2, 16, 2, 4),
-    "P": (3, 15, 2, 3),
-    "Pb": (6, 14, 2, 2),
-    "Pd": (5, 10, 3, 10),
-    "Pr": (6, None, 1, 2),
-    "Rb": (5, 1, 1, 1),
-    "S": (3, 16, 2, 4),
-    "Sb": (5, 15, 2, 3),
-    "Se": (4, 16, 2, 4),
-    "Si": (3, 14, 2, 2),
-    "Sm": (6, None, 1, 2),
-    "Sn": (5, 14, 2, 2),
-    "Sr": (5, 2, 1, 2),
-    "Te": (5, 16, 2, 4),
-    "Ti": (4, 4, 1, 2),
-    "Tl": (6, 13, 2, 1),
-    "Yb": (6, None, 1, 2),
-    "Zn": (4, 12, 1, 2),
-}
+MENDEL_INFO = {"Ag": (5, 11, 1, 1), "Al": (3, 13, 2, 1), "Ar": (3, 18, 2, 6), "As": (4, 15, 2, 3), "B": (2, 13, 2, 1),
+    "Ba": (6, 2, 1, 2), "Bi": (6, 15, 2, 3), "Br": (4, 17, 2, 5), "C": (2, 14, 2, 2), "Ca": (4, 2, 1, 2),
+    "Ce": (6, None, 1, 2), "Cl": (3, 17, 2, 5), "Cr": (4, 6, 1, 1), "Cs": (6, 1, 1, 1), "Cu": (4, 11, 1, 1),
+    "Dy": (6, None, 1, 2), "Er": (6, None, 1, 2), "F": (2, 17, 2, 5), "Fe": (4, 8, 1, 2), "Ga": (4, 13, 2, 1),
+    "Gd": (6, None, 1, 2), "Ge": (4, 14, 2, 2), "Hg": (6, 12, 1, 2), "I": (5, 17, 2, 5), "In": (5, 13, 2, 1),
+    "K": (4, 1, 1, 1), "La": (6, 3, 1, 2), "Li": (2, 1, 1, 1), "Mg": (3, 2, 1, 2), "Mn": (4, 7, 1, 2),
+    "N": (2, 15, 2, 3), "Na": (3, 1, 1, 1), "Nd": (6, None, 1, 2), "O": (2, 16, 2, 4), "P": (3, 15, 2, 3),
+    "Pb": (6, 14, 2, 2), "Pd": (5, 10, 3, 10), "Pr": (6, None, 1, 2), "Rb": (5, 1, 1, 1), "S": (3, 16, 2, 4),
+    "Sb": (5, 15, 2, 3), "Se": (4, 16, 2, 4), "Si": (3, 14, 2, 2), "Sm": (6, None, 1, 2), "Sn": (5, 14, 2, 2),
+    "Sr": (5, 2, 1, 2), "Te": (5, 16, 2, 4), "Ti": (4, 4, 1, 2), "Tl": (6, 13, 2, 1), "Yb": (6, None, 1, 2),
+    "Zn": (4, 12, 1, 2), }

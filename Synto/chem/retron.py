@@ -4,7 +4,7 @@ Module containing a class Retron that represents a retron (extend molecule objec
 
 from CGRtools.containers import MoleculeContainer
 
-from Synto.ml.training.preprocessing import safe_canonicalization
+from Synto.chem.utils import safe_canonicalization
 
 
 class Retron:
@@ -75,3 +75,36 @@ class Retron:
             return True
         else:
             return str(self._molecule) in stock
+
+
+def compose_retrons(retrons: list = None, exclude_small=True) -> MoleculeContainer:
+    """
+    The function takes a list of retrons, excludes small retrons if specified, and composes them into a single molecule.
+    This molecule is used for the prediction of synthesisability of the characterizing the possible success of the path
+    including the nodes with the given retrons.
+
+    :param retrons: The list of retrons to be composed.
+    :type retrons: list
+    :param exclude_small: The parameter that determines whether small retrons should be
+    excluded from the composition process. If `exclude_small` is set to `True`, only retrons with a length greater than
+    6 will be considered for composition.
+    :return: A composed retrons as a MoleculeContainer object.
+    """
+
+    if len(retrons) == 1:
+        return retrons[0].molecule
+    elif len(retrons) > 1:
+        if exclude_small:
+            big_retrons = [retron for retron in retrons if len(retron.molecule) > 6]
+            if big_retrons:
+                retrons = big_retrons
+        tmp_mol = retrons[0].molecule.copy()
+        transition_mapping = {}
+        for mol in retrons[1:]:
+            for n, atom in mol.molecule.atoms():
+                new_number = tmp_mol.add_atom(atom.atomic_symbol)
+                transition_mapping[n] = new_number
+            for atom, neighbor, bond in mol.molecule.bonds():
+                tmp_mol.add_bond(transition_mapping[atom], transition_mapping[neighbor], bond)
+            transition_mapping = {}
+        return tmp_mol

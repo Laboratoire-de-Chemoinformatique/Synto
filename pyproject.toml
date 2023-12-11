@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "synto"
-version = "0.7.13"
+version = "0.8.0"
 description = "Graph-based self-learning retrosythesis"
 authors = ["Laboratoire de Chemoinformatique <tagirshin@gmail.com>"]
 license = "MIT"
@@ -18,13 +18,8 @@ toytree = ">=2.0"
 ray = ">=2.0"
 click = ">=8.0.0"
 StructureFingerprint = "^2.1"
-altair = ">=4.2.0"
-altair-saver = ">=0.5.0"
-ipykernel = ">=6.0"
-"epam.indigo" = "^1.9.0"
 werkzeug = ">2.0"
 gdown = "4.7.1"
-ipywidgets = "8.1.1"
 ordered-set = "4.1.0"
 
 [tool.poetry.group.cpu]
