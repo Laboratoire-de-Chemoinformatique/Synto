@@ -34,6 +34,7 @@ class ExtractRuleConfig:
             environment_atom_count: int = 1,
             min_popularity: int = 3,
             keep_metadata: bool = False,
+            single_reactant_only: bool = True,
             atom_info_retention: Literal["none", "reaction_center", "all"] = "none",
             info_to_clean: Union[frozenset[str], str] = frozenset(
                 {"neighbors", "hybridization", "implicit_hydrogens", "ring_sizes"}
@@ -61,6 +62,7 @@ class ExtractRuleConfig:
                                        in the rule (0 for only the reaction center, 1 for the first environment, etc.).
         :param min_popularity: Minimum number of times a rule must be applied to be considered for further analysis.
         :param keep_metadata: If True, retains metadata associated with the reaction in the extracted rule.
+        :param single_reactant_only: If True, includes only reaction rules with a single reactant molecule.
         :param atom_info_retention: Controls the amount of information about each atom to retain ('none',
                                     'reaction_center', or 'all').
         :param info_to_clean: Specifies the types of information to be removed from atoms when generating query
@@ -84,6 +86,7 @@ class ExtractRuleConfig:
         self.keep_metadata = keep_metadata
         self.atom_info_retention = atom_info_retention
         self.info_to_clean = info_to_clean
+        self.single_reactant_only = single_reactant_only
 
     def to_yaml(self, filepath):
         with open(filepath, 'w') as file:
@@ -93,6 +96,27 @@ class ExtractRuleConfig:
     def from_yaml(cls, filepath):
         with open(filepath, 'r') as file:
             return yaml.load(file, Loader=yaml.FullLoader)
+
+    def __repr__(self):
+        params = [
+            f"multicenter_rules = {self.multicenter_rules}",
+            f"as_query_container = {self.as_query_container}",
+            f"reverse_rule = {self.reverse_rule}",
+            f"reactor_validation = {self.reactor_validation}",
+            f"include_func_groups = {self.include_func_groups}",
+            f"func_groups_list = {self.func_groups_list}",
+            f"include_rings = {self.include_rings}",
+            f"keep_leaving_groups = {self.keep_leaving_groups}",
+            f"keep_incoming_groups = {self.keep_incoming_groups}",
+            f"keep_reagents = {self.keep_reagents}",
+            f"environment_atom_count = {self.environment_atom_count}",
+            f"min_popularity = {self.min_popularity}",
+            f"keep_metadata = {self.keep_metadata}",
+            f"single_reactant_only = {self.single_reactant_only}",
+            f"atom_info_retention = {self.atom_info_retention}",
+            f"info_to_clean = {self.info_to_clean}"
+        ]
+        return "ExtractRuleConfig(\n{0}\n)".format(',\n'.join(params))
 
 
 def extract_rules_from_reactions(
@@ -159,7 +183,11 @@ def extract_rules_from_reactions(
         with open(results_root / f"{rules_file_name}_full.pickle", "wb") as statistics_file:
             pickle.dump(rules_statistics, statistics_file)
 
-        sorted_rules = sort_rules(rules_statistics, min_popularity=config.min_popularity)
+        sorted_rules = sort_rules(
+            rules_statistics,
+            min_popularity=config.min_popularity,
+            single_reactant_only=config.single_reactant_only
+        )
 
         with open(results_root / f"{rules_file_name}_filtered.pickle", "wb") as statistics_file:
             pickle.dump(sorted_rules, statistics_file)
@@ -307,23 +335,47 @@ def create_rule(config: ExtractRuleConfig, reaction: ReactionContainer) -> React
         rule_atoms = add_ring_structures(cgr, rule_atoms, )
 
     # Add leaving and incoming groups to the rule based on config settings
-    rule_atoms, meta_debug = add_leaving_incoming_groups(reaction, rule_atoms, config.keep_leaving_groups,
-        config.keep_incoming_groups)
+    rule_atoms, meta_debug = add_leaving_incoming_groups(
+        reaction,
+        rule_atoms,
+        config.keep_leaving_groups,
+        config.keep_incoming_groups
+    )
 
     # Create substructures for reactants, products, and reagents
-    reactant_substructures, product_substructures, reagents = create_substructures_and_reagents(reaction, rule_atoms,
-        config.as_query_container, config.keep_reagents)
+    reactant_substructures, product_substructures, reagents = create_substructures_and_reagents(
+        reaction,
+        rule_atoms,
+        config.as_query_container,
+        config.keep_reagents
+    )
 
     # Clean atom marks in the molecules if they are being converted to query containers
     if config.as_query_container:
-        reactant_substructures = clean_molecules(reactant_substructures, reaction.reactants, center_atoms,
-            config.atom_info_retention, config.info_to_clean)
-        product_substructures = clean_molecules(product_substructures, reaction.products, center_atoms,
-            config.atom_info_retention, config.info_to_clean)
+        reactant_substructures = clean_molecules(
+            reactant_substructures,
+            reaction.reactants,
+            center_atoms,
+            config.atom_info_retention,
+            config.info_to_clean
+        )
+        product_substructures = clean_molecules(
+            product_substructures,
+            reaction.products,
+            center_atoms,
+            config.atom_info_retention,
+            config.info_to_clean
+        )
 
     # Assemble the final rule including metadata if specified
-    rule = assemble_final_rule(reactant_substructures, product_substructures, reagents, meta_debug,
-        config.keep_metadata, reaction)
+    rule = assemble_final_rule(
+        reactant_substructures,
+        product_substructures,
+        reagents,
+        meta_debug,
+        config.keep_metadata,
+        reaction
+    )
 
     if config.reverse_rule:
         rule = reverse_reaction(rule)
@@ -614,7 +666,8 @@ def validate_rule(rule: ReactionContainer, reaction: ReactionContainer):
 
 def sort_rules(
         rules_stats: Dict[ReactionContainer, List[int]],
-        min_popularity: int = 3
+        min_popularity: int = 3,
+        single_reactant_only: bool = True,
 ) -> List[Tuple[ReactionContainer, List[int]]]:
     """
     Sorts reaction rules based on their popularity and validation status.
@@ -630,12 +683,16 @@ def sort_rules(
     :param min_popularity: The minimum number of times a rule must be applied to be considered. Default is 3.
     :type min_popularity: int
 
+    :param single_reactant_only: Whether to keep only reaction rules with a single molecule on the right side
+    of reaction arrow. Default is True.
+
     :return: A list of tuples, where each tuple contains a reaction rule and a list of indices representing
              the rule's applications. The list is sorted in descending order of the rule's popularity.
     :rtype: List[Tuple[ReactionContainer, List[int]]]
     """
     return sorted(
-        ((r, idx) for r, idx in rules_stats.items() if len(idx) >= min_popularity and
-         r.meta['reactor_validation'] == 'passed'),
+        ((rule, indices) for rule, indices in rules_stats.items()
+         if len(indices) >= min_popularity and rule.meta['reactor_validation'] == 'passed'
+         and (not single_reactant_only or len(rule.reactants) == 1)),
         key=lambda x: -len(x[1])
     )

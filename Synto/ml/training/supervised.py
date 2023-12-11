@@ -70,11 +70,13 @@ def create_policy_dataset(
 def run_policy_training(
         datamodule: LightningDataset,
         config,
-        results_path
+        results_path,
+        silent=True
 ):
     """
     Trains a policy network using a given datamodule and training configuration.
 
+    :param silent: If True (the default) all logging information will be not printed
     :param datamodule: The PyTorch Lightning `DataModule` class. It is responsible for loading and preparing the
                        training data for the model.
     :param config: The dictionary that contains various configuration settings for the policy training process.
@@ -82,7 +84,7 @@ def run_policy_training(
     """
     network = PolicyNetwork(
         vector_dim=config['PolicyNetwork']['vector_dim'],
-        n_rules=datamodule.train_dataset.num_classes,
+        n_rules=datamodule.train_dataset.dataset.num_classes,
         batch_size=config['PolicyNetwork']['batch_size'],
         dropout=config['PolicyNetwork']['dropout'],
         num_conv_layers=config['PolicyNetwork']['num_conv_layers'],
@@ -100,7 +102,20 @@ def run_policy_training(
         mode="min"
     )
 
-    with DisableLogger(), HiddenPrints():
+    if silent:
+        with DisableLogger(), HiddenPrints():
+            trainer = Trainer(
+                accelerator='gpu',
+                devices=[0],
+                max_epochs=config['PolicyNetwork']['num_epoch'],
+                callbacks=[lr_monitor, checkpoint],
+                logger=logger,
+                gradient_clip_val=1.0,
+                enable_progress_bar=False
+            )
+
+            trainer.fit(network, datamodule)
+    else:
         trainer = Trainer(
             accelerator='gpu',
             devices=[0],
@@ -108,7 +123,7 @@ def run_policy_training(
             callbacks=[lr_monitor, checkpoint],
             logger=logger,
             gradient_clip_val=1.0,
-            enable_progress_bar=False
+            enable_progress_bar=True
         )
 
         trainer.fit(network, datamodule)

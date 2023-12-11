@@ -129,6 +129,7 @@ class RankingPolicyDataset(InMemoryDataset):
         for rule_i, (_, reactions_ids) in enumerate(reaction_rules):
             for reaction_id in reactions_ids:
                 dataset[reaction_id] = rule_i
+        del reaction_rules
         dataset = dict(sorted(dataset.items()))
 
         processed_data = []

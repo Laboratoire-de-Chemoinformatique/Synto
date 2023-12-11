@@ -3,8 +3,8 @@ from abc import ABC
 import torch
 from pytorch_lightning import LightningModule
 from torch.nn import Linear
-from torch.nn.functional import binary_cross_entropy_with_logits
-from torchmetrics.functional.classification import multilabel_recall, multilabel_specificity, multilabel_f1_score
+from torch.nn.functional import binary_cross_entropy_with_logits, cross_entropy, one_hot
+from torchmetrics.functional.classification import recall, specificity, f1_score
 
 from Synto.ml.networks.modules import MCTSNetwork
 
@@ -56,39 +56,52 @@ class PolicyNetwork(MCTSNetwork, LightningModule, ABC):
         :param batch: The batch of molecular graphs.
         :return: a dictionary with loss value and balanced accuracy of reaction rules prediction.
         """
-        true_y = batch.y_rules.float()
+        true_y = batch.y_rules.long()
         x = self.embedder(batch)
         pred_y = self.y_predictor(x)
 
-        loss_y = binary_cross_entropy_with_logits(pred_y, true_y)
-        loss = loss_y
-        true_y = true_y.long()
-        ba_y = (
-                       multilabel_recall(pred_y, true_y, num_labels=self.n_rules) +
-                       multilabel_specificity(pred_y, true_y, num_labels=self.n_rules)
-               ) / 2
-        f1_y = multilabel_f1_score(pred_y, true_y, num_labels=self.n_rules)
+        if self.mode == "ranking":
+            true_one_hot = one_hot(true_y, num_classes=self.n_rules)
+            loss = cross_entropy(pred_y, true_one_hot.float())
+            ba_y = (
+                           recall(pred_y, true_y, task="multiclass", num_classes=self.n_rules) +
+                           specificity(pred_y, true_y, task="multiclass", num_classes=self.n_rules)
+                   ) / 2
+            f1_y = f1_score(pred_y, true_y, task="multiclass", num_classes=self.n_rules)
+            metrics = {
+                'loss': loss,
+                'balanced_accuracy_y': ba_y,
+                'f1_score_y': f1_y
+            }
+        elif self.mode == "filtering":
+            loss_y = binary_cross_entropy_with_logits(pred_y, true_y.float())
+            ba_y = (
+                           recall(pred_y, true_y, task="multilabel", num_labels=self.n_rules) +
+                           specificity(pred_y, true_y, task="multilabel", num_labels=self.n_rules)
+                   ) / 2
+            f1_y = f1_score(pred_y, true_y, task="multilabel", num_labels=self.n_rules)
 
-        metrics = {'balanced_accuracy_y': ba_y, 'f1_score_y': f1_y}
-
-        if self.mode == "filtering":
             true_priority = batch.y_priority.float()
             pred_priority = self.priority_predictor(x)
 
             loss_priority = binary_cross_entropy_with_logits(pred_priority, true_priority)
-            loss = loss + loss_priority
+            loss = loss_y + loss_priority
 
             true_priority = true_priority.long()
 
             ba_priority = (
-                                  multilabel_recall(pred_priority, true_priority, num_labels=self.n_rules) +
-                                  multilabel_specificity(pred_priority, true_priority, num_labels=self.n_rules)
+                                  recall(pred_priority, true_priority, task="multilabel", num_labels=self.n_rules) +
+                                  specificity(pred_priority, true_priority, task="multilabel", num_labels=self.n_rules)
                           ) / 2
-            f1_priority = multilabel_f1_score(pred_priority, true_priority, num_labels=self.n_rules)
-
-            metrics['balanced_accuracy_priority'] = ba_priority
-            metrics['f1_score_priority'] = f1_priority
-
-        metrics["loss"] = loss
+            f1_priority = f1_score(pred_priority, true_priority, task="multilabel", num_labels=self.n_rules)
+            metrics = {
+                'loss': loss,
+                'balanced_accuracy_y': ba_y,
+                'f1_score_y': f1_y,
+                'balanced_accuracy_priority': ba_priority,
+                'f1_score_priority': f1_priority
+            }
+        else:
+            raise ValueError(f"Invalid mode: {self.mode}")
 
         return metrics
