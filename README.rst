@@ -105,16 +105,14 @@ Run retrosynthetic planning
 .. code-block:: bash
 
     synto_planning_data
-    synto_building_blocks --input="synto_planning_data/building_blocks.txt" --output="synto_planning_data/building_blocks.txt" # skip for loaded data
-    synto_planning --targets="targets.txt" --config="planning_config_default.yaml" --results_root="synto_results"
+    synto_planning --config="planning_config.yaml"
 
 Run training from scratch
 ^^^^^^^^^^^
 .. code-block:: bash
 
     synto_training_data
-    synto_building_blocks --input="synto_training_data/building_blocks.txt" --output="synto_training_data/building_blocks.txt" # skip for loaded data
-    synto_training --config="training_config_default.yaml"
+    synto_training --config="training_config.yaml"
 
 
 Documentation

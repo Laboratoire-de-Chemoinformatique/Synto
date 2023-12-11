@@ -1,9 +1,12 @@
 General:
   num_cpus: 5
   num_gpus: 1
+  targets_path: targets.smi
+  results_root: synto_planning_results
 InputData:
   reaction_rules_path: synto_planning_data/reaction_rules.pickle
   building_blocks_path: synto_planning_data/building_blocks.smi
+  standardize_building_blocks: true
 PolicyNetwork:
   weights_path: synto_planning_data/policy_network.ckpt
   priority_rules_fraction: 0.5
@@ -15,7 +18,7 @@ Tree:
   ucb_type: uct
   c_usb: 0.1
   max_depth: 6
-  max_iterations: 50
+  max_iterations: 10
   max_time: 120
   max_tree_size: 100000
   verbose: true
@@ -23,5 +26,3 @@ Tree:
   evaluation_agg: max
   backprop_type: muzero
   init_new_node_value: null
-
-  

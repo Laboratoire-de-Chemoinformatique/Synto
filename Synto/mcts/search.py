@@ -38,8 +38,6 @@ def extract_tree_stats(tree, target):
 
 
 def tree_search(
-        results_root,
-        targets_file,
         config,
         stats_name: str = 'tree_search_stats.csv',
         retropaths_files_name: str = 'retropath',
@@ -65,7 +63,7 @@ def tree_search(
     """
 
     # results folder
-    results_root = Path(results_root)
+    results_root = Path(config['General']['results_root'])
     if not results_root.exists():
         results_root.mkdir()
         print(f"Created results directory at {results_root}")
@@ -76,9 +74,9 @@ def tree_search(
                         format='%(asctime)s - %(levelname)s - %(message)s', datefmt='%d/%m/%Y %I:%M:%S %p')
 
     # targets molecules_path
-    targets_file = Path(targets_file)
+    targets_file = Path(config['General']['targets_path'])
     assert targets_file.exists(), f"Target file at path {targets_file} does not exist"
-    assert targets_file.suffix == ".txt", "Only txt files are accepted"
+    assert targets_file.suffix == ".smi", "Only txt files are accepted"
 
     # config molecules_path
     if config["Tree"]["init_new_node_value"] is None:
@@ -118,6 +116,7 @@ def tree_search(
             statswriter = csv.DictWriter(csvfile, delimiter=",", fieldnames=stats_header)
             statswriter.writeheader()
 
+            print(f'Total number of target molecules: {len(targets_list)}')
             for ti, target in tqdm(enumerate(targets_list), total=len(targets_list), position=0):
                 target = safe_canonicalization(target)
                 try:
@@ -137,7 +136,7 @@ def tree_search(
                 except AssertionError:
                     pass
 
-        logging.info(f"Number of solved trees: {solved_trees}")
+        print(f"Solved number of target molecules: {solved_trees}")
 
     except KeyboardInterrupt:
         logging.info(f"So far solved: {solved_trees}")

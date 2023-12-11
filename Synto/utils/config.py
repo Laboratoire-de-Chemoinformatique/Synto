@@ -9,73 +9,82 @@ from pathlib import Path
 from os import getcwd, path
 
 planning_config = {
-    'General': {'num_cpus': 5, 'num_gpus': 1},
- 'InputData': {'reaction_rules_path': 'synto_planning_data/reaction_rules.pickle',
-  'building_blocks_path': 'synto_planning_data/building_blocks.txt'},
- 'PolicyNetwork': {'weights_path': 'synto_planning_data/policy_network.ckpt',
-  'priority_rules_fraction': 0.5,
-  'top_rules': 50,
-  'rule_prob_threshold': 0.0},
- 'ValueNetwork': {'weights_path': 'synto_planning_data/value_network.ckpt'},
- 'Tree': {'ucb_type': 'uct',
-  'c_usb': 0.1,
-  'max_depth': 6,
-  'max_iterations': 50,
-  'max_time': 120,
-  'max_tree_size': 100000,
-  'verbose': True,
-  'evaluation_mode': 'gcn',
-  'evaluation_agg': 'max',
-  'backprop_type': 'muzero',
-  'init_new_node_value': None}}
+    'General': {
+        'num_cpus': 5,
+        'num_gpus': 1,
+        'targets_path': 'targets.smi',
+        'results_root': 'synto_planning_results'},
+    'InputData': {
+        'reaction_rules_path': 'synto_planning_data/reaction_rules.pickle',
+        'building_blocks_path': 'synto_planning_data/building_blocks.txt',
+        'standardize_building_blocks': True},
+    'PolicyNetwork': {
+        'weights_path': 'synto_planning_data/policy_network.ckpt',
+        'priority_rules_fraction': 0.5,
+        'top_rules': 50,
+        'rule_prob_threshold': 0.0},
+    'ValueNetwork': {
+        'weights_path': 'synto_planning_data/value_network.ckpt'},
+    'Tree': {
+        'ucb_type': 'uct',
+        'c_usb': 0.1,
+        'max_depth': 6,
+        'max_iterations': 50,
+        'max_time': 120,
+        'max_tree_size': 100000,
+        'verbose': True,
+        'evaluation_mode': 'gcn',
+        'evaluation_agg': 'max',
+        'backprop_type': 'muzero',
+        'init_new_node_value': None}}
 
-# cdw = getcwd()
-# if path.exists(cdw + '/synto_planning_data/reaction_rules.pickle'):
-#     planning_config["General"]["reaction_rules_path"] = cdw + '/synto_planning_data/reaction_rules.pickle'
-# if path.exists(cdw + '/synto_planning_data/building_blocks.pickle'):
-#     planning_config["General"]["building_blocks_path"] = cdw + '/synto_planning_data/building_blocks.txt'
-# if path.exists(cdw + '/synto_planning_data/policy_network.ckpt'):
-#     planning_config["PolicyNetwork"]["weights_path"] = cdw + '/synto_planning_data/policy_network.ckpt'
-# if path.exists(cdw + '/synto_planning_data/value_network.ckpt'):
-#     planning_config["ValueNetwork"]["weights_path"] = cdw + '/synto_planning_data/value_network.ckpt'
-
-
-training_config = {'General': {'num_cpus': 5,
-  'num_gpus': 1,
-  'results_root': 'synto_training_test'},
- 'InputData': {'building_blocks_path': 'synto_training_test/building_blocks/building_blocks.smi',
-  'policy_data_path': 'synto_training_test/policy_molecules/policy_molecules.smi',
-  'reaction_data_path': 'synto_training_test/reaction_data/reaction_data.rdf',
-  'value_data_path': 'synto_training_test/value_molecules/value_molecules.smi'},
- 'DataCleaning': {'clean_reactions': True},
- 'ReactionRules': {'min_popularity': 5},
- 'Tree': {'backprop_type': 'muzero',
-  'c_usb': 0.1,
-  'evaluation_agg': 'max',
-  'evaluation_mode': 'gcn',
-  'init_new_node_value': None,
-  'max_depth': 6,
-  'max_iterations': 15,
-  'max_time': 600,
-  'max_tree_size': 1000000,
-  'ucb_type': 'uct',
-  'verbose': False},
- 'SelfTuning': {'batch_size': 5, 'num_simulations': 1},
- 'PolicyNetwork': {'batch_size': 500,
-  'dropout': 0.4,
-  'learning_rate': 0.0005,
-  'num_conv_layers': 5,
-  'num_epoch': 100,
-  'priority_rules_fraction': 0.5,
-  'rule_prob_threshold': 0.0,
-  'top_rules': 50,
-  'vector_dim': 512},
- 'ValueNetwork': {'batch_size': 500,
-  'dropout': 0.4,
-  'learning_rate': 0.0005,
-  'num_conv_layers': 5,
-  'num_epoch': 100,
-  'vector_dim': 512}}
+training_config = {
+    'General': {
+        'num_cpus': 5,
+        'num_gpus': 1,
+        'results_root': 'synto_training_test'},
+    'InputData': {
+        'building_blocks_path': 'synto_training_test/building_blocks/building_blocks.smi',
+        'policy_data_path': 'synto_training_test/policy_molecules/policy_molecules.smi',
+        'reaction_data_path': 'synto_training_test/reaction_data/reaction_data.rdf',
+        'value_data_path': 'synto_training_test/value_molecules/value_molecules.smi'},
+    'DataCleaning': {
+        'clean_reactions': True,
+        'standardize_building_blocks': True},
+    'ReactionRules': {
+        'min_popularity': 5},
+    'Tree': {
+        'backprop_type': 'muzero',
+        'c_usb': 0.1,
+        'evaluation_agg': 'max',
+        'evaluation_mode': 'gcn',
+        'init_new_node_value': None,
+        'max_depth': 6,
+        'max_iterations': 15,
+        'max_time': 600,
+        'max_tree_size': 1000000,
+        'ucb_type': 'uct',
+        'verbose': False},
+    'SelfTuning': {
+        'batch_size': 5,
+        'num_simulations': 1},
+    'PolicyNetwork': {
+        'batch_size': 500,
+        'dropout': 0.4,
+        'learning_rate': 0.0005,
+        'num_conv_layers': 5,
+        'num_epoch': 100,
+        'priority_rules_fraction': 0.5,
+        'rule_prob_threshold': 0.0,
+        'top_rules': 50,
+        'vector_dim': 512},
+    'ValueNetwork': {
+        'batch_size': 500,
+        'dropout': 0.4,
+        'learning_rate': 0.0005,
+        'num_conv_layers': 5,
+        'num_epoch': 100,
+        'vector_dim': 512}}
 
 
 def check_planning_config(loaded_config):

@@ -9,6 +9,7 @@ InputData:
   value_data_path: synto_training_test/value_molecules/value_molecules.smi
 DataCleaning:
   clean_reactions: true
+  standardize_building_blocks: true
 ReactionRules:
   min_popularity: 5
 Tree:

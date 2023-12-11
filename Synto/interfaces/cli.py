@@ -13,7 +13,7 @@ from Synto.chem.reaction_rules.extraction import extract_rules_from_reactions
 from Synto.chem.data.cleaning import reactions_cleaner
 from Synto.ml.training import create_policy_training_set, run_policy_training
 from Synto.ml.training.reinforcement import run_self_tuning
-from Synto.chem.loading import canonicalize_building_blocks
+from Synto.chem.loading import standardize_building_blocks
 from Synto.utils.config import read_planning_config, read_training_config
 from Synto.mcts.search import tree_search
 from Synto.chem.loading import load_reaction_rules
@@ -52,57 +52,30 @@ def training_data_cli():
     os.remove(output)
 
 
-@main.command(name='building_blocks')
-@click.option(
-    "--input",
-    "input_file",
-    required=True,
-    help="Path to the file with original building blocks",
-    type=click.Path(exists=True),
-)
-@click.option(
-    "--output",
-    "output_file",
-    required=True,
-    help="Path to the file with processed building blocks",
-    type=click.Path(exists=True),
-)
-def building_blocks_cli(input_file, output_file):
-    """
-    Canonicalizes custom building blocks
-    """
-    canonicalize_building_blocks(input_file, output_file)
-
-
 @main.command(name='synto_planning')
-@click.option(
-    "--targets",
-    "targets_file",
-    help="Path to targets SDF molecules_path. The name of molecules_path will be used to save report.",
-    type=click.Path(exists=True),
-)
 @click.option("--config", "config_path",
               required=True,
               help="Path to the config YAML molecules_path. To generate default config, use command Synto_default_config",
               type=click.Path(exists=True, path_type=Path),
               )
-@click.option(
-    "--results_root",
-    help="Path to the folder where to save all statistics and results",
-    required=True,
-    type=click.Path(path_type=Path),
-)
-def synto_planning_cli(targets_file, config_path, results_root):
+def synto_planning_cli(config_path):
     """
     Launches tree search for the given target molecules and stores search statistics and found retrosynthetic paths
 
-    :param targets_file: The path to a file that contains the list of targets for tree search
     :param config_path: The path to the configuration file that contains the settings and parameters for the tree search
-    :param results_root: The root directory where the search results will be saved
     """
     config = read_planning_config(config_path)
     config['Tree']['verbose'] = False
-    tree_search(results_root, targets_file, config)
+
+    # standardize building blocks
+    if config['InputData']['standardize_building_blocks']:
+        print('STANDARDIZE BUILDING BLOCKS ...')
+
+        standardize_building_blocks(config['InputData']['building_blocks_path'],
+                                    config['InputData']['building_blocks_path'])
+    # run planning
+    print('\nRUN PLANNING ...')
+    tree_search(config)
 
 
 @main.command(name='synto_training')
@@ -134,6 +107,13 @@ def synto_training_cli(config):
         reactions_cleaner(input_file=config['InputData']['reaction_data_path'],
                           output_file=cleaned_data_file,
                           num_cpus=config['General']['num_cpus'])
+
+    # standardize building blocks
+    print('\nSTANDARDIZE BUILDING BLOCKS ...')
+    if config['DataCleaning']['standardize_building_blocks']:
+
+        standardize_building_blocks(config['InputData']['building_blocks_path'],
+                                    config['InputData']['building_blocks_path'])
 
     # reaction rules extraction
     print('\nEXTRACT REACTION RULES ...')

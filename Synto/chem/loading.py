@@ -31,10 +31,11 @@ def load_reaction_rules(file):
     return reaction_rules
 
 
-def canonicalize_building_blocks(input_file, out_file):
+def standardize_building_blocks(input_file, out_file):
     """
     The function canonicalizes custom building blocks
 
+    :param out_file:
     :param input_file: The path to the txt file that stores the original building blocks
     :param input_file: The path to the txt file that stores the canonicalazied building blocks
     """
@@ -45,8 +46,11 @@ def canonicalize_building_blocks(input_file, out_file):
         mols = file.readlines()
 
     for n, mol in tqdm(enumerate(mols), total=len(mols)):
-        mol = parser(str(mol))
-        mol.canonicalize()
+        try:
+            mol = parser(str(mol))
+            mol.canonicalize()
+        except:
+            continue
     mols = [i.strip() for i in mols]
 
     pd.DataFrame(mols).to_csv(out_file, header=None, index=None)
