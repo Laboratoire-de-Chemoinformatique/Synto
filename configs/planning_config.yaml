@@ -1,19 +1,19 @@
 General:
-  num_cpus: 5
+  num_cpus: 10
   num_gpus: 1
-  targets_path: targets.smi
-  results_root: synto_planning_results
+  targets_path: tests/targets.smi
+  results_root: tests/synto_planning_results
 InputData:
-  reaction_rules_path: synto_planning_data/reaction_rules.pickle
-  building_blocks_path: synto_planning_data/building_blocks.smi
+  reaction_rules_path: tests/synto_trained_models/reaction_rules/reaction_rules_filtered.pickle
+  building_blocks_path: tests/synto_training_data_small/building_blocks/building_blocks.smi
   standardize_building_blocks: true
 PolicyNetwork:
-  weights_path: synto_planning_data/policy_network.ckpt
+  weights_path: tests/synto_trained_models/policy_network/policy_network.ckpt
   priority_rules_fraction: 0.5
   top_rules: 50
   rule_prob_threshold: 0.0
 ValueNetwork:
-  weights_path: synto_planning_data/value_network.ckpt
+  weights_path: tests/synto_trained_models/value_network/value_network.ckpt
 Tree:
   ucb_type: uct
   c_usb: 0.1

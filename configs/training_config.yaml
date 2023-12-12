@@ -1,12 +1,12 @@
 General:
-  num_cpus: 5
+  num_cpus: 10
   num_gpus: 1
-  results_root: synto_training_test
+  results_root: tests/synto_trained_models
 InputData:
-  building_blocks_path: synto_training_test/building_blocks/building_blocks.smi
-  policy_data_path: synto_training_test/policy_molecules/policy_molecules.smi
-  reaction_data_path: synto_training_test/reaction_data/reaction_data.rdf
-  value_data_path: synto_training_test/value_molecules/value_molecules.smi
+  building_blocks_path: tests/synto_training_data_small/building_blocks/building_blocks.smi
+  policy_data_path: tests/synto_training_data_small/policy_molecules/policy_molecules.smi
+  reaction_data_path: tests/synto_training_data_small/reaction_data/reaction_data.rdf
+  value_data_path: tests/synto_training_data_small/value_molecules/value_molecules.smi
 DataCleaning:
   clean_reactions: true
   standardize_building_blocks: true
@@ -19,7 +19,7 @@ Tree:
   evaluation_mode: gcn
   init_new_node_value: null
   max_depth: 6
-  max_iterations: 15
+  max_iterations: 10
   max_time: 600
   max_tree_size: 1000000
   ucb_type: uct

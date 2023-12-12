@@ -21,6 +21,10 @@ Dev: Installation with conda-lock
 
 You need to have `conda` or `mamba` installed on your system to install `conda-lock`. If you have not installed `conda` yet, you can download it from `Miniconda <https://docs.conda.io/en/latest/miniconda.html>`_ or `Anaconda <https://www.anaconda.com/products/individual>`_.
 
+wget "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-$(uname)-$(uname -m).sh"
+bash Miniforge3-$(uname)-$(uname -m).sh
+
+
 Once `conda` is installed, you can install `conda-lock` by running:
 
 .. code-block:: bash
@@ -40,7 +44,7 @@ Once you have a `.conda-lock` file, you can create a conda environment that exac
 
 .. code-block:: bash
 
-   conda-lock install -n syntool_env --file conda-linux64-GPU-lock.yml
+   conda-lock install -n synto --file conda-linux64-GPU-lock.yml
 
 This command will read the `.conda-lock` file and create an environment with the exact package versions specified in the file.
 
@@ -119,3 +123,11 @@ Documentation
 -----------
 
 The detailed documentation can be found `here <https://laboratoire-de-chemoinformatique.github.io/Synto/>`_
+
+Tests
+-----------
+
+.. code-block:: bash
+
+    synto_training --config="configs/training_config.yaml"
+    synto_planning --config="configs/planning_config.yaml"

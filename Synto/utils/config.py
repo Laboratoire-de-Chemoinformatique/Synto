@@ -42,12 +42,12 @@ training_config = {
     'General': {
         'num_cpus': 5,
         'num_gpus': 1,
-        'results_root': 'synto_training_test'},
+        'results_root': 'synto_training_data_small'},
     'InputData': {
-        'building_blocks_path': 'synto_training_test/building_blocks/building_blocks.smi',
-        'policy_data_path': 'synto_training_test/policy_molecules/policy_molecules.smi',
-        'reaction_data_path': 'synto_training_test/reaction_data/reaction_data.rdf',
-        'value_data_path': 'synto_training_test/value_molecules/value_molecules.smi'},
+        'building_blocks_path': 'synto_training_data_small/building_blocks/building_blocks.smi',
+        'policy_data_path': 'synto_training_data_small/policy_molecules/policy_molecules.smi',
+        'reaction_data_path': 'synto_training_data_small/reaction_data/reaction_data.rdf',
+        'value_data_path': 'synto_training_data_small/value_molecules/value_molecules.smi'},
     'DataCleaning': {
         'clean_reactions': True,
         'standardize_building_blocks': True},
