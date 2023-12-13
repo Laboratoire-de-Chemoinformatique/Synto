@@ -3,6 +3,7 @@ Module containing a class Retron that represents a retron (extend molecule objec
 """
 
 from CGRtools.containers import MoleculeContainer
+from CGRtools.exceptions import InvalidAromaticRing
 
 from Synto.chem.utils import safe_canonicalization
 
@@ -12,14 +13,14 @@ class Retron:
     Retron class is used to extend the molecule behavior needed for interaction with a tree in MCTS
     """
 
-    def __init__(self, molecule: MoleculeContainer):
+    def __init__(self, molecule: MoleculeContainer, canonicalize: bool = False):
         """
         It initializes a Retron object with a molecule container as a parameter.
 
         :param molecule: The `molecule` parameter is of type `MoleculeContainer`.
         :type molecule: MoleculeContainer
         """
-        self._molecule = safe_canonicalization(molecule)
+        self._molecule = safe_canonicalization(molecule) if canonicalize else molecule
         self._mapping = None
         self.prev_retrons = []
 
@@ -45,6 +46,17 @@ class Retron:
         """
         return self._molecule == other._molecule
 
+    def validate_molecule(self):
+        molecule = self._molecule.copy()
+        try:
+            molecule.kekule()
+            if molecule.check_valence():
+                return False
+            molecule.thiele()
+        except InvalidAromaticRing:
+            return False
+        return True
+
     @property
     def molecule(self) -> MoleculeContainer:
         """
@@ -65,19 +77,20 @@ class Retron:
         """
         return str(self._molecule)
 
-    def is_building_block(self, stock):
+    def is_building_block(self, stock, min_mol_size=6):
         """
         The function checks if a Retron is a building block.
 
+        :param min_mol_size:
         :param stock: The list of building blocks. Each building block is represented by a smiles.
         """
-        if len(self._molecule) <= 6:
+        if len(self._molecule) <= min_mol_size:
             return True
         else:
             return str(self._molecule) in stock
 
 
-def compose_retrons(retrons: list = None, exclude_small=True) -> MoleculeContainer:
+def compose_retrons(retrons: list = None, exclude_small=True, min_mol_size=6) -> MoleculeContainer:
     """
     The function takes a list of retrons, excludes small retrons if specified, and composes them into a single molecule.
     This molecule is used for the prediction of synthesisability of the characterizing the possible success of the path
@@ -95,7 +108,7 @@ def compose_retrons(retrons: list = None, exclude_small=True) -> MoleculeContain
         return retrons[0].molecule
     elif len(retrons) > 1:
         if exclude_small:
-            big_retrons = [retron for retron in retrons if len(retron.molecule) > 6]
+            big_retrons = [retron for retron in retrons if len(retron.molecule) > min_mol_size]
             if big_retrons:
                 retrons = big_retrons
         tmp_mol = retrons[0].molecule.copy()

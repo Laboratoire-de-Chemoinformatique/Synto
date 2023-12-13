@@ -2,11 +2,41 @@
 Module containing training and planning configuration dictionaries
 """
 
-import yaml
-
+from abc import ABC, abstractmethod
 from copy import deepcopy
 from pathlib import Path
-from os import getcwd, path
+from typing import Any, Dict
+
+import yaml
+
+
+class ConfigABC(ABC):
+    @abstractmethod
+    def __init__(self):
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def from_dict(config_dict: Dict[str, Any]):
+        pass
+
+    @abstractmethod
+    def to_dict(self) -> Dict[str, Any]:
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def from_yaml(file_path: str):
+        pass
+
+    @abstractmethod
+    def to_yaml(self, file_path: str):
+        pass
+
+    @abstractmethod
+    def _validate_params(self, params: Dict[str, Any]):
+        pass
+
 
 planning_config = {
     'General': {

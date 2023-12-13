@@ -36,12 +36,17 @@ class GraphEmbedding(Module):
         super(GraphEmbedding, self).__init__()
         self.expansion = Linear(11, vector_dim)
         self.dropout = Dropout(dropout)
-        self.gcn_convs = ModuleList([GCNConv(vector_dim, vector_dim, improved=True) for _ in range(num_conv_layers)])
+        self.gcn_convs = ModuleList([GCNConv(
+            vector_dim,
+            vector_dim,
+            improved=True,
+        ) for _ in range(num_conv_layers)])
 
-    def forward(self, graph):
+    def forward(self, graph, batch_size):
         """
         The forward function takes a graph as input and performs graph convolution on it.
 
+        :param batch_size:
         :param graph: The molecular graph, where each atom is represented by the atom/bond vector
         """
         atoms, connections = graph.x.float(), graph.edge_index.long()
@@ -50,7 +55,7 @@ class GraphEmbedding(Module):
         for gcn_conv in self.gcn_convs:
             atoms = atoms + self.dropout(relu(gcn_conv(atoms, connections)))
 
-        return global_add_pool(atoms, graph.batch)
+        return global_add_pool(atoms, graph.batch, size=batch_size)
 
 
 class MCTSNetwork(LightningModule, ABC):

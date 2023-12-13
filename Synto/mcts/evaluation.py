@@ -8,7 +8,7 @@ import logging
 import torch
 
 from Synto.ml.networks.value import SynthesabilityValueNetwork
-from Synto.ml.training import load_value_net, mol_to_pyg
+from Synto.ml.training import mol_to_pyg
 from Synto.chem.retron import compose_retrons
 
 
@@ -17,17 +17,18 @@ class ValueFunction:
     Value function based on value neural network for node evaluation (synthesisability prediction) in MCTS
     """
 
-    def __init__(self, config):
+    def __init__(self, weights_path):
         """
         The value function predicts the probability to synthesize the target molecule with available building blocks
         starting from a given retron.
 
-        :param config: The `config` parameter is a dictionary that contains configuration settings for the
-        policy function
-        :type config: dict
         """
 
-        value_net = load_value_net(SynthesabilityValueNetwork, config)
+        value_net = SynthesabilityValueNetwork.load_from_checkpoint(
+            weights_path,
+            map_location=torch.device("cpu")
+        )
+
         self.value_network = value_net.eval()
 
     def predict_value(self, retrons: list):

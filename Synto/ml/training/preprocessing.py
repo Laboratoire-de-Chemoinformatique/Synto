@@ -459,37 +459,38 @@ def mol_to_matrix(molecule: MoleculeContainer):
     return atoms_vectors
 
 
-def mol_to_pyg(molecule: MoleculeContainer):
+def mol_to_pyg(molecule: MoleculeContainer, canonicalize=True):
     """
     It takes a list of molecules and returns a list of PyTorch Geometric graphs,
     a one-hot encoded vectors of the atoms, and a matrices of the bonds.
 
+    :param canonicalize:
     :param molecule: The molecule to be converted to PyTorch Geometric graph.
     :return: A list of pyg graphs
     """
-
-    molecule = molecule.copy()
+    tmp_molecule = molecule.copy()
     try:
-        molecule.canonicalize()
-        molecule.kekule()
-        if molecule.check_valence():
+        if canonicalize:
+            tmp_molecule.canonicalize()
+        tmp_molecule.kekule()
+        if tmp_molecule.check_valence():
             return None
     except InvalidAromaticRing:
         return None
 
     # remapping target for torch_geometric because
     # it is necessary that the elements in edge_index only hold nodes_idx in the range { 0, ..., num_nodes - 1}
-    new_mappings = {n: i for i, (n, _) in enumerate(molecule.atoms(), 1)}
-    molecule.remap(new_mappings)
+    new_mappings = {n: i for i, (n, _) in enumerate(tmp_molecule.atoms(), 1)}
+    tmp_molecule.remap(new_mappings)
 
     # get edge indexes from target mapping
     edge_index = []
-    for atom, neighbour, bond in molecule.bonds():
+    for atom, neighbour, bond in tmp_molecule.bonds():
         edge_index.append([atom - 1, neighbour - 1])
     edge_index = torch.tensor(edge_index, dtype=torch.long)
 
     #
-    x = mol_to_matrix(molecule)
+    x = mol_to_matrix(tmp_molecule)
 
     mol_pyg_graph = Data(x=x, edge_index=edge_index.t().contiguous())
     mol_pyg_graph = ToUndirected()(mol_pyg_graph)

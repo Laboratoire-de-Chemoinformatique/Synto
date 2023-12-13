@@ -63,7 +63,7 @@ def create_policy_dataset(
     )
     print(f'Training set size: {len(train_dataset)}, validation set size: {len(val_dataset)}')
 
-    datamodule = LightningDataset(train_dataset, val_dataset, batch_size=batch_size, pin_memory=True)
+    datamodule = LightningDataset(train_dataset, val_dataset, batch_size=batch_size, pin_memory=True, drop_last=True)
     return datamodule
 
 

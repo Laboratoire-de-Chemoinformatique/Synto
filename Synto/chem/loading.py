@@ -1,7 +1,7 @@
 """
 Module containing functions for loading reaction rules and building blocks
 """
-
+import functools
 import logging
 import pickle
 from time import time
@@ -15,6 +15,7 @@ from werkzeug.datastructures import FileStorage
 from werkzeug.utils import secure_filename
 
 
+@functools.lru_cache(maxsize=None)
 def load_reaction_rules(file):
     """
     The function loads reaction rules from a pickle file and converts them into a list of Reactor objects if necessary
@@ -25,8 +26,8 @@ def load_reaction_rules(file):
     with open(file, "rb") as f:
         reaction_rules = pickle.load(f)
 
-    if not isinstance(reaction_rules[0], Reactor):
-        reaction_rules = [Reactor(x) for x in reaction_rules]
+    if not isinstance(reaction_rules[0][0], Reactor):
+        reaction_rules = [Reactor(x) for x, _ in reaction_rules]
 
     return reaction_rules
 
@@ -57,6 +58,8 @@ def standardize_building_blocks(input_file, out_file):
 
     return out_file
 
+
+@functools.lru_cache(maxsize=None)
 def load_building_blocks(file: str, canonicalize: bool = False):
     """
     Loads building blocks data from a file, either in text, SMILES, or pickle format, and returns a frozen set of

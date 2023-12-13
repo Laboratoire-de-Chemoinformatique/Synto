@@ -7,20 +7,152 @@ from collections import deque, defaultdict
 from math import sqrt
 from random import choice, uniform
 from time import time
-from typing import Dict, Set, List, Tuple
+from typing import Dict, Set, List, Tuple, Any
 
+import yaml
 from CGRtools.containers import MoleculeContainer
 from numpy.random import uniform
 
-from Synto.chem.reaction import Reaction
-from Synto.chem.reaction import apply_reaction_rule
+from Synto.chem.loading import load_building_blocks, load_reaction_rules
+from Synto.chem.reaction import Reaction, apply_reaction_rule
 from Synto.chem.retron import Retron
 from Synto.interfaces.visualisation import tqdm
 from Synto.mcts.evaluation import ValueFunction
 from Synto.mcts.expansion import PolicyFunction
 from Synto.mcts.node import Node
-from Synto.chem.utils import safe_canonicalization
-from Synto.chem.loading import load_building_blocks, load_reaction_rules
+from Synto.utils.config import ConfigABC
+
+
+class TreeConfig(ConfigABC):
+    def __init__(
+            self,
+            max_iterations: int = 100,
+            max_tree_size: int = 10000,
+            max_time: float = 600,
+            max_depth: int = 6,
+            ucb_type: str = "uct",
+            c_ucb: float = 0.1,
+            backprop_type: str = "muzero",
+            exclude_small: bool = True,
+            evaluation_agg: str = "max",
+            evaluation_mode: str = "gcn",
+            init_new_node_value: float = None,
+            epsilon: float = 0.0,
+            min_mol_size: int = 6,
+            silent: bool = False
+    ):
+        """
+        :param ucb_type: This is the type of UCB to use. The options are: "puct", "uct", "value", defaults to UCT
+        :type ucb_type: Literal["puct", "uct", "value"] (optional)
+        :param backprop_type: The type of backpropagation to use. The options are:, defaults to muzero
+        :type backprop_type: Literal["muzero", "cumulative"] (optional)
+        :param evaluation_mode: This is the method used to evaluate the nodes. The options are:, defaults to value
+        :type evaluation_mode: Literal['random', 'rollout', 'gcn'] (optional)
+        :param c_ucb: Breadth/depth criterion
+        :type c_ucb: float
+        :param max_depth: The maximum number of steps to take from the root, defaults to 10, defaults to 10
+        :type max_depth: int (optional)
+        :param max_tree_size: The maximum number of nodes in the tree
+        :type max_tree_size: int
+        :param max_depth: The number of iterations to run the algorithm for
+        :type max_depth: int
+        :param max_time: The time limit for the algorithm to run, defaults to 120
+        :type max_time: int (optional)
+        :param silent: Hide/Show tqdm progress bar, defaults to False
+        :type silent: bool (optional)
+        :param init_new_node_value: If given, the value of the created node is set to the specified value.
+        If not, the value of the created node is set by the chosen value function (time-consuming)
+        :type init_new_node_value: bool (optional)
+        """
+        self._validate_params(locals())
+        self.max_iterations = max_iterations
+        self.max_tree_size = max_tree_size
+        self.max_time = max_time
+        self.max_depth = max_depth
+        self.ucb_type = ucb_type
+        self.backprop_type = backprop_type
+        self.c_ucb = c_ucb
+        self.exclude_small = exclude_small
+        self.evaluation_agg = evaluation_agg
+        self.evaluation_mode = evaluation_mode
+        self.init_new_node_value = init_new_node_value
+        self.epsilon = epsilon
+        self.min_mol_size = min_mol_size
+        self.silent = silent
+
+    @staticmethod
+    def from_dict(config_dict: Dict[str, Any]):
+        default_args = {
+            "max_iterations": 100,
+            "max_tree_size": 10000,
+            "max_time": 600,
+            "max_depth": 6,
+            "ucb_type": "uct",
+            "c_ucb": 0.1,
+            "backprop_type": "muzero",
+            "exclude_small": True,
+            "evaluation_agg": "max",
+            "evaluation_mode": "rollout",
+            "init_new_node_value": None,
+            "epsilon": 0.0,
+            "min_mol_size": 6,
+            "silent": False
+        }
+
+        # Update default arguments with values from config_dict
+        combined_args = {**default_args, **config_dict}
+
+        return TreeConfig(**combined_args)
+
+    def to_dict(self):
+        return {
+            "max_iterations": self.max_iterations,
+            "max_tree_size": self.max_tree_size,
+            "max_time": self.max_time,
+            "max_depth": self.max_depth,
+            "ucb_type": self.ucb_type,
+            "c_ucb": self.c_ucb,
+            "backprop_type": self.backprop_type,
+            "exclude_small": self.exclude_small,
+            "evaluation_agg": self.evaluation_agg,
+            "evaluation_mode": self.evaluation_mode,
+            "init_new_node_value": self.init_new_node_value,
+            "epsilon": self.epsilon,
+            "min_mol_size": self.min_mol_size,
+            "silent": self.silent
+        }
+
+    @staticmethod
+    def from_yaml(file_path):
+        with open(file_path, 'r') as file:
+            config_dict = yaml.safe_load(file)
+        return TreeConfig.from_dict(config_dict)
+
+    def to_yaml(self, file_path):
+        with open(file_path, 'w') as file:
+            yaml.dump(self.to_dict(), file)
+
+    def _validate_params(self, params):
+        if params['ucb_type'] not in ["puct", "uct", "value"]:
+            raise ValueError("Invalid ucb_type. Allowed values are 'puct', 'uct', 'value'.")
+        if params['backprop_type'] not in ["muzero", "cumulative"]:
+            raise ValueError("Invalid backprop_type. Allowed values are 'muzero', 'cumulative'.")
+        if params['evaluation_mode'] not in ['random', 'rollout', 'gcn']:
+            raise ValueError("Invalid evaluation_mode. Allowed values are 'random', 'rollout', 'gcn'.")
+        if not isinstance(params['c_ucb'], float):
+            raise TypeError("c_ucb must be a float.")
+        if not isinstance(params['max_depth'], int) or params['max_depth'] < 1:
+            raise ValueError("max_depth must be a positive integer.")
+        if not isinstance(params['max_tree_size'], int) or params['max_tree_size'] < 1:
+            raise ValueError("max_tree_size must be a positive integer.")
+        if not isinstance(params['max_iterations'], int) or params['max_iterations'] < 1:
+            raise ValueError("max_iterations must be a positive integer.")
+        if not isinstance(params['max_time'], int) or params['max_time'] < 1:
+            raise ValueError("max_time must be a positive integer.")
+        if not isinstance(params['silent'], bool):
+            raise TypeError("silent must be a boolean.")
+        if params['init_new_node_value'] is not None and not isinstance(params['init_new_node_value'], float):
+            raise TypeError("init_new_node_value must be a float if provided.")
 
 
 class Tree:
@@ -28,7 +160,15 @@ class Tree:
     Tree class with attributes and methods for Monte-Carlo tree search
     """
 
-    def __init__(self, target: MoleculeContainer = None, config: dict = None):
+    def __init__(
+            self,
+            target: MoleculeContainer,
+            reaction_rules_path: str,
+            building_blocks_path: str,
+            tree_config: TreeConfig,
+            policy_function: PolicyFunction,
+            value_function: ValueFunction = None
+    ):
         """
         The function initializes a tree object with optional parameters for tree search for target molecule.
 
@@ -38,26 +178,15 @@ class Tree:
         :type config: dict
         """
 
-        assert target and type(
-            target) is MoleculeContainer and target.atoms, 'Target is not defined, is not a MoleculeContainer or have no atoms'
-        target_retron = Retron(target)
-        target_retron.prev_retrons.append(Retron(target))
-        target_node = Node(retrons_to_expand=(target_retron,), new_retrons=(target_retron,))
-
         # config parameters
-        self.max_iterations = int(config['Tree']['max_iterations'])
-        self.max_tree_size = int(config['Tree']['max_tree_size'])
-        self.max_time = config['Tree']['max_time']
-        self.max_depth = config['Tree']['max_depth']
-        self.ucb_type = config['Tree']['ucb_type']
-        self.backprop_type = config['Tree']['backprop_type']
-        self.c_ucb = config['Tree']['c_usb']
-        self.exclude_small = True
-        self.evaluation_agg = config['Tree']['evaluation_agg']
-        self.evaluation_mode = config['Tree']['evaluation_mode']
-        self.init_new_node_value = None
-        self.silent = not config['Tree']['verbose']
-        self.epsilon = 0.0
+        self.config = tree_config
+
+        assert target and type(target) is MoleculeContainer and target.atoms, \
+            'Target is not defined, is not a MoleculeContainer or have no atoms'
+
+        target_retron = Retron(target, canonicalize=True)
+        target_retron.prev_retrons.append(Retron(target, canonicalize=True))
+        target_node = Node(retrons_to_expand=(target_retron,), new_retrons=(target_retron,))
 
         # tree structure init
         self.nodes: Dict[int, Node] = {1: target_node}
@@ -80,13 +209,21 @@ class Tree:
         # utils
         self._tqdm = None
 
-        # networks loading
-        self.policy_function = PolicyFunction(config)
-        self.value_function = ValueFunction(config)
+        self.policy_function = policy_function
+        if self.config.evaluation_mode == "gcn":
+            if value_function is None:
+                raise ValueError("Value function not specified while evaluation mode is 'gcn'")
+            else:
+                self.value_function = value_function
+
+        # # networks loading
+        # self.policy_function = PolicyFunction(policy_config)
+        # if self.config.evaluation_mode == "gcn":
+        #     self.value_function = ValueFunction(value_weights_path)
 
         # building blocks and reaction reaction_rules
-        self.reaction_rules = load_reaction_rules(config['InputData']['reaction_rules_path'])
-        self.building_blocks = load_building_blocks(config['InputData']['building_blocks_path'])
+        self.reaction_rules = load_reaction_rules(reaction_rules_path)
+        self.building_blocks = load_building_blocks(building_blocks_path)
 
     def __len__(self) -> int:
         """
@@ -102,7 +239,7 @@ class Tree:
 
         if not self._tqdm:
             self._start_time = time()
-            self._tqdm = tqdm(total=self.max_iterations, disable=self.silent)
+            self._tqdm = tqdm(total=self.config.max_iterations, disable=self.config.silent)
         return self
 
     def __repr__(self) -> str:
@@ -116,16 +253,16 @@ class Tree:
         The __next__ function is used to do one iteration of the tree building.
         """
         # check if target is building_block
-        if self.nodes[1].curr_retron.is_building_block(self.building_blocks):
+        if self.nodes[1].curr_retron.is_building_block(self.building_blocks, self.config.min_mol_size):
             raise StopIteration("Target is building block \n")
 
-        if self.curr_iteration >= self.max_iterations:
+        if self.curr_iteration >= self.config.max_iterations:
             self._tqdm.close()
             raise StopIteration("Iterations limit exceeded. \n")
-        elif self.curr_tree_size >= self.max_tree_size:
+        elif self.curr_tree_size >= self.config.max_tree_size:
             self._tqdm.close()
             raise StopIteration("Max tree size exceeded or all possible paths found")
-        elif self.curr_time >= self.max_time:
+        elif self.curr_time >= self.config.max_time:
             self._tqdm.close()
             raise StopIteration("Time limit exceeded. \n")
         else:
@@ -156,24 +293,28 @@ class Tree:
                     self.winning_nodes.append(node_id)
                     return True, [node_id]
 
-                elif curr_depth < self.max_depth:  # expand node if depth limit is not reached
+                elif curr_depth < self.config.max_depth:  # expand node if depth limit is not reached
 
                     self._expand_node(node_id)
                     if not self.children[node_id]:  # node was not expanded
                         return False, [node_id]
                     self.expanded_nodes.add(node_id)
 
-                    # recalculate node value based on children synthesisability and backpropagation
-                    child_values = [self.nodes_init_value[child_id] for child_id in self.children[node_id]]
+                    if self.config.init_new_node_value is None:
+                        # recalculate node value based on children synthesisability and backpropagation
+                        child_values = [self.nodes_init_value[child_id] for child_id in self.children[node_id]]
 
-                    if self.evaluation_agg == "max":
-                        value_to_backprop = max(child_values)
+                        if self.config.evaluation_agg == "max":
+                            value_to_backprop = max(child_values)
 
-                    elif self.evaluation_agg == "avg":
-                        value_to_backprop = sum(child_values) / len(self.children[node_id])
+                        elif self.config.evaluation_agg == "avg":
+                            value_to_backprop = sum(child_values) / len(self.children[node_id])
 
+                        else:
+                            raise ValueError(
+                                f"I don't know this evaluation aggregation mode: {self.config.evaluation_agg}")
                     else:
-                        raise ValueError(f"I don't know this evaluation aggregation mode: {self.evaluation_agg}")
+                        value_to_backprop = self._get_node_value(node_id)
 
                     # backpropagation
                     self._backpropagate(node_id, value_to_backprop)
@@ -208,17 +349,16 @@ class Tree:
         prob = self.nodes_prob[node_id]  # Predicted by policy network score
         visit = self.nodes_visit[node_id]
 
-        if self.ucb_type == "puct":
-            u = (self.c_ucb * prob * sqrt(self.nodes_visit[self.parents[node_id]])) / (visit + 1)
+        if self.config.ucb_type == "puct":
+            u = (self.config.c_ucb * prob * sqrt(self.nodes_visit[self.parents[node_id]])) / (visit + 1)
             return self.nodes_total_value[node_id] + u
-        elif self.ucb_type == "uct":
-            u = self.c_ucb * sqrt(self.nodes_visit[self.parents[node_id]]) / (visit + 1)
+        elif self.config.ucb_type == "uct":
+            u = self.config.c_ucb * sqrt(self.nodes_visit[self.parents[node_id]]) / (visit + 1)
             return self.nodes_total_value[node_id] + u
-        elif self.ucb_type == "value":
+        elif self.config.ucb_type == "value":
             return self.nodes_init_value[node_id] / (visit + 1)
-
         else:
-            raise ValueError(f"I don't know this UCB type: {self.ucb_type}")
+            raise ValueError(f"I don't know this UCB type: {self.config.ucb_type}")
 
     def _select_node(self, node_id: int) -> int:
         """
@@ -229,11 +369,19 @@ class Tree:
         :type node_id: int
         """
 
-        if self.epsilon > 0:
+        if self.config.epsilon > 0:
             n = uniform(0, 1)
-            if n < self.epsilon:
+            if n < self.config.epsilon:
                 return choice(list(self.children[node_id]))
-        return max(self.children[node_id], key=self._ucb)
+
+        best_score, best_children = None, []
+        for child_id in self.children[node_id]:
+            score = self._ucb(child_id)
+            if best_score is None or score > best_score:
+                best_score, best_children = score, [child_id]
+            elif score == best_score:
+                best_children.append(child_id)
+        return choice(best_children)
 
     def _expand_node(self, node_id: int) -> None:
         """
@@ -246,34 +394,126 @@ class Tree:
         curr_node = self.nodes[node_id]
         prev_retrons = curr_node.curr_retron.prev_retrons
 
-        tmp_retrons = []
-        for prob, rule, rule_id in self.policy_function.predict_reaction_rules(curr_node.curr_retron,
-                                                                               self.reaction_rules):
-            for reaction in apply_reaction_rule(curr_node.curr_retron.molecule, rule):
-
+        tmp_retrons = set()
+        for prob, rule, rule_id in self.policy_function.predict_reaction_rules(
+                curr_node.curr_retron,
+                self.reaction_rules
+        ):
+            for products in apply_reaction_rule(curr_node.curr_retron.molecule, rule):
                 # check repeated products
-                products = tuple(mol for mol in (~reaction).decompose()[1].split() if len(mol) > 0)
-                if products in tmp_retrons:
+                if not products or not set(products) - tmp_retrons:
                     continue
-                tmp_retrons.append(products)
-                #
-                for reactant in products:
-                    reactant.meta['reactor_id'] = rule_id
-                #
+                tmp_retrons.update(products)
+
+                for molecule in products:
+                    molecule.meta['reactor_id'] = rule_id
+
                 new_retrons = tuple(Retron(mol) for mol in products)
-                scaled_prob = prob * len(list(filter(lambda x: len(x) > 6, products)))
-                #
+                scaled_prob = prob * len(list(filter(lambda x: len(x) > self.config.min_mol_size, products)))
+
                 if set(prev_retrons).isdisjoint(new_retrons):
 
-                    retrons_to_expand = (*curr_node.next_retrons,
-                                         *(x for x in new_retrons if not x.is_building_block(self.building_blocks)))
+                    retrons_to_expand = (
+                        *curr_node.next_retrons,
+                        *(
+                            x for x in new_retrons if not x.is_building_block(
+                                self.building_blocks,
+                                self.config.min_mol_size
+                            )
+                        )
+                    )
 
-                    child_node = Node(retrons_to_expand=retrons_to_expand, new_retrons=new_retrons)
-                    #
+                    child_node = Node(
+                        retrons_to_expand=retrons_to_expand,
+                        new_retrons=new_retrons
+                    )
+
                     for new_retron in new_retrons:
                         new_retron.prev_retrons = [new_retron, *prev_retrons]
 
                     self._add_node(node_id, child_node, scaled_prob)
+
+    def _add_node(self, node_id: int, new_node: Node, policy_prob: float = None) -> None:
+        """
+        This function adds a new node to a tree with its policy probability.
+
+        :param node_id: ID of the parent node
+        :type node_id: int
+        :param new_node: The `new_node` is an instance of the`Node` class
+        :type new_node: Node
+        :param policy_prob: The `policy_prob` a float value that represents the probability associated with a new node.
+        :type policy_prob: float
+        """
+
+        new_node_id = self.curr_tree_size
+
+        self.nodes[new_node_id] = new_node
+        self.parents[new_node_id] = node_id
+        self.children[node_id].add(new_node_id)
+        self.children[new_node_id] = set()
+        self.nodes_visit[new_node_id] = 0
+        self.nodes_prob[new_node_id] = policy_prob
+        self.nodes_depth[new_node_id] = self.nodes_depth[node_id] + 1
+        self.curr_tree_size += 1
+
+        if self.config.init_new_node_value is None:
+            node_value = self._get_node_value(new_node_id)
+        else:
+            node_value = self.config.init_new_node_value
+
+        self.nodes_init_value[new_node_id] = node_value
+        self.nodes_total_value[new_node_id] = node_value
+
+    def _get_node_value(self, node_id):
+        node = self.nodes[node_id]
+
+        if self.config.evaluation_mode == 'random':
+            node_value = uniform()
+
+        elif self.config.evaluation_mode == "rollout":
+            node_value = min(
+                (self._rollout_node(retron, curr_depth=self.nodes_depth[node_id]) for retron in node.retrons_to_expand),
+                default=1.0
+            )
+
+        elif self.config.evaluation_mode == 'gcn':
+            node_value = self.value_function.predict_value(node.new_retrons)
+
+        else:
+            raise ValueError(f"I don't know this evaluation mode: {self.config.evaluation_mode}")
+
+        return node_value
+
+    def _update_visits(self, node_id: int) -> None:
+        """
+        The function updates the number of visits from a given node to a root node.
+
+        :param node_id: The ID of a current node
+        :type node_id: int
+        """
+
+        while node_id:
+            self.nodes_visit[node_id] += 1
+            node_id = self.parents[node_id]
+
+    def _backpropagate(self, node_id: int, value: float) -> None:
+        """
+        The function backpropagates a value through a tree of a given node specified by node_id.
+
+        :param node_id: The ID of a given node from which to backpropagate value
+        :type node_id: int
+        :param value: The value to backpropagate
+        :type value: float
+        """
+        while node_id:
+            if self.config.backprop_type == "muzero":
+                self.nodes_total_value[node_id] = (self.nodes_total_value[node_id] * self.nodes_visit[
+                    node_id] + value) / (self.nodes_visit[node_id] + 1)
+            elif self.config.backprop_type == "cumulative":
+                self.nodes_total_value[node_id] += value
+            else:
+                raise ValueError(f"I don't know this backpropagation type: {self.config.backprop_type}")
+            node_id = self.parents[node_id]
 
     def _rollout_node(self, retron: Retron, curr_depth: int = None):
         """
@@ -292,23 +532,18 @@ class Tree:
 
         :param retron: A Retron object
         :type retron: Retron
-        :param curr_depth: The current depth of the the tree
+        :param curr_depth: The current depth of the tree
         :type curr_depth: int
         """
 
-        max_depth = self.max_depth - curr_depth
+        max_depth = self.config.max_depth - curr_depth
 
         # retron checking
-        if retron.is_building_block(self.building_blocks):
-            reward = 1.0
-            return reward
+        if retron.is_building_block(self.building_blocks, self.config.min_mol_size):
+            return 1.0
 
-        if max_depth == 0:
-            if retron.is_building_block(self.building_blocks):
-                reward = 1.0
-            else:
-                reward = -1.0
-            return reward
+        if max_depth == 0:  #
+            return -1.0
 
         # retron simulating
         occurred_retrons = set()
@@ -328,16 +563,11 @@ class Tree:
             occurred_retrons.add(current_mol)
 
             # Pick the first successful reaction while iterating through reactors
-            # Predict top-10 reactors for every molecule in simulation (time-consuming)
-            reaction_rules = [(prob, rule, rule_id) for prob, rule, rule_id in
-                              self.policy_function.predict_reaction_rules(Retron(current_mol), self.reaction_rules)][
-                             :10]
-            #
+            current_retron = Retron(current_mol)
             reaction_rule_applied = False
-            for prob, rule, rule_id in reaction_rules:
-                for reaction in apply_reaction_rule(current_mol, rule):
-                    if reaction:
-                        products = [safe_canonicalization(prod) for prod in reaction.products]
+            for prob, rule, rule_id in self.policy_function.predict_reaction_rules(current_retron, self.reaction_rules):
+                for products in apply_reaction_rule(current_mol, rule):
+                    if products:
                         reaction_rule_applied = True
                         break
 
@@ -363,86 +593,18 @@ class Tree:
             if occurred_retrons.isdisjoint(products):
                 # Added number of atoms check
                 retrons_to_expand.extend(
-                    [x for x in products if not Retron(x).is_building_block(self.building_blocks) and len(x) > 6])
+                    [
+                        x for x in products
+                        if not Retron(x).is_building_block(
+                            self.building_blocks,
+                            self.config.min_mol_size
+                        )
+                        and len(x) > self.config.min_mol_size
+                    ]
+                )
                 curr_depth += 1
         reward = 1.0
         return reward
-
-    def _add_node(self, node_id: int, new_node: Node, policy_prob: float = None) -> None:
-        """
-        This function adds a new node to a tree with its policy probability.
-
-        :param node_id: ID of the parent node
-        :type node_id: int
-        :param new_node: The `new_node` is an instance of the`Node` class
-        :type new_node: Node
-        :param policy_prob: The `policy_prob` a float value that represents the probability associated with a new node.
-        :type policy_prob: float
-        """
-
-        new_node_id = self.curr_tree_size
-        #
-        self.nodes[new_node_id] = new_node
-        self.parents[new_node_id] = node_id
-        self.children[node_id].add(new_node_id)
-        self.children[new_node_id] = set()
-        self.nodes_visit[new_node_id] = 0
-        self.nodes_prob[new_node_id] = policy_prob
-
-        if self.evaluation_mode == 'random':
-            new_node_synth = uniform()
-
-        elif self.evaluation_mode == "rollout":
-            curr_depth = self.nodes_depth[node_id]
-            new_node_synth = min(
-                (self._rollout_node(retron, curr_depth=curr_depth) for retron in new_node.retrons_to_expand),
-                default=1.0)
-
-        elif self.evaluation_mode == 'gcn':
-            new_node_synth = self.value_function.predict_value(new_node.new_retrons)
-
-        elif self.init_new_node_value:
-            new_node_synth = self.init_new_node_value
-        else:
-            raise ValueError(f"I don't know this evaluation mode: {self.evaluation_mode}")
-
-        self.nodes_depth[new_node_id] = self.nodes_depth[node_id] + 1
-        self.nodes_init_value[new_node_id] = new_node_synth
-        self.nodes_total_value[new_node_id] = new_node_synth
-
-        self.curr_tree_size += 1
-
-    def _update_visits(self, node_id: int) -> None:
-        """
-        The function updates the number of visits from a given node to a root node.
-
-        :param node_id: The ID of a current node
-        :type node_id: int
-        """
-
-        while node_id:
-            self.nodes_visit[node_id] += 1
-            node_id = self.parents[node_id]
-
-    def _backpropagate(self, node_id: int, value: float = None) -> None:
-        """
-        The function backpropagates a value through a tree of a given node specified by node_id.
-
-        :param node_id: The ID of a given node from which to backpropagate value
-        :type node_id: int
-        :param value: The value to backpropagate
-        :type value: float
-        """
-
-        while node_id:
-            if self.backprop_type == "muzero":
-                self.nodes_total_value[node_id] = (self.nodes_total_value[node_id] * self.nodes_visit[
-                    node_id] + value) / (self.nodes_visit[node_id] + 1)
-            elif self.backprop_type == "cumulative":
-                self.nodes_total_value[node_id] += value
-            else:
-                raise ValueError(f"I don't know this backpropagation type: {self.backprop_type}")
-            node_id = self.parents[node_id]
 
     def report(self) -> str:
         """

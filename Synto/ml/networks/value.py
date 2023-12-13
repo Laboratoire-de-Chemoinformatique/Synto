@@ -34,7 +34,7 @@ class SynthesabilityValueNetwork(MCTSNetwork, LightningModule, ABC):
         :param batch: The batch of molecular graphs.
         :return: a predicted synthesisability (between 0 and 1).
         """
-        x = self.embedder(batch)
+        x = self.embedder(batch, self.batch_size)
         x = torch.sigmoid(self.predictor(x))
         return x
 
@@ -47,7 +47,7 @@ class SynthesabilityValueNetwork(MCTSNetwork, LightningModule, ABC):
         """
         true_y = batch.y.float()
         true_y = torch.unsqueeze(true_y, -1)
-        x = self.embedder(batch)
+        x = self.embedder(batch, self.batch_size)
         pred_y = self.predictor(x)
         loss = binary_cross_entropy_with_logits(pred_y, true_y)
         true_y = true_y.long()
