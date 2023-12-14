@@ -12,11 +12,11 @@ from typing import Dict, Set, List, Tuple, Any
 import yaml
 from CGRtools.containers import MoleculeContainer
 from numpy.random import uniform
+from tqdm.auto import tqdm
 
 from Synto.chem.loading import load_building_blocks, load_reaction_rules
 from Synto.chem.reaction import Reaction, apply_reaction_rule
 from Synto.chem.retron import Retron
-from Synto.interfaces.visualisation import tqdm
 from Synto.mcts.evaluation import ValueFunction
 from Synto.mcts.expansion import PolicyFunction
 from Synto.mcts.node import Node

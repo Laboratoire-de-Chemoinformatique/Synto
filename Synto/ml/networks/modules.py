@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 import torch
 from adabelief_pytorch import AdaBelief
 from pytorch_lightning import LightningModule
-from torch.nn import Linear, Module, Dropout, ModuleList
+from torch.nn import Linear, Module, Dropout, ModuleList, GELU, LayerNorm, ModuleDict
 from torch.nn.functional import relu
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch_geometric.nn.conv import GCNConv
@@ -58,12 +58,51 @@ class GraphEmbedding(Module):
         return global_add_pool(atoms, graph.batch, size=batch_size)
 
 
+class GraphEmbeddingConcat(GraphEmbedding, Module):
+    def __init__(self, vector_dim: int = 512, dropout: float = 0.4, num_conv_layers: int = 8):
+        super(GraphEmbeddingConcat, self).__init__()
+
+        gcn_dim = vector_dim // num_conv_layers
+
+        self.expansion = Linear(11, gcn_dim)
+        self.dropout = Dropout(dropout)
+        self.gcn_convs = ModuleList(
+            [
+                ModuleDict(
+                    {
+                        "gcn": GCNConv(gcn_dim, gcn_dim, improved=True),
+                        "activation": GELU(),
+                        # "norm": LayerNorm(gcn_dim)
+                    }
+                )
+                for _ in range(num_conv_layers)
+            ]
+        )
+
+    def forward(self, graph, batch_size):
+        atoms, connections = graph.x.float(), graph.edge_index.long()
+        atoms = torch.log(atoms + 1)
+        atoms = self.expansion(atoms)
+
+        collected_atoms = []
+        for gcn_convs in self.gcn_convs:
+            atoms = gcn_convs["gcn"](atoms, connections)
+            atoms = gcn_convs["activation"](atoms)
+            # atoms = gcn_convs["norm"](atoms)
+            atoms = self.dropout(atoms)
+            collected_atoms.append(atoms)
+
+        atoms = torch.cat(collected_atoms, dim=-1)
+
+        return global_add_pool(atoms, graph.batch, size=batch_size)
+
+
 class MCTSNetwork(LightningModule, ABC):
     """
     Basic class for policy and value networks
     """
 
-    def __init__(self, vector_dim, batch_size, dropout=0.4, num_conv_layers=5, learning_rate=0.001):
+    def __init__(self, vector_dim, batch_size, dropout=0.4, num_conv_layers=5, learning_rate=0.001, gcn_concat=False):
         """
         The basic class for MCTS graph convolutional neural networks (policy and value network).
 
@@ -78,7 +117,10 @@ class MCTSNetwork(LightningModule, ABC):
         :type learning_rate: float
         """
         super(MCTSNetwork, self).__init__()
-        self.embedder = GraphEmbedding(vector_dim, dropout, num_conv_layers)
+        if gcn_concat:
+            self.embedder = GraphEmbeddingConcat(vector_dim, dropout, num_conv_layers)
+        else:
+            self.embedder = GraphEmbedding(vector_dim, dropout, num_conv_layers)
         self.batch_size = batch_size
         self.lr = learning_rate
 

@@ -5,19 +5,6 @@ Module containing functions for analysis and visualization of the built search t
 from itertools import count, islice
 
 from CGRtools.containers import MoleculeContainer
-from tqdm import tqdm as _tqdm
-
-
-def tqdm(disable=True, *args, **kwargs):
-    """
-    It is used to create a progress bar with the option to hide the output.
-
-    :param disable: Determines whether the tqdm progress bar should be disabled or not
-    :return: The tqdm object
-    """
-    # Function to be able to hide Tree tqdm output.
-    kwargs.setdefault('disable', disable)
-    return _tqdm(disable, *args, **kwargs)
 
 
 def extract_routes(tree, extended=False):
