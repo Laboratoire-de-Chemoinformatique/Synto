@@ -12,7 +12,7 @@ from pytorch_lightning.loggers import CSVLogger
 from torch.utils.data import random_split
 from torch_geometric.data.lightning import LightningDataset
 
-from Synto.ml.networks.policy import PolicyNetwork
+from Synto.ml.networks.policy import PolicyNetwork, PolicyNetworkConfig
 from Synto.ml.training.preprocessing import RankingPolicyDataset, FilteringPolicyDataset
 from Synto.utils.logging import DisableLogger, HiddenPrints
 
@@ -69,7 +69,7 @@ def create_policy_dataset(
 
 def run_policy_training(
         datamodule: LightningDataset,
-        config,
+        config: PolicyNetworkConfig,
         results_path,
         silent=True
 ):
@@ -83,13 +83,13 @@ def run_policy_training(
     :param results_path: Path to store the training results and logs.
     """
     network = PolicyNetwork(
-        vector_dim=config['PolicyNetwork']['vector_dim'],
+        vector_dim=config.vector_dim,
         n_rules=datamodule.train_dataset.dataset.num_classes,
-        batch_size=config['PolicyNetwork']['batch_size'],
-        dropout=config['PolicyNetwork']['dropout'],
-        num_conv_layers=config['PolicyNetwork']['num_conv_layers'],
-        learning_rate=config['PolicyNetwork']['learning_rate'],
-        mode=config['PolicyNetwork']['mode']
+        batch_size=config.batch_size,
+        dropout=config.dropout,
+        num_conv_layers=config.num_conv_layers,
+        learning_rate=config.learning_rate,
+        mode=config.mode
     )
 
     lr_monitor = LearningRateMonitor(logging_interval='epoch')
@@ -107,7 +107,7 @@ def run_policy_training(
             trainer = Trainer(
                 accelerator='gpu',
                 devices=[0],
-                max_epochs=config['PolicyNetwork']['num_epoch'],
+                max_epochs=config.num_epoch,
                 callbacks=[lr_monitor, checkpoint],
                 logger=logger,
                 gradient_clip_val=1.0,
@@ -119,7 +119,7 @@ def run_policy_training(
         trainer = Trainer(
             accelerator='gpu',
             devices=[0],
-            max_epochs=config['PolicyNetwork']['num_epoch'],
+            max_epochs=config.num_epoch,
             callbacks=[lr_monitor, checkpoint],
             logger=logger,
             gradient_clip_val=1.0,

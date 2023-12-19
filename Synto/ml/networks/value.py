@@ -1,4 +1,5 @@
 from abc import ABC
+from dataclasses import dataclass
 from typing import Dict, Any
 
 import yaml
@@ -12,50 +13,64 @@ from Synto.ml.networks.modules import MCTSNetwork
 from Synto.utils.config import ConfigABC
 
 
+@dataclass
 class ValueNetworkConfig(ConfigABC):
-    def __init__(
-            self,
-            vector_dim: int = 256,
-            batch_size: int = 500,
-            dropout: float = 0.4,
-            learning_rate: float = 0.008,
-            num_conv_layers: int = 5,
-            num_epoch: int = 100,
-    ):
-        super().__init__()
-        self.vector_dim = vector_dim
-        self.batch_size = batch_size
-        self.dropout = dropout
-        self.learning_rate = learning_rate
-        self.num_conv_layers = num_conv_layers
-        self.num_epoch = num_epoch
-        self._validate_params(locals())
+    """
+    Configuration class for the value network, inheriting from ConfigABC.
+
+    :ivar vector_dim: Dimension of the input vectors.
+    :ivar batch_size: Number of samples per batch.
+    :ivar dropout: Dropout rate for regularization.
+    :ivar learning_rate: Learning rate for the optimizer.
+    :ivar num_conv_layers: Number of convolutional layers in the network.
+    :ivar num_epoch: Number of training epochs.
+    """
+
+    vector_dim: int = 256
+    batch_size: int = 500
+    dropout: float = 0.4
+    learning_rate: float = 0.008
+    num_conv_layers: int = 5
+    num_epoch: int = 100
 
     @staticmethod
-    def from_dict(config_dict: Dict[str, Any]):
+    def from_dict(config_dict: Dict[str, Any]) -> 'ValueNetworkConfig':
+        """
+        Creates a ValueNetworkConfig instance from a dictionary of configuration parameters.
+
+        :ivar config_dict: A dictionary containing configuration parameters.
+        :return: An instance of ValueNetworkConfig.
+        """
         return ValueNetworkConfig(**config_dict)
 
-    def to_dict(self) -> Dict[str, Any]:
-        return {
-            "vector_dim": self.vector_dim,
-            "batch_size": self.batch_size,
-            "dropout": self.dropout,
-            "learning_rate": self.learning_rate,
-            "num_conv_layers": self.num_conv_layers,
-            "num_epoch": self.num_epoch,
-        }
-
     @staticmethod
-    def from_yaml(file_path: str):
+    def from_yaml(file_path: str) -> 'ValueNetworkConfig':
+        """
+        Deserializes a YAML file into a ValueNetworkConfig object.
+
+        :ivar file_path: Path to the YAML file containing configuration parameters.
+        :return: An instance of ValueNetworkConfig.
+        """
         with open(file_path, 'r') as file:
             config_dict = yaml.safe_load(file)
         return ValueNetworkConfig.from_dict(config_dict)
 
     def to_yaml(self, file_path: str):
+        """
+        Serializes the configuration to a YAML file.
+
+        :ivar file_path: Path to the YAML file for serialization.
+        """
         with open(file_path, 'w') as file:
             yaml.dump(self.to_dict(), file)
 
     def _validate_params(self, params: Dict[str, Any]):
+        """
+        Validates the configuration parameters.
+
+        :ivar params: A dictionary of parameters to validate.
+        :raises ValueError: If any parameter is invalid.
+        """
         if not isinstance(params['vector_dim'], int) or params['vector_dim'] <= 0:
             raise ValueError("vector_dim must be a positive integer.")
 

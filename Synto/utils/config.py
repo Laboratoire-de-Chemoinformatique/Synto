@@ -6,36 +6,63 @@ from abc import ABC, abstractmethod
 from copy import deepcopy
 from pathlib import Path
 from typing import Any, Dict
+from dataclasses import dataclass
 
 import yaml
 
 
+@dataclass
 class ConfigABC(ABC):
-    @abstractmethod
-    def __init__(self):
-        pass
+    """
+    Abstract base class for configuration classes.
+    """
 
     @staticmethod
     @abstractmethod
     def from_dict(config_dict: Dict[str, Any]):
-        pass
-
-    @abstractmethod
-    def to_dict(self) -> Dict[str, Any]:
+        """
+        Create an instance of the configuration from a dictionary.
+        """
         pass
 
     @staticmethod
     @abstractmethod
     def from_yaml(file_path: str):
-        pass
-
-    @abstractmethod
-    def to_yaml(self, file_path: str):
+        """
+        Deserialize a YAML file into a configuration object.
+        """
         pass
 
     @abstractmethod
     def _validate_params(self, params: Dict[str, Any]):
+        """
+        Validate configuration parameters.
+        """
         pass
+
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        Convert the configuration into a dictionary.
+
+        Returns:
+            A dictionary representation of the ConfigABC instance.
+        """
+        return {k: str(v) if isinstance(v, Path) else v for k, v in self.__dict__.items()}
+
+    def to_yaml(self, file_path: str):
+        """
+        Serialize the configuration to a YAML file.
+
+        Args:
+            file_path: Path where the YAML file will be saved.
+        """
+        with open(file_path, "w") as file:
+            yaml.dump(self.to_dict(), file)
+
+    def __post_init__(self):
+        # Call _validate_params method after initialization
+        params = self.to_dict()  # Convert the current instance to a dictionary
+        self._validate_params(params)
 
 
 planning_config = {

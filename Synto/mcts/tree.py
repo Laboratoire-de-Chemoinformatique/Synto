@@ -4,6 +4,7 @@ Module containing a class Tree that used for tree search of retrosynthetic paths
 
 import logging
 from collections import deque, defaultdict
+from dataclasses import dataclass
 from math import sqrt
 from random import choice, uniform
 from time import time
@@ -23,148 +24,76 @@ from Synto.mcts.node import Node
 from Synto.utils.config import ConfigABC
 
 
+@dataclass
 class TreeConfig(ConfigABC):
-    def __init__(
-        self,
-        max_iterations: int = 100,
-        max_tree_size: int = 10000,
-        max_time: float = 600,
-        max_depth: int = 6,
-        ucb_type: str = "uct",
-        c_ucb: float = 0.1,
-        backprop_type: str = "muzero",
-        search_strategy: str = "expansion_first",
-        exclude_small: bool = True,
-        evaluation_agg: str = "max",
-        evaluation_mode: str = "gcn",
-        init_node_value: float = 0.0,
-        epsilon: float = 0.0,
-        min_mol_size: int = 6,
-        silent: bool = False,
-    ):
-        """
-        Initializes the TreeConfig object with the specified parameters.
+    """
+    Configuration class for the tree-based search algorithm, inheriting from ConfigABC.
 
-        :param max_iterations: The number of iterations to run the algorithm for, defaults to 100.
-        :type max_iterations: int (optional)
+    :ivar max_iterations: The number of iterations to run the algorithm for, defaults to 100.
+    :ivar max_tree_size: The maximum number of nodes in the tree, defaults to 10000.
+    :ivar max_time: The time limit (in seconds) for the algorithm to run, defaults to 600.
+    :ivar max_depth: The maximum depth of the tree, defaults to 6.
+    :ivar ucb_type: Type of UCB used in the search algorithm. Options are "puct", "uct", "value", defaults to "uct".
+    :ivar c_ucb: The exploration-exploitation balance coefficient used in Upper Confidence Bound (UCB), defaults to 0.1.
+    :ivar backprop_type: Type of backpropagation algorithm. Options are "muzero", "cumulative", defaults to "muzero".
+    :ivar search_strategy: The strategy used for tree search. Options are "expansion_first", "evaluation_first", defaults to "expansion_first".
+    :ivar exclude_small: Whether to exclude small molecules during the search, defaults to True.
+    :ivar evaluation_agg: Method for aggregating evaluation scores. Options are "max", "average", defaults to "max".
+    :ivar evaluation_mode: The method used for evaluating nodes. Options are "random", "rollout", "gcn", defaults to "gcn".
+    :ivar init_node_value: Initial value for a new node, defaults to 0.0.
+    :ivar epsilon: A parameter in the epsilon-greedy search strategy representing the chance of random selection
+    of reaction rules during the selection stage in Monte Carlo Tree Search,
+    specifically during Upper Confidence Bound estimation.
+    It balances between exploration and exploitation, defaults to 0.0.
+    :ivar min_mol_size: Defines the minimum size of a molecule that is have to be synthesized.
+    Molecules with 6 or fewer heavy atoms are assumed to be building blocks by definition,
+    thus setting the threshold for considering larger molecules in the search, defaults to 6.
+    :ivar silent: Whether to suppress progress output, defaults to False.
+    """
 
-        :param max_tree_size: The maximum number of nodes in the tree, defaults to 10000.
-        :type max_tree_size: int (optional)
-
-        :param max_time: The time limit (in seconds) for the algorithm to run, defaults to 600.
-        :type max_time: float (optional)
-
-        :param max_depth: The maximum depth of the tree, defaults to 6.
-        :type max_depth: int (optional)
-
-        :param ucb_type: Type of UCB used in the search algorithm. Options are "puct", "uct", "value", defaults to "uct".
-        :type ucb_type: str (optional)
-
-        :param c_ucb: The exploration-exploitation balance coefficient used in Upper Confidence Bound (UCB), defaults to 0.1.
-        :type c_ucb: float (optional)
-
-        :param backprop_type: Type of backpropagation algorithm. Options are "muzero", "cumulative", defaults to "muzero".
-        :type backprop_type: str (optional)
-
-        :param search_strategy: The strategy used for tree search. Options are "expansion_first", "evaluation_first", defaults to "expansion_first".
-        :type search_strategy: str (optional)
-
-        :param exclude_small: Whether to exclude small molecules during the search, defaults to True.
-        :type exclude_small: bool (optional)
-
-        :param evaluation_agg: Method for aggregating evaluation scores. Options are "max", "average", defaults to "max".
-        :type evaluation_agg: str (optional)
-
-        :param evaluation_mode: The method used for evaluating nodes. Options are "random", "rollout", "gcn", defaults to "gcn".
-        :type evaluation_mode: str (optional)
-
-        :param init_node_value: Initial value for a new node, defaults to 0.0.
-        :type init_node_value: float (optional)
-
-        :param epsilon: A parameter in the epsilon-greedy search strategy representing the chance of random selection
-        of reaction rules during the selection stage in Monte Carlo Tree Search,
-        specifically during Upper Confidence Bound estimation.
-        It balances between exploration and exploitation, defaults to 0.0.
-        :type epsilon: float (optional)
-
-        :param min_mol_size: Defines the minimum size of a molecule that is have to be synthesized.
-        Molecules with 6 or fewer heavy atoms are assumed to be building blocks by definition,
-        thus setting the threshold for considering larger molecules in the search, defaults to 6.
-        :type min_mol_size: int (optional)
-
-        :param silent: Whether to suppress progress output, defaults to False.
-        :type silent: bool (optional)
-        """
-        self._validate_params(locals())
-        self.max_iterations = max_iterations
-        self.max_tree_size = max_tree_size
-        self.max_time = max_time
-        self.max_depth = max_depth
-        self.ucb_type = ucb_type
-        self.backprop_type = backprop_type
-        self.c_ucb = c_ucb
-        self.search_strategy = search_strategy
-        self.exclude_small = exclude_small
-        self.evaluation_agg = evaluation_agg
-        self.evaluation_mode = evaluation_mode
-        self.init_node_value = init_node_value
-        self.epsilon = epsilon
-        self.min_mol_size = min_mol_size
-        self.silent = silent
+    max_iterations: int = 100
+    max_tree_size: int = 10000
+    max_time: float = 600
+    max_depth: int = 6
+    ucb_type: str = "uct"
+    c_ucb: float = 0.1
+    backprop_type: str = "muzero"
+    search_strategy: str = "expansion_first"
+    exclude_small: bool = True
+    evaluation_agg: str = "max"
+    evaluation_mode: str = "gcn"
+    init_node_value: float = 0.0
+    epsilon: float = 0.0
+    min_mol_size: int = 6
+    silent: bool = False
 
     @staticmethod
     def from_dict(config_dict: Dict[str, Any]):
-        default_args = {
-            "max_iterations": 100,
-            "max_tree_size": 10000,
-            "max_time": 600,
-            "max_depth": 6,
-            "ucb_type": "uct",
-            "c_ucb": 0.1,
-            "backprop_type": "muzero",
-            "search_strategy": "expansion_first",
-            "exclude_small": True,
-            "evaluation_agg": "max",
-            "evaluation_mode": "rollout",
-            "init_node_value": None,
-            "epsilon": 0.0,
-            "min_mol_size": 6,
-            "silent": False,
-        }
+        """
+        Creates a TreeConfig instance from a dictionary of configuration parameters.
 
-        # Update default arguments with values from config_dict
-        combined_args = {**default_args, **config_dict}
+        Args:
+            config_dict: A dictionary containing configuration parameters.
 
-        return TreeConfig(**combined_args)
-
-    def to_dict(self):
-        return {
-            "max_iterations": self.max_iterations,
-            "max_tree_size": self.max_tree_size,
-            "max_time": self.max_time,
-            "max_depth": self.max_depth,
-            "ucb_type": self.ucb_type,
-            "c_ucb": self.c_ucb,
-            "backprop_type": self.backprop_type,
-            "search_strategy": self.search_strategy,
-            "exclude_small": self.exclude_small,
-            "evaluation_agg": self.evaluation_agg,
-            "evaluation_mode": self.evaluation_mode,
-            "init_node_value": self.init_node_value,
-            "epsilon": self.epsilon,
-            "min_mol_size": self.min_mol_size,
-            "silent": self.silent,
-        }
+        Returns:
+            An instance of TreeConfig.
+        """
+        return TreeConfig(**config_dict)
 
     @staticmethod
-    def from_yaml(file_path):
+    def from_yaml(file_path: str):
+        """
+        Deserializes a YAML file into a TreeConfig object.
+
+        Args:
+            file_path: Path to the YAML file containing configuration parameters.
+
+        Returns:
+            An instance of TreeConfig.
+        """
         with open(file_path, "r") as file:
             config_dict = yaml.safe_load(file)
         return TreeConfig.from_dict(config_dict)
-
-    def to_yaml(self, file_path):
-        with open(file_path, "w") as file:
-            yaml.dump(self.to_dict(), file)
 
     def _validate_params(self, params):
         if params["ucb_type"] not in ["puct", "uct", "value"]:
@@ -317,7 +246,7 @@ class Tree:
         if self.nodes[1].curr_retron.is_building_block(
             self.building_blocks, self.config.min_mol_size
         ):
-            raise StopIteration("Target is building block \n")
+            raise ValueError("Target is building block \n")
 
         if self.curr_iteration >= self.config.max_iterations:
             self._tqdm.close()
@@ -328,8 +257,6 @@ class Tree:
         elif self.curr_time >= self.config.max_time:
             self._tqdm.close()
             raise StopIteration("Time limit exceeded. \n")
-        else:
-            pass
 
         # start new iteration
         self.curr_iteration += 1
@@ -671,9 +598,10 @@ class Tree:
             ):
                 for products in apply_reaction_rule(current_mol, rule):
                     if products:
+                        reaction_rule_applied = True
                         break
 
-                if products:
+                if reaction_rule_applied:
                     history[curr_depth]["rule_index"] = rule_id
                     break
 

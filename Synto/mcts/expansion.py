@@ -1,7 +1,7 @@
 """
 Module containing a class that represents a policy function for node expansion in the search tree
 """
-
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict
 
@@ -15,50 +15,69 @@ from Synto.ml.training import mol_to_pyg
 from Synto.utils.config import ConfigABC
 
 
+@dataclass
 class PolicyConfig(ConfigABC):
-    def __init__(
-            self,
-            weights_path: str,
-            top_rules: int = 50,
-            threshold: float = 0.0,
-            priority_rules_fraction: float = 0.5
-    ):
-        super().__init__()
-        self.weights_path = Path(weights_path).resolve(strict=True)
-        self.top_rules = top_rules
-        self.threshold = threshold
-        self.priority_rules_fraction = priority_rules_fraction
-        self._validate_params(locals())
+    """
+    Configuration class for the policy, inheriting from ConfigABC.
+
+    :ivar weights_path: Path to the weights file.
+    :ivar top_rules: Number of top rules to be considered. Defaults to 50.
+    :ivar threshold: Threshold for rule selection. Defaults to 0.0.
+    :ivar priority_rules_fraction: Fraction of priority rules. Defaults to 0.5.
+    """
+
+    weights_path: Path = field(default_factory=Path)
+    top_rules: int = 50
+    threshold: float = 0.0
+    priority_rules_fraction: float = 0.5
+
+    def __post_init__(self):
+        super().__post_init__()
+        self.weights_path = Path(self.weights_path).resolve(strict=True)
+        params = self.to_dict()
+        self._validate_params(params)
 
     @staticmethod
     def from_dict(config_dict: Dict[str, Any]):
-        return PolicyConfig(**config_dict)
+        """
+        Creates a PolicyConfig instance from a dictionary of configuration parameters.
 
-    def to_dict(self) -> Dict[str, Any]:
-        return {
-            "weights_path": self.weights_path,
-            "top_rules": self.top_rules,
-            "threshold": self.threshold,
-            "priority_rules_fraction": self.priority_rules_fraction
-        }
+        :param config_dict: A dictionary containing configuration parameters.
+        :return: An instance of PolicyConfig.
+        """
+        return PolicyConfig(**config_dict)
 
     @staticmethod
     def from_yaml(file_path: str):
-        with open(file_path, 'r') as file:
+        """
+        Deserializes a YAML file into a PolicyConfig object.
+
+        :param file_path: Path to the YAML file containing configuration parameters.
+        :return: An instance of PolicyConfig.
+        """
+        with open(file_path, "r") as file:
             config_dict = yaml.safe_load(file)
         return PolicyConfig.from_dict(config_dict)
 
-    def to_yaml(self, file_path: str):
-        with open(file_path, 'w') as file:
-            yaml.dump(self.to_dict(), file)
-
     def _validate_params(self, params: Dict[str, Any]):
-        if not isinstance(params['top_rules'], int) or params['top_rules'] < 0:
+        """
+        Validates the configuration parameters.
+
+        :param params: A dictionary of parameters to validate.
+        :raises ValueError: If any parameter is invalid.
+        """
+        if not isinstance(params["top_rules"], int) or params["top_rules"] < 0:
             raise ValueError("top_rules must be a non-negative integer.")
-        if not isinstance(params['threshold'], float) or not (0.0 <= params['threshold'] <= 1.0):
+        if not isinstance(params["threshold"], float) or not (
+            0.0 <= params["threshold"] <= 1.0
+        ):
             raise ValueError("threshold must be a float between 0.0 and 1.0.")
-        if not isinstance(params['priority_rules_fraction'], float) or not (0.0 <= params['priority_rules_fraction'] <= 1.0):
-            raise ValueError("priority_rules_fraction must be a float between 0.0 and 1.0.")
+        if not isinstance(params["priority_rules_fraction"], float) or not (
+            0.0 <= params["priority_rules_fraction"] <= 1.0
+        ):
+            raise ValueError(
+                "priority_rules_fraction must be a float between 0.0 and 1.0."
+            )
 
 
 class PolicyFunction:
@@ -80,7 +99,7 @@ class PolicyFunction:
             self.config.weights_path,
             map_location=torch.device("cpu"),
             batch_size=1,
-            dropout=0
+            dropout=0,
         )
         policy_net = policy_net.eval()
         if compile:
@@ -117,7 +136,10 @@ class PolicyFunction:
             probs = (1 - priority_coef) * probs + priority_coef * priority
 
         sorted_probs, sorted_rules = torch.sort(probs, descending=True)
-        sorted_probs, sorted_rules = sorted_probs[:self.config.top_rules], sorted_rules[:self.config.top_rules]
+        sorted_probs, sorted_rules = (
+            sorted_probs[: self.config.top_rules],
+            sorted_rules[: self.config.top_rules],
+        )
 
         if self.policy_net.mode == "filtering":
             sorted_probs = torch.softmax(sorted_probs, -1)

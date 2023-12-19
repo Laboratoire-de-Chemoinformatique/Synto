@@ -4,6 +4,7 @@ Module containing functions with fixed protocol for reaction rules extraction
 import logging
 import pickle
 from collections import defaultdict
+from dataclasses import dataclass, field
 from itertools import islice
 from pathlib import Path
 from typing import List, Union, Tuple, IO, Dict, Set, Iterable, Any
@@ -20,129 +21,84 @@ from Synto.chem.utils import reverse_reaction
 from Synto.utils.config import ConfigABC
 
 
+@dataclass
 class ExtractRuleConfig(ConfigABC):
-    def __init__(
-        self,
-        multicenter_rules: bool = True,
-        as_query_container: bool = True,
-        reverse_rule: bool = True,
-        reactor_validation: bool = True,
-        include_func_groups: bool = False,
-        func_groups_list: List[Union[MoleculeContainer, QueryContainer]] = None,
-        include_rings: bool = False,
-        keep_leaving_groups: bool = False,
-        keep_incoming_groups: bool = False,
-        keep_reagents: bool = False,
-        environment_atom_count: int = 1,
-        min_popularity: int = 3,
-        keep_metadata: bool = False,
-        single_reactant_only: bool = True,
-        atom_info_retention: Dict[str, Dict[str, bool]] = None,
-    ):
-        """
-        Initializes the configuration for extracting reaction rules.
+    """
+    Configuration class for extracting reaction rules, inheriting from ConfigABC.
 
-        :param multicenter_rules: If True, extracts a single rule encompassing all centers.
-        If False, extracts separate reaction rules for each reaction center in a multicenter reaction.
-        :param as_query_container: If True, the extracted rules are generated as QueryContainer objects,
-                                   analogous to SMARTS objects for pattern matching in chemical structures.
-        :param reverse_rule: If True, reverses the direction of the reaction for rule extraction.
-        :param reactor_validation: If True, validates each generated rule in a chemical reactor to ensure correct
-                                   generation of products from reactants.
-        :param include_func_groups: If True, includes specific functional groups in the reaction rule in addition
-                                    to the reaction center and its environment.
-        :param func_groups_list: A list of functional groups to be considered when include_functional_groups
-                                 is True.
-        :param include_rings: If True, includes ring structures in the reaction rules.
-        :param keep_leaving_groups: If True, retains leaving groups in the extracted reaction rule.
-        :param keep_incoming_groups: If True, retains incoming groups in the extracted reaction rule.
-        :param keep_reagents: If True, includes reagents in the extracted reaction rule.
-        :param environment_atom_count: Defines the size of the environment around the reaction center to be included
-                                       in the rule (0 for only the reaction center, 1 for the first environment, etc.).
-        :param min_popularity: Minimum number of times a rule must be applied to be considered for further analysis.
-        :param keep_metadata: If True, retains metadata associated with the reaction in the extracted rule.
-        :param single_reactant_only: If True, includes only reaction rules with a single reactant molecule.
-        :param atom_info_retention: Controls the amount of information about each atom to retain ('none',
-                                    'reaction_center', or 'all').
+    :ivar multicenter_rules: If True, extracts a single rule encompassing all centers.
+                             If False, extracts separate reaction rules for each reaction center in a multicenter reaction.
+    :ivar as_query_container: If True, the extracted rules are generated as QueryContainer objects,
+                              analogous to SMARTS objects for pattern matching in chemical structures.
+    :ivar reverse_rule: If True, reverses the direction of the reaction for rule extraction.
+    :ivar reactor_validation: If True, validates each generated rule in a chemical reactor to ensure correct
+                              generation of products from reactants.
+    :ivar include_func_groups: If True, includes specific functional groups in the reaction rule in addition
+                               to the reaction center and its environment.
+    :ivar func_groups_list: A list of functional groups to be considered when include_func_groups is True.
+    :ivar include_rings: If True, includes ring structures in the reaction rules.
+    :ivar keep_leaving_groups: If True, retains leaving groups in the extracted reaction rule.
+    :ivar keep_incoming_groups: If True, retains incoming groups in the extracted reaction rule.
+    :ivar keep_reagents: If True, includes reagents in the extracted reaction rule.
+    :ivar environment_atom_count: Defines the size of the environment around the reaction center to be included
+                                  in the rule (0 for only the reaction center, 1 for the first environment, etc.).
+    :ivar min_popularity: Minimum number of times a rule must be applied to be considered for further analysis.
+    :ivar keep_metadata: If True, retains metadata associated with the reaction in the extracted rule.
+    :ivar single_reactant_only: If True, includes only reaction rules with a single reactant molecule.
+    :ivar atom_info_retention: Controls the amount of information about each atom to retain ('none',
+                                'reaction_center', or 'all').
+    """
 
-        The configuration settings provided in this method allow for a detailed and customized approach to the
-        extraction and representation of chemical reaction rules.
-        """
-        atom_info_retention_default = {
-            "reaction_center": {
-                "neighbors": True,
-                "hybridization": True,
-                "implicit_hydrogens": True,
-                "ring_sizes": True,
-            },
-            "environment": {
-                "neighbors": True,
-                "hybridization": True,
-                "implicit_hydrogens": True,
-                "ring_sizes": True,
-            },
+    multicenter_rules: bool = True
+    as_query_container: bool = True
+    reverse_rule: bool = True
+    reactor_validation: bool = True
+    include_func_groups: bool = False
+    func_groups_list: List[Union[MoleculeContainer, QueryContainer]] = field(default_factory=list)
+    include_rings: bool = False
+    keep_leaving_groups: bool = False
+    keep_incoming_groups: bool = False
+    keep_reagents: bool = False
+    environment_atom_count: int = 1
+    min_popularity: int = 3
+    keep_metadata: bool = False
+    single_reactant_only: bool = True
+    atom_info_retention: Dict[str, Dict[str, bool]] = field(default_factory=dict)
+
+    def __post_init__(self):
+        super().__post_init__()
+        self._validate_params(self.to_dict())
+        self._initialize_default_atom_info_retention()
+
+    def _initialize_default_atom_info_retention(self):
+        default_atom_info = {
+            "reaction_center": {"neighbors": True, "hybridization": True, "implicit_hydrogens": True, "ring_sizes": True},
+            "environment": {"neighbors": True, "hybridization": True, "implicit_hydrogens": True, "ring_sizes": True}
         }
-        self.multicenter_rules = multicenter_rules
-        self.as_query_container = as_query_container
-        self.reverse_rule = reverse_rule
-        self.reactor_validation = reactor_validation
-        self.include_func_groups = include_func_groups
-        self.func_groups_list = func_groups_list
-        self.include_rings = include_rings
-        self.keep_leaving_groups = keep_leaving_groups
-        self.keep_incoming_groups = keep_incoming_groups
-        self.keep_reagents = keep_reagents
-        self.environment_atom_count = environment_atom_count
-        self.min_popularity = min_popularity
-        self.keep_metadata = keep_metadata
-        self.single_reactant_only = single_reactant_only
-        self.atom_info_retention = atom_info_retention_default.copy()
-        if atom_info_retention:
-            for key in atom_info_retention_default:
-                self.atom_info_retention[key].update(atom_info_retention.get(key, {}))
 
-        self._validate_params(locals())
-
-    def to_dict(self) -> Dict[str, Any]:
-        """
-        Convert the configuration object to a dictionary.
-        """
-        return {
-            "multicenter_rules": self.multicenter_rules,
-            "as_query_container": self.as_query_container,
-            "reverse_rule": self.reverse_rule,
-            "reactor_validation": self.reactor_validation,
-            "include_func_groups": self.include_func_groups,
-            "func_groups_list": self.func_groups_list,
-            "include_rings": self.include_rings,
-            "keep_leaving_groups": self.keep_leaving_groups,
-            "keep_incoming_groups": self.keep_incoming_groups,
-            "keep_reagents": self.keep_reagents,
-            "environment_atom_count": self.environment_atom_count,
-            "min_popularity": self.min_popularity,
-            "keep_metadata": self.keep_metadata,
-            "single_reactant_only": self.single_reactant_only,
-            "atom_info_retention": self.atom_info_retention,
-        }
+        if not self.atom_info_retention:
+            self.atom_info_retention = default_atom_info
+        else:
+            for key in default_atom_info:
+                self.atom_info_retention[key].update(self.atom_info_retention.get(key, {}))
 
     @staticmethod
     def from_dict(config_dict: Dict[str, Any]):
         """
-        Create an instance of ExtractRuleConfig from a dictionary.
+        Creates an ExtractRuleConfig instance from a dictionary of configuration parameters.
+
+        :ivar config_dict: A dictionary containing configuration parameters.
+        :return: An instance of ExtractRuleConfig.
         """
         return ExtractRuleConfig(**config_dict)
-
-    def to_yaml(self, file_path: str):
-        """
-        Serialize the configuration object to a YAML file.
-        """
-        with open(file_path, "w") as file:
-            yaml.dump(self.to_dict(), file)
 
     @staticmethod
     def from_yaml(file_path: str):
         """
-        Create an instance of ExtractRuleConfig from a YAML file.
+        Deserializes a YAML file into an ExtractRuleConfig object.
+
+        :ivar file_path: Path to the YAML file containing configuration parameters.
+        :return: An instance of ExtractRuleConfig.
         """
         with open(file_path, "r") as file:
             config_dict = yaml.safe_load(file)
@@ -231,26 +187,6 @@ class ExtractRuleConfig(ConfigABC):
                         raise ValueError(
                             f"Value for {subkey} in {key} of atom_info_retention must be boolean."
                         )
-
-    def __repr__(self):
-        params = [
-            f"multicenter_rules = {self.multicenter_rules}",
-            f"as_query_container = {self.as_query_container}",
-            f"reverse_rule = {self.reverse_rule}",
-            f"reactor_validation = {self.reactor_validation}",
-            f"include_func_groups = {self.include_func_groups}",
-            f"func_groups_list = {self.func_groups_list}",
-            f"include_rings = {self.include_rings}",
-            f"keep_leaving_groups = {self.keep_leaving_groups}",
-            f"keep_incoming_groups = {self.keep_incoming_groups}",
-            f"keep_reagents = {self.keep_reagents}",
-            f"environment_atom_count = {self.environment_atom_count}",
-            f"min_popularity = {self.min_popularity}",
-            f"keep_metadata = {self.keep_metadata}",
-            f"single_reactant_only = {self.single_reactant_only}",
-            f"atom_info_retention = {self.atom_info_retention}",
-        ]
-        return "ExtractRuleConfig(\n{0}\n)".format(",\n".join(params))
 
 
 def extract_rules_from_reactions(
