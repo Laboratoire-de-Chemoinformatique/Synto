@@ -9,7 +9,7 @@ import yaml
 from CGRtools.containers import ReactionContainer, MoleculeContainer, CGRContainer
 from CGRtools.files import RDFRead, RDFWrite
 from StructureFingerprint import MorganFingerprint
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 from Synto.chem.utils import (
     remove_small_molecules,
@@ -649,6 +649,11 @@ class ReactionCheckConfig(ConfigABC):
     num_cpus: int = 1
     batch_size: int = 10
     min_popularity: int = 3
+    rebalance_reaction: bool = False
+    remove_reagents: bool = True
+    reagents_max_size: int = 7
+    remove_small_molecules: bool = False
+    small_molecules_max_size: int = 6
 
     def to_dict(self):
         """
@@ -774,7 +779,9 @@ class ReactionCheckConfig(ConfigABC):
 
         if self.cgr_connected_components_config is not None:
             checker_instances.append(
-                CGRConnectedComponentsChecker.from_config(self.cgr_connected_components_config)
+                CGRConnectedComponentsChecker.from_config(
+                    self.cgr_connected_components_config
+                )
             )
 
         if self.rings_change_config is not None:
@@ -818,41 +825,49 @@ def remove_files_if_exists(directory: Path, file_names):
             logging.warning(f"Removed {file_path}")
 
 
-def filter_reaction(reaction, config, checkers):
-    if config.config["remove_small_molecules"]["enabled"]:
-        reaction = remove_small_molecules(
-            reaction,
-            number_of_atoms=config.config["remove_small_molecules"]["number_of_atoms"],
-            small_molecules_to_meta=config.config["remove_small_molecules"][
-                "small_molecules_to_meta"
-            ],
-        )
-
-    if config.config["remove_reagents"]["enabled"]:
-        reaction = remove_reagents(
-            reaction,
-            keep_reagents=config.config["remove_reagents"]["keep_reagents"],
-            reagents_max_size=config.config["remove_reagents"]["reagents_max_size"],
-        )
-
-    if config.config["rebalance_reaction"]["enabled"]:
-        reaction = rebalance_reaction(reaction)
-
+def filter_reaction(
+    reaction: ReactionContainer, config: ReactionCheckConfig, checkers: list
+):
     is_filtered = False
-    for checker in checkers:
-        if checker(reaction):
-            reaction.meta["filtration_log"] = checker.__class__.__name__
-            is_filtered = True
-            break
+    if config.remove_small_molecules:
+        new_reaction = remove_small_molecules(
+            reaction,
+            number_of_atoms=config.small_molecules_max_size,
+        )
+    else:
+        new_reaction = reaction.copy()
 
-    if config.config["output_files_format"] == "smiles":
-        reaction = to_reaction_smiles_record(reaction)
+    if new_reaction is None:
+        is_filtered = True
 
-    return is_filtered, reaction
+    if config.remove_reagents and not is_filtered:
+        new_reaction = remove_reagents(
+            new_reaction,
+            keep_reagents=True,
+            reagents_max_size=config.reagents_max_size,
+        )
+
+    if new_reaction is None:
+        is_filtered = True
+        new_reaction = reaction.copy()
+
+    if not is_filtered:
+        if config.rebalance_reaction:
+            new_reaction = rebalance_reaction(new_reaction)
+        for checker in checkers:
+            if checker(new_reaction):
+                new_reaction.meta["filtration_log"] = checker.__class__.__name__
+                is_filtered = True
+                break
+
+    if config.output_files_format == "smiles":
+        new_reaction = to_reaction_smiles_record(new_reaction)
+
+    return is_filtered, new_reaction
 
 
 @ray.remote
-def process_batch(batch, config, checkers):
+def process_batch(batch, config: ReactionCheckConfig, checkers):
     results = []
     for index, reaction in batch:
         is_filtered, processed_reaction = filter_reaction(reaction, config, checkers)
@@ -897,31 +912,20 @@ def filter_reactions(config: ReactionCheckConfig) -> None:
     if config.output_files_format == "smiles":
         open_mode = "a" if config.append_results else "w"
         result_file = open(
-            str(
-                result_directory
-                / f"{config.result_reactions_file_name}.smiles"
-            ),
+            str(result_directory / f"{config.result_reactions_file_name}.smiles"),
             open_mode,
         )
         filtered_file = open(
-            str(
-                result_directory
-                / f"{config.filtered_reactions_file_name}.smiles"
-            ),
+            str(result_directory / f"{config.filtered_reactions_file_name}.smiles"),
             open_mode,
         )
     elif config.output_files_format == "rdf":
         result_file = RDFWrite(
-            str(
-                result_directory / f"{config.result_reactions_file_name}.rdf"
-            ),
+            str(result_directory / f"{config.result_reactions_file_name}.rdf"),
             append=config.append_results,
         )
         filtered_file = RDFWrite(
-            str(
-                result_directory
-                / f"{config.filtered_reactions_file_name}.rdf"
-            ),
+            str(result_directory / f"{config.filtered_reactions_file_name}.rdf"),
             append=config.append_results,
         )
     else:
@@ -929,9 +933,7 @@ def filter_reactions(config: ReactionCheckConfig) -> None:
             f"I don't know this output files format: {config.output_files_format}"
         )
 
-    with RDFRead(
-        config.reaction_database_path, indexable=True
-    ) as reactions_file:
+    with RDFRead(config.reaction_database_path, indexable=True) as reactions_file:
         total_reactions = len(reactions_file)
         pbar = tqdm(total=total_reactions)
 

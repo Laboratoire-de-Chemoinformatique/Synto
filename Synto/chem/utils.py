@@ -106,6 +106,9 @@ def remove_small_molecules(
     new_reactants, small_reactants = split_molecules(reaction.reactants, number_of_atoms)
     new_products, small_products = split_molecules(reaction.products, number_of_atoms)
 
+    if sum(len(mol) for mol in new_reactants) == 0 or sum(len(mol) for mol in new_reactants) == 0 :
+        return None
+
     new_reaction = ReactionContainer(new_reactants, new_products, reaction.reagents, reaction.meta)
     new_reaction.name = reaction.name
 
@@ -181,6 +184,9 @@ def remove_reagents(
             new_reagents.append(molecule)
         else:
             new_products.append(molecule)
+
+    if sum(len(mol) for mol in new_reactants) == 0 or sum(len(mol) for mol in new_reactants) == 0:
+        return None
 
     if keep_reagents:
         new_reagents = {molecule for molecule in new_reagents if len(molecule) <= reagents_max_size}
