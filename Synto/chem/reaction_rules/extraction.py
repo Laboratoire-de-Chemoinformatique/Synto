@@ -15,7 +15,7 @@ from CGRtools.containers import MoleculeContainer, QueryContainer, ReactionConta
 from CGRtools.exceptions import InvalidAromaticRing
 from CGRtools.files import RDFRead, RDFWrite
 from CGRtools.reactor import Reactor
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 from Synto.chem.utils import reverse_reaction
 from Synto.utils.config import ConfigABC
@@ -628,28 +628,27 @@ def clean_molecules(
                     rule_molecule
                 )
 
-                # Clean reaction center atoms
-                if not all(
-                    atom_retention_details["reaction_center"].values()
-                ):  # if everything True, we keep all marks
-                    for atom_number in reaction_center_atoms:
-                        query_rule_molecule = clean_atom(
-                            query_rule_molecule,
-                            atom_retention_details["reaction_center"],
-                            atom_number,
-                        )
-
                 # Clean environment atoms
                 if not all(
                     atom_retention_details["environment"].values()
                 ):  # if everything True, we keep all marks
-                    environment_atoms = sorted(
-                        set(rule_molecule.atoms_numbers) - reaction_center_atoms
-                    )
-                    for atom_number in environment_atoms:
+                    local_environment_atoms = set(rule_molecule.atoms_numbers) - reaction_center_atoms
+                    for atom_number in local_environment_atoms:
                         query_rule_molecule = clean_atom(
                             query_rule_molecule,
                             atom_retention_details["environment"],
+                            atom_number,
+                        )
+
+                # Clean reaction center atoms
+                if not all(
+                    atom_retention_details["reaction_center"].values()
+                ):  # if everything True, we keep all marks
+                    local_reaction_center_atoms = set(rule_molecule.atoms_numbers) & reaction_center_atoms
+                    for atom_number in local_reaction_center_atoms:
+                        query_rule_molecule = clean_atom(
+                            query_rule_molecule,
+                            atom_retention_details["reaction_center"],
                             atom_number,
                         )
 
