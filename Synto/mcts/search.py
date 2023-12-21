@@ -5,15 +5,13 @@ Module containing functions for running tree search for the set of target molecu
 import csv
 import logging
 from pathlib import Path
-from tqdm import tqdm
 
 from CGRtools import smiles, MoleculeContainer
-from CGRtools.files import SDFRead
+from tqdm import tqdm
 
+from Synto.chem.utils import safe_canonicalization
 from Synto.interfaces.visualisation import to_table
 from Synto.mcts import Tree
-from Synto.chem.utils import safe_canonicalization
-from Synto.utils.config import read_planning_config
 
 
 def extract_tree_stats(tree, target):

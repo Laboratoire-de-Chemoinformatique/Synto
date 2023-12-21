@@ -11,7 +11,7 @@ import gdown
 
 from Synto.chem.reaction_rules.extraction import extract_rules_from_reactions
 from Synto.chem.data.cleaning import reactions_cleaner
-from Synto.ml.training import create_policy_training_set, run_policy_training
+from Synto.ml.training import create_policy_dataset, run_policy_training
 from Synto.ml.training.reinforcement import run_self_tuning
 from Synto.chem.loading import standardize_building_blocks
 from Synto.utils.config import read_planning_config, read_training_config
@@ -140,11 +140,11 @@ def synto_training_cli(config):
     Path(policy_output_folder).mkdir(parents=True, exist_ok=True)
     policy_data_file = os.path.join(policy_output_folder, 'policy_dataset.pt')
 
-    datamodule = create_policy_training_set(reaction_rules_path=reaction_rules_path,
-                                            molecules_path=config['InputData']['policy_data_path'],
-                                            output_path=policy_data_file,
-                                            batch_size=config['PolicyNetwork']['batch_size'],
-                                            num_cpus=config['General']['num_cpus'])
+    datamodule = create_policy_dataset(reaction_rules_path=reaction_rules_path,
+                                               molecules_path=config['InputData']['policy_data_path'],
+                                               output_path=policy_data_file,
+                                               batch_size=config['PolicyNetwork']['batch_size'],
+                                               num_cpus=config['General']['num_cpus'])
 
     # train policy network
     print('\nTRAIN POLICY NETWORK ...')

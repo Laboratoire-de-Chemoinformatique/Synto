@@ -2,9 +2,9 @@
 Module containing classes and functions for manipulating reactions and reaction rules
 """
 
-from CGRtools import Reactor
-from CGRtools.containers import MoleculeContainer
-from CGRtools.containers import ReactionContainer
+from CGRtools.reactor import Reactor
+from CGRtools.containers import MoleculeContainer, ReactionContainer
+from CGRtools.exceptions import InvalidAromaticRing
 
 
 class Reaction(ReactionContainer):
@@ -46,10 +46,21 @@ def add_small_mols(big_mol, small_molecules=None):
         return [big_mol]
 
 
-def apply_reaction_rule(molecule: MoleculeContainer, reaction_rule: Reactor):
+def apply_reaction_rule(
+        molecule: MoleculeContainer,
+        reaction_rule: Reactor,
+        sort_reactions: bool = False,
+        top_reactions_num: int = 3,
+        validate_products: bool = True,
+        rebuild_with_cgr: bool = False,
+) -> list[MoleculeContainer]:
     """
     The function applies a reaction rule to a given molecule.
 
+    :param rebuild_with_cgr:
+    :param validate_products:
+    :param sort_reactions:
+    :param top_reactions_num:
     :param molecule: A MoleculeContainer object representing the molecule on which the reaction rule will be applied
     :type molecule: MoleculeContainer
     :param reaction_rule: The reaction_rule is an instance of the Reactor class. It represents a reaction rule that
@@ -57,23 +68,40 @@ def apply_reaction_rule(molecule: MoleculeContainer, reaction_rule: Reactor):
     :type reaction_rule: Reactor
     """
 
+    reactants = add_small_mols(molecule, small_molecules=False)
+
     try:
-        reactants = add_small_mols(molecule, small_molecules=False)
-
-        unsorted_reactions = list(reaction_rule(reactants))
-        sorted_reactions = sorted(unsorted_reactions,
-                                  key=lambda reaction: len(list(filter(lambda x: len(x) > 6, reaction.products))),
-                                  reverse=True)
-
-        reactions = sorted_reactions[:3]  # Take top-N reactions from reactor
+        if sort_reactions:
+            unsorted_reactions = list(reaction_rule(reactants))
+            sorted_reactions = sorted(
+                unsorted_reactions,
+                key=lambda react: len(list(filter(lambda mol: len(mol) > 6, react.products))),
+                reverse=True
+            )
+            reactions = sorted_reactions[:top_reactions_num]  # Take top-N reactions from reactor
+        else:
+            reactions = []
+            for reaction in reaction_rule(reactants):
+                reactions.append(reaction)
+                if len(reactions) == top_reactions_num:
+                    break
     except IndexError:
         reactions = []
 
     for reaction in reactions:
-        yield reaction
-
-
-
-
-
-
+        if rebuild_with_cgr:
+            cgr = reaction.compose()
+            products = cgr.decompose()[1].split()
+        else:
+            products = reaction.products
+        products = [mol for mol in products if len(mol) > 0]
+        if validate_products:
+            for molecule in products:
+                try:
+                    molecule.kekule()
+                    if molecule.check_valence():
+                        yield None
+                    molecule.thiele()
+                except InvalidAromaticRing:
+                    yield None
+        yield products

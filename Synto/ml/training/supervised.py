@@ -1,10 +1,10 @@
 """
-Module for preparation of the training set and training of the policy network used for nodes expansion in MCTS
+Module for the preparation and training of a policy network used in the expansion of nodes in Monte Carlo Tree Search (MCTS).
+This module includes functions for creating training datasets and running the training process for the policy network.
 """
 
 import os.path as osp
 import warnings
-
 import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
@@ -12,85 +12,118 @@ from pytorch_lightning.loggers import CSVLogger
 from torch.utils.data import random_split
 from torch_geometric.data.lightning import LightningDataset
 
-from Synto.ml.networks.policy import PolicyNetwork
-from Synto.ml.training.preprocessing import FilteringPolicyDataset
-from Synto.chem.loading import load_reaction_rules
+from Synto.ml.networks.policy import PolicyNetwork, PolicyNetworkConfig
+from Synto.ml.training.preprocessing import RankingPolicyDataset, FilteringPolicyDataset
 from Synto.utils.logging import DisableLogger, HiddenPrints
 
 warnings.filterwarnings('ignore')
 
 
-def create_policy_training_set(reaction_rules_path=None,
-                               molecules_path=None,
-                               output_path=None,
-                               batch_size=None,
-                               num_cpus=None):
+def create_policy_dataset(
+        reaction_rules_path: str,
+        molecules_or_reactions_path: str,
+        output_path: str,
+        dataset_type: str = 'filtering',
+        batch_size: int = 100,
+        num_cpus: int = 1,
+        training_data_ratio: float = 0.8
+):
     """
-    Creates a training set for a policy network using a given configuration. Configuration dictionary specifies the path
-    to the extracted reaction rules and molecules for generating the training set. Each reaction rule is applied to the
-    given training molecule resulting in the final labels vector. The length of the final rule appliance vector is equal
-    to the number of rules. The 1 in this vector corresponds to the successfully applied reaction rules and 0 to the not
-    applicable reaction rules. Each training molecule is encoded with atom/bonds vectors and stored as PyTorch Geometric
-    graphs.
+    Generic function to create a training dataset for a policy network.
 
-    :param num_cpus:
-    :param batch_size:
-    :param output_path:
-    :param molecules_path:
-    :param reaction_rules_path:
-    :return: A `LightningDataset` object containing PyTorch Geometric graphs for training molecules and label vectors.
+    :param dataset_type: Type of the dataset to be created ('ranking' or 'filtering').
+    :param reaction_rules_path: Path to the reaction rules file.
+    :param molecules_or_reactions_path: Path to the molecules or reactions file.
+    :param output_path: Path to store the processed dataset.
+    :param batch_size: Size of each data batch.
+    :param num_cpus: Number of CPUs to use for data processing.
+    :param training_data_ratio: Ratio of training data to total data.
+    :return: A `LightningDataset` object containing training and validation datasets.
     """
-    #
-    with DisableLogger() as DL:
-        full_dataset = FilteringPolicyDataset(molecules_path=molecules_path,
-                                              reaction_rules_path=reaction_rules_path,
-                                              output_path=output_path,
-                                              num_cpus=num_cpus)
+    with DisableLogger():
+        if dataset_type == 'filtering':
+            full_dataset = FilteringPolicyDataset(reaction_rules_path=reaction_rules_path,
+                                                  molecules_path=molecules_or_reactions_path,
+                                                  output_path=output_path,
+                                                  num_cpus=num_cpus)
+        elif dataset_type == 'ranking':
+            full_dataset = RankingPolicyDataset(reaction_rules_path=reaction_rules_path,
+                                                reactions_path=molecules_or_reactions_path,
+                                                output_path=output_path)
+        else:
+            raise ValueError("Invalid dataset type. Must be 'ranking' or 'filtering'.")
 
-    train_size = int(0.8 * len(full_dataset))
+    train_size = int(training_data_ratio * len(full_dataset))
     val_size = len(full_dataset) - train_size
 
-    train_dataset, val_dataset = random_split(full_dataset, [train_size, val_size], torch.Generator().manual_seed(42))
+    train_dataset, val_dataset = random_split(
+        full_dataset,
+        [train_size, val_size],
+        torch.Generator().manual_seed(42)
+    )
     print(f'Training set size: {len(train_dataset)}, validation set size: {len(val_dataset)}')
-    #
-    datamodule = LightningDataset(train_dataset, val_dataset, batch_size=batch_size, pin_memory=True)
 
+    datamodule = LightningDataset(train_dataset, val_dataset, batch_size=batch_size, pin_memory=True, drop_last=True)
     return datamodule
 
 
-def run_policy_training(datamodule, config, n_rules=None, results_path=None):
+def run_policy_training(
+        datamodule: LightningDataset,
+        config: PolicyNetworkConfig,
+        results_path,
+        silent=True
+):
     """
     Trains a policy network using a given datamodule and training configuration.
 
-    :param results_path:
-    :param n_rules:
+    :param silent: If True (the default) all logging information will be not printed
     :param datamodule: The PyTorch Lightning `DataModule` class. It is responsible for loading and preparing the
-    training data for the model.
-    :param config: The dictionary that contains various configuration settings (path to the reaction rules file, vector
-    dimension, batch size, dropout rate, number of convolutional layers, learning rate, number of epochs, etc.) for the
-    policy training process.
+                       training data for the model.
+    :param config: The dictionary that contains various configuration settings for the policy training process.
+    :param results_path: Path to store the training results and logs.
     """
-    #
-    network = PolicyNetwork(vector_dim=config['PolicyNetwork']['vector_dim'], n_rules=n_rules,
-                            batch_size=config['PolicyNetwork']['batch_size'],
-                            dropout=config['PolicyNetwork']['dropout'],
-                            num_conv_layers=config['PolicyNetwork']['num_conv_layers'],
-                            learning_rate=config['PolicyNetwork']['learning_rate'])
-    #
-    weights_path = osp.join(results_path)
-    logs_path = osp.join(results_path)
+    network = PolicyNetwork(
+        vector_dim=config.vector_dim,
+        n_rules=datamodule.train_dataset.dataset.num_classes,
+        batch_size=config.batch_size,
+        dropout=config.dropout,
+        num_conv_layers=config.num_conv_layers,
+        learning_rate=config.learning_rate,
+        mode=config.mode
+    )
 
     lr_monitor = LearningRateMonitor(logging_interval='epoch')
-    logger = CSVLogger(logs_path)
+    logger = CSVLogger(osp.join(results_path, 'logs'))
 
-    checkpoint = ModelCheckpoint(dirpath=weights_path, filename='policy_network', monitor="val_loss", mode="min")
-    #
-    with DisableLogger() as DL, HiddenPrints() as HP:
-        trainer = Trainer(accelerator='gpu', devices=[0], max_epochs=config['PolicyNetwork']['num_epoch'],
-                          callbacks=[lr_monitor, checkpoint], logger=logger, gradient_clip_val=1.0,
-                          enable_progress_bar=False)
+    checkpoint = ModelCheckpoint(
+        dirpath=osp.join(results_path, 'weights'),
+        filename='policy_network',
+        monitor="val_loss",
+        mode="min"
+    )
+
+    if silent:
+        with DisableLogger(), HiddenPrints():
+            trainer = Trainer(
+                accelerator='gpu',
+                devices=[0],
+                max_epochs=config.num_epoch,
+                callbacks=[lr_monitor, checkpoint],
+                logger=logger,
+                gradient_clip_val=1.0,
+                enable_progress_bar=False
+            )
+
+            trainer.fit(network, datamodule)
+    else:
+        trainer = Trainer(
+            accelerator='gpu',
+            devices=[0],
+            max_epochs=config.num_epoch,
+            callbacks=[lr_monitor, checkpoint],
+            logger=logger,
+            gradient_clip_val=1.0,
+            enable_progress_bar=True
+        )
 
         trainer.fit(network, datamodule)
-
-    ba = round(trainer.logged_metrics['train_balanced_accuracy_y_step'].item(), 3)
-    print(f'Policy network balanced accuracy: {ba}')

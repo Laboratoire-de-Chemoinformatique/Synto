@@ -2,11 +2,68 @@
 Module containing training and planning configuration dictionaries
 """
 
-import yaml
-
+from abc import ABC, abstractmethod
 from copy import deepcopy
 from pathlib import Path
-from os import getcwd, path
+from typing import Any, Dict
+from dataclasses import dataclass
+
+import yaml
+
+
+@dataclass
+class ConfigABC(ABC):
+    """
+    Abstract base class for configuration classes.
+    """
+
+    @staticmethod
+    @abstractmethod
+    def from_dict(config_dict: Dict[str, Any]):
+        """
+        Create an instance of the configuration from a dictionary.
+        """
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def from_yaml(file_path: str):
+        """
+        Deserialize a YAML file into a configuration object.
+        """
+        pass
+
+    @abstractmethod
+    def _validate_params(self, params: Dict[str, Any]):
+        """
+        Validate configuration parameters.
+        """
+        pass
+
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        Convert the configuration into a dictionary.
+
+        Returns:
+            A dictionary representation of the ConfigABC instance.
+        """
+        return {k: str(v) if isinstance(v, Path) else v for k, v in self.__dict__.items()}
+
+    def to_yaml(self, file_path: str):
+        """
+        Serialize the configuration to a YAML file.
+
+        Args:
+            file_path: Path where the YAML file will be saved.
+        """
+        with open(file_path, "w") as file:
+            yaml.dump(self.to_dict(), file)
+
+    def __post_init__(self):
+        # Call _validate_params method after initialization
+        params = self.to_dict()  # Convert the current instance to a dictionary
+        self._validate_params(params)
+
 
 planning_config = {
     'General': {
@@ -22,7 +79,9 @@ planning_config = {
         'weights_path': 'synto_planning_data/policy_network.ckpt',
         'priority_rules_fraction': 0.5,
         'top_rules': 50,
-        'rule_prob_threshold': 0.0},
+        'rule_prob_threshold': 0.0,
+        'mode': 'filtering'
+    },
     'ValueNetwork': {
         'weights_path': 'synto_planning_data/value_network.ckpt'},
     'Tree': {
@@ -77,7 +136,9 @@ training_config = {
         'priority_rules_fraction': 0.5,
         'rule_prob_threshold': 0.0,
         'top_rules': 50,
-        'vector_dim': 512},
+        'vector_dim': 512,
+        'mode': 'filtering'
+    },
     'ValueNetwork': {
         'batch_size': 500,
         'dropout': 0.4,

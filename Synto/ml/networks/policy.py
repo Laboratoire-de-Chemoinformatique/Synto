@@ -1,12 +1,83 @@
 from abc import ABC
+from dataclasses import dataclass
+from typing import Dict, Any
 
+import yaml
 import torch
 from pytorch_lightning import LightningModule
 from torch.nn import Linear
-from torch.nn.functional import binary_cross_entropy_with_logits
-from torchmetrics.functional.classification import multilabel_recall, multilabel_specificity, multilabel_f1_score
+from torch.nn.functional import binary_cross_entropy_with_logits, cross_entropy, one_hot
+from torchmetrics.functional.classification import recall, specificity, f1_score
 
 from Synto.ml.networks.modules import MCTSNetwork
+from Synto.utils.config import ConfigABC
+
+
+@dataclass
+class PolicyNetworkConfig(ConfigABC):
+    """
+    Configuration class for the policy network, inheriting from ConfigABC.
+
+    :ivar vector_dim: Dimension of the input vectors.
+    :ivar batch_size: Number of samples per batch.
+    :ivar dropout: Dropout rate for regularization.
+    :ivar learning_rate: Learning rate for the optimizer.
+    :ivar num_conv_layers: Number of convolutional layers in the network.
+    :ivar num_epoch: Number of training epochs.
+    :ivar mode: Mode of operation, either 'filtering' or 'ranking'.
+    """
+
+    vector_dim: int = 256
+    batch_size: int = 500
+    dropout: float = 0.4
+    learning_rate: float = 0.008
+    num_conv_layers: int = 5
+    num_epoch: int = 100
+    mode: str = "ranking"
+
+    @staticmethod
+    def from_dict(config_dict: Dict[str, Any]) -> 'PolicyNetworkConfig':
+        """
+        Creates a PolicyNetworkConfig instance from a dictionary of configuration parameters.
+
+        :param config_dict: A dictionary containing configuration parameters.
+        :return: An instance of PolicyNetworkConfig.
+        """
+        return PolicyNetworkConfig(**config_dict)
+
+    @staticmethod
+    def from_yaml(file_path: str) -> 'PolicyNetworkConfig':
+        """
+        Deserializes a YAML file into a PolicyNetworkConfig object.
+
+        :param file_path: Path to the YAML file containing configuration parameters.
+        :return: An instance of PolicyNetworkConfig.
+        """
+        with open(file_path, 'r') as file:
+            config_dict = yaml.safe_load(file)
+        return PolicyNetworkConfig.from_dict(config_dict)
+
+    def _validate_params(self, params: Dict[str, Any]):
+        if not isinstance(params['vector_dim'], int) or params['vector_dim'] <= 0:
+            raise ValueError("vector_dim must be a positive integer.")
+
+        if not isinstance(params['batch_size'], int) or params['batch_size'] <= 0:
+            raise ValueError("batch_size must be a positive integer.")
+
+        if not isinstance(params['num_conv_layers'], int) or params['num_conv_layers'] <= 0:
+            raise ValueError("num_conv_layers must be a positive integer.")
+
+        if not isinstance(params['num_epoch'], int) or params['num_epoch'] <= 0:
+            raise ValueError("num_epoch must be a positive integer.")
+
+        if not isinstance(params['dropout'], float) or not (0.0 <= params['dropout'] <= 1.0):
+            raise ValueError("dropout must be a float between 0.0 and 1.0.")
+
+        if not isinstance(params['learning_rate'], float) or params['learning_rate'] <= 0.0:
+            raise ValueError("learning_rate must be a positive float.")
+
+        if params['mode'] not in ["filtering", "ranking"]:
+            raise ValueError("mode must be either 'filtering' or 'ranking'.")
 
 
 class PolicyNetwork(MCTSNetwork, LightningModule, ABC):
@@ -39,7 +110,7 @@ class PolicyNetwork(MCTSNetwork, LightningModule, ABC):
         :return: Returns the vector of probabilities (given by sigmoid) of successful application of regular and
         priority reaction rules.
         """
-        x = self.embedder(batch)
+        x = self.embedder(batch, self.batch_size)
         y = self.y_predictor(x)
         if self.mode == "filtering":
             y = torch.sigmoid(y)
@@ -56,37 +127,52 @@ class PolicyNetwork(MCTSNetwork, LightningModule, ABC):
         :param batch: The batch of molecular graphs.
         :return: a dictionary with loss value and balanced accuracy of reaction rules prediction.
         """
-        true_y = batch.y_rules.float()
-        x = self.embedder(batch)
+        true_y = batch.y_rules.long()
+        x = self.embedder(batch, self.batch_size)
         pred_y = self.y_predictor(x)
 
-        loss_y = binary_cross_entropy_with_logits(pred_y, true_y)
-        loss = loss_y
-        true_y = true_y.long()
-        ba_y = (multilabel_recall(pred_y, true_y, num_labels=self.n_rules) + multilabel_specificity(pred_y, true_y,
-                                                                                                    num_labels=self.n_rules)) / 2
-        f1_y = multilabel_f1_score(pred_y, true_y, num_labels=self.n_rules)
+        if self.mode == "ranking":
+            true_one_hot = one_hot(true_y, num_classes=self.n_rules)
+            loss = cross_entropy(pred_y, true_one_hot.float())
+            ba_y = (
+                           recall(pred_y, true_y, task="multiclass", num_classes=self.n_rules) +
+                           specificity(pred_y, true_y, task="multiclass", num_classes=self.n_rules)
+                   ) / 2
+            f1_y = f1_score(pred_y, true_y, task="multiclass", num_classes=self.n_rules)
+            metrics = {
+                'loss': loss,
+                'balanced_accuracy_y': ba_y,
+                'f1_score_y': f1_y
+            }
+        elif self.mode == "filtering":
+            loss_y = binary_cross_entropy_with_logits(pred_y, true_y.float())
+            ba_y = (
+                           recall(pred_y, true_y, task="multilabel", num_labels=self.n_rules) +
+                           specificity(pred_y, true_y, task="multilabel", num_labels=self.n_rules)
+                   ) / 2
+            f1_y = f1_score(pred_y, true_y, task="multilabel", num_labels=self.n_rules)
 
-        metrics = {'balanced_accuracy_y': ba_y, 'f1_score_y': f1_y}
-
-        if self.mode == "filtering":
             true_priority = batch.y_priority.float()
             pred_priority = self.priority_predictor(x)
 
             loss_priority = binary_cross_entropy_with_logits(pred_priority, true_priority)
-            loss = loss + loss_priority
+            loss = loss_y + loss_priority
 
             true_priority = true_priority.long()
 
-            ba_priority = (multilabel_recall(pred_priority, true_priority,
-                                             num_labels=self.n_rules) + multilabel_specificity(pred_priority,
-                                                                                               true_priority,
-                                                                                               num_labels=self.n_rules)) / 2
-            f1_priority = multilabel_f1_score(pred_priority, true_priority, num_labels=self.n_rules)
-
-            metrics['balanced_accuracy_priority'] = ba_priority
-            metrics['f1_score_priority'] = f1_priority
-
-        metrics["loss"] = loss
+            ba_priority = (
+                                  recall(pred_priority, true_priority, task="multilabel", num_labels=self.n_rules) +
+                                  specificity(pred_priority, true_priority, task="multilabel", num_labels=self.n_rules)
+                          ) / 2
+            f1_priority = f1_score(pred_priority, true_priority, task="multilabel", num_labels=self.n_rules)
+            metrics = {
+                'loss': loss,
+                'balanced_accuracy_y': ba_y,
+                'f1_score_y': f1_y,
+                'balanced_accuracy_priority': ba_priority,
+                'f1_score_priority': f1_priority
+            }
+        else:
+            raise ValueError(f"Invalid mode: {self.mode}")
 
         return metrics

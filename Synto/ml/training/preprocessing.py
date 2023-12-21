@@ -3,25 +3,28 @@ Module containing functions for preparation of the training sets for policy and 
 """
 
 import os
+import pickle
 from abc import ABC
 from multiprocessing import Manager, Pool
+from pathlib import Path
 from typing import List
-from tqdm import tqdm
 
 import ray
+import torch
+from CGRtools import smiles
+from CGRtools.containers import MoleculeContainer, ReactionContainer
+from CGRtools.exceptions import InvalidAromaticRing
+from CGRtools.files import SMILESRead, RDFRead
+from CGRtools.reactor import Reactor
 # from queue import Queue, Empty
 from ray.util.queue import Queue, Empty
-from CGRtools import smiles
-from CGRtools.containers import MoleculeContainer
-from CGRtools.exceptions import InvalidAromaticRing
-from CGRtools.files import SMILESRead
-from CGRtools.reactor import Reactor
-import torch
 from torch_geometric.data import Data, InMemoryDataset
 from torch_geometric.data.makedirs import makedirs
 from torch_geometric.transforms import ToUndirected
+from tqdm import tqdm
 
 from Synto.chem.loading import load_reaction_rules
+from Synto.chem.utils import unite_molecules
 
 
 class ValueNetworkDataset(InMemoryDataset, ABC):
@@ -84,6 +87,70 @@ class ValueNetworkDataset(InMemoryDataset, ABC):
         return data, slices
 
 
+class RankingPolicyDataset(InMemoryDataset):
+    """
+    Policy network dataset
+    """
+
+    def __init__(self, reactions_path, reaction_rules_path, output_path):
+        """
+        Initializes a policy network dataset object.
+
+        :param reactions_path: The path to the file containing the reaction data used for extraction of reaction rules.
+        :param reaction_rules_path: The path to the file containing the reaction rules.
+        :param output_path: The output path is the location where policy network dataset will be stored.
+        """
+        super().__init__(None, None, None)
+
+        self.reactions_path = Path(reactions_path).resolve(strict=True)
+        self.reaction_rules_path = Path(reaction_rules_path).resolve(strict=True)
+        self.output_path = output_path
+
+        if output_path and os.path.exists(output_path):
+            self.data, self.slices = torch.load(self.output_path)
+        else:
+            self.data, self.slices = self.prepare_data()
+
+    @property
+    def num_classes(self) -> int:
+        return self._infer_num_classes(self._data.y_rules)
+
+    def prepare_data(self):
+        """
+        The function prepares data by loading reaction rules, initializing Ray, preprocessing the molecules, collating
+        the data, and returning the data and slices.
+        :return: data (PyTorch geometric graphs) and slices.
+        """
+
+        with open(self.reaction_rules_path, "rb") as inp:
+            reaction_rules = pickle.load(inp)
+
+        dataset = {}
+        for rule_i, (_, reactions_ids) in enumerate(reaction_rules):
+            for reaction_id in reactions_ids:
+                dataset[reaction_id] = rule_i
+        del reaction_rules
+        dataset = dict(sorted(dataset.items()))
+
+        processed_data = []
+        with RDFRead(self.reactions_path, indexable=True) as inp:
+            inp.reset_index()
+            for reaction_id, rule_id in tqdm(dataset.items()):
+                reaction: ReactionContainer = inp[reaction_id]
+                molecule = unite_molecules(reaction.products)
+                pyg_graph = mol_to_pyg(molecule)
+                if pyg_graph is not None:
+                    pyg_graph.y_rules = torch.tensor([rule_id], dtype=torch.long)
+                    processed_data.append(pyg_graph)
+
+        data, slices = self.collate(processed_data)
+        if self.output_path:
+            makedirs(os.path.dirname(self.output_path))
+            torch.save((data, slices), self.output_path)
+
+        return data, slices
+
+
 class FilteringPolicyDataset(InMemoryDataset):
     """
     Policy network dataset
@@ -110,6 +177,10 @@ class FilteringPolicyDataset(InMemoryDataset):
             self.data, self.slices = torch.load(self.output_path)
         else:
             self.data, self.slices = self.prepare_data()
+
+    @property
+    def num_classes(self) -> int:
+        return self._data.y_rules.shape[1]
 
     def prepare_data(self):
         """
@@ -388,37 +459,38 @@ def mol_to_matrix(molecule: MoleculeContainer):
     return atoms_vectors
 
 
-def mol_to_pyg(molecule: MoleculeContainer):
+def mol_to_pyg(molecule: MoleculeContainer, canonicalize=True):
     """
     It takes a list of molecules and returns a list of PyTorch Geometric graphs,
     a one-hot encoded vectors of the atoms, and a matrices of the bonds.
 
+    :param canonicalize:
     :param molecule: The molecule to be converted to PyTorch Geometric graph.
     :return: A list of pyg graphs
     """
-
-    molecule = molecule.copy()
+    tmp_molecule = molecule.copy()
     try:
-        molecule.canonicalize()
-        molecule.kekule()
-        if molecule.check_valence():
+        if canonicalize:
+            tmp_molecule.canonicalize()
+        tmp_molecule.kekule()
+        if tmp_molecule.check_valence():
             return None
     except InvalidAromaticRing:
         return None
 
     # remapping target for torch_geometric because
     # it is necessary that the elements in edge_index only hold nodes_idx in the range { 0, ..., num_nodes - 1}
-    new_mappings = {n: i for i, (n, _) in enumerate(molecule.atoms(), 1)}
-    molecule.remap(new_mappings)
+    new_mappings = {n: i for i, (n, _) in enumerate(tmp_molecule.atoms(), 1)}
+    tmp_molecule.remap(new_mappings)
 
     # get edge indexes from target mapping
     edge_index = []
-    for atom, neighbour, bond in molecule.bonds():
+    for atom, neighbour, bond in tmp_molecule.bonds():
         edge_index.append([atom - 1, neighbour - 1])
     edge_index = torch.tensor(edge_index, dtype=torch.long)
 
     #
-    x = mol_to_matrix(molecule)
+    x = mol_to_matrix(tmp_molecule)
 
     mol_pyg_graph = Data(x=x, edge_index=edge_index.t().contiguous())
     mol_pyg_graph = ToUndirected()(mol_pyg_graph)

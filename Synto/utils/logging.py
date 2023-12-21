@@ -3,7 +3,7 @@ import sys
 import logging
 
 
-class DisableLogger():
+class DisableLogger:
     """
     This function mute redundant logging information. Adopted from
     https://stackoverflow.com/questions/2266646/how-to-disable-logging-on-the-standard-error-stream
@@ -11,6 +11,7 @@ class DisableLogger():
 
     def __enter__(self):
         logging.disable(logging.CRITICAL)
+
     def __exit__(self, exit_type, exit_value, exit_traceback):
         logging.disable(logging.NOTSET)
 
