@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "synto"
-version = "0.8.0"
-description = "Graph-based self-learning retrosythesis"
+version = "0.9.0"
+description = "Synthesis tool"
 authors = ["Laboratoire de Chemoinformatique <tagirshin@gmail.com>"]
 license = "MIT"
 readme = "README.rst"

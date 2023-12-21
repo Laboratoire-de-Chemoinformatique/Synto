@@ -593,15 +593,6 @@ class ReactionCheckConfig(ConfigABC):
         wrong_ch_breaking_config: Configuration for wrong C-H breaking checking.
         cc_sp3_breaking_config: Configuration for CC sp3 breaking checking.
         cc_ring_breaking_config: Configuration for CC ring breaking checking.
-        reaction_database_path: Path to the reaction database file.
-        result_directory_name: Name of the directory to store results.
-        output_files_format: Format of the output files (e.g., 'rdf').
-        result_reactions_file_name: Name for the file containing cleaned reactions.
-        filtered_reactions_file_name: Name for the file containing filtered reactions.
-        append_results: Flag indicating whether to append results to existing files.
-        num_cpus: Number of CPUs to use for processing.
-        batch_size: Size of the batch for processing reactions.
-        min_popularity: Minimum popularity threshold for reactions.
     """
 
     # Configuration for reaction checkers
@@ -640,15 +631,6 @@ class ReactionCheckConfig(ConfigABC):
     )
 
     # Other configuration parameters
-    reaction_database_path: str = "path/to/reaction_database.rdf"
-    result_directory_name: str = "./"
-    output_files_format: str = "rdf"
-    result_reactions_file_name: str = "clean_reactions"
-    filtered_reactions_file_name: str = "removed_reactions"
-    append_results: bool = False
-    num_cpus: int = 1
-    batch_size: int = 10
-    min_popularity: int = 3
     rebalance_reaction: bool = False
     remove_reagents: bool = True
     reagents_max_size: int = 7
@@ -660,15 +642,6 @@ class ReactionCheckConfig(ConfigABC):
         Converts the configuration into a dictionary.
         """
         return {
-            "reaction_database_path": self.reaction_database_path,
-            "result_directory_name": self.result_directory_name,
-            "output_files_format": self.output_files_format,
-            "result_reactions_file_name": self.result_reactions_file_name,
-            "filtered_reactions_file_name": self.filtered_reactions_file_name,
-            "append_results": self.append_results,
-            "num_cpus": self.num_cpus,
-            "batch_size": self.batch_size,
-            "min_popularity": self.min_popularity,
             "dynamic_bonds_config": self.dynamic_bonds_config.to_dict(),
             "small_molecules_config": self.small_molecules_config.to_dict(),
             "compete_products_config": self.compete_products_config.to_dict(),
@@ -690,6 +663,11 @@ class ReactionCheckConfig(ConfigABC):
             "cc_ring_breaking_config": {}
             if self.cc_ring_breaking_config is not None
             else None,
+            "rebalance_reaction": self.rebalance_reaction,
+            "remove_reagents": self.remove_reagents,
+            "reagents_max_size": self.reagents_max_size,
+            "remove_small_molecules": self.remove_small_molecules,
+            "small_molecules_max_size": self.small_molecules_max_size,
         }
 
     @staticmethod
@@ -702,13 +680,6 @@ class ReactionCheckConfig(ConfigABC):
         }
         return ReactionCheckConfig(**config_dict)
 
-    def to_yaml(self, file_path):
-        """
-        Serializes the configuration to a YAML file.
-        """
-        with open(file_path, "w") as file:
-            yaml.dump(self.to_dict(), file)
-
     @staticmethod
     def from_yaml(file_path):
         """
@@ -719,40 +690,20 @@ class ReactionCheckConfig(ConfigABC):
         return ReactionCheckConfig.from_dict(config_dict)
 
     def _validate_params(self, params: Dict[str, Any]):
-        # Ensure all required parameters are present and of the correct type
-        if not isinstance(params.get("reaction_database_path"), str):
-            raise ValueError("Invalid or missing 'reaction_database_path'")
+        if not isinstance(params["rebalance_reaction"], bool):
+            raise ValueError("rebalance_reaction must be a boolean.")
 
-        if not isinstance(params.get("result_directory_name"), str):
-            raise ValueError("Invalid or missing 'result_directory_name'")
+        if not isinstance(params["remove_reagents"], bool):
+            raise ValueError("remove_reagents must be a boolean.")
 
-        if params.get("output_files_format") not in ["rdf", "xml", "json"]:
-            raise ValueError(
-                "Invalid 'output_files_format'; expected 'rdf', 'xml', or 'json'"
-            )
+        if not isinstance(params["reagents_max_size"], int):
+            raise ValueError("reagents_max_size must be an int.")
 
-        if not isinstance(params.get("result_reactions_file_name"), str):
-            raise ValueError("Invalid or missing 'result_reactions_file_name'")
+        if not isinstance(params["remove_small_molecules"], bool):
+            raise ValueError("remove_small_molecules must be a boolean.")
 
-        if not isinstance(params.get("filtered_reactions_file_name"), str):
-            raise ValueError("Invalid or missing 'filtered_reactions_file_name'")
-
-        if not isinstance(params.get("append_results"), bool):
-            raise ValueError("Invalid 'append_results'; expected a boolean value")
-
-        if not isinstance(params.get("num_cpus"), int) or params["num_cpus"] < 1:
-            raise ValueError("Invalid 'num_cpus'; expected a positive integer")
-
-        if not isinstance(params.get("batch_size"), int) or params["batch_size"] < 1:
-            raise ValueError("Invalid 'batch_size'; expected a positive integer")
-
-        if (
-            not isinstance(params.get("min_popularity"), int)
-            or params["min_popularity"] < 0
-        ):
-            raise ValueError(
-                "Invalid 'min_popularity'; expected a non-negative integer"
-            )
+        if not isinstance(params["small_molecules_max_size"], int):
+            raise ValueError("small_molecules_max_size must be an int.")
 
     def create_checkers(self):
         checker_instances = []
@@ -826,7 +777,10 @@ def remove_files_if_exists(directory: Path, file_names):
 
 
 def filter_reaction(
-    reaction: ReactionContainer, config: ReactionCheckConfig, checkers: list
+    reaction: ReactionContainer,
+    config: ReactionCheckConfig,
+    checkers: list,
+    output_files_format: str = "rdf",
 ):
     is_filtered = False
     if config.remove_small_molecules:
@@ -860,17 +814,19 @@ def filter_reaction(
                 is_filtered = True
                 break
 
-    if config.output_files_format == "smiles":
+    if output_files_format == "smiles":
         new_reaction = to_reaction_smiles_record(new_reaction)
 
     return is_filtered, new_reaction
 
 
 @ray.remote
-def process_batch(batch, config: ReactionCheckConfig, checkers):
+def process_batch(batch, config: ReactionCheckConfig, checkers, output_files_format):
     results = []
     for index, reaction in batch:
-        is_filtered, processed_reaction = filter_reaction(reaction, config, checkers)
+        is_filtered, processed_reaction = filter_reaction(
+            reaction, config, checkers, output_files_format
+        )
         results.append((index, is_filtered, processed_reaction))
     return results
 
@@ -891,49 +847,67 @@ def process_completed_batches(futures, filtered_file, result_file, pbar, batch_s
     pbar.update(batch_size)
 
 
-def filter_reactions(config: ReactionCheckConfig) -> None:
+def filter_reactions(
+    config: ReactionCheckConfig,
+    reaction_database_path: str,
+    result_directory_name: str = "./",
+    result_reactions_file_name: str = "clean_reactions",
+    filtered_reactions_file_name: str = "removed_reactions",
+    output_files_format: str = "rdf",
+    append_results: bool = False,
+    num_cpus: int = 1,
+    batch_size: int = 10,
+) -> None:
     """
     Processes a database of chemical reactions, applying checks based on the provided configuration,
     and writes the results to specified files. All configurations are provided by the ReactionCheckConfig object.
 
     :param config: ReactionCheckConfig object containing all configuration settings.
+    :param reaction_database_path: Path to the reaction database file.
+    :param result_directory_name: Name of the directory to store results.
+    :param output_files_format: Format of the output files (e.g., 'rdf').
+    :param result_reactions_file_name: Name for the file containing cleaned reactions.
+    :param filtered_reactions_file_name: Name for the file containing filtered reactions.
+    :param append_results: Flag indicating whether to append results to existing files.
+    :param num_cpus: Number of CPUs to use for processing.
+    :param batch_size: Size of the batch for processing reactions.
     :return: None. The function writes the processed reactions to specified RDF and pickle files.
              Unique reactions are written if save_only_unique is True.
     """
-    result_directory = Path(config.result_directory_name)
+    result_directory = Path(result_directory_name)
     result_directory.mkdir(parents=True, exist_ok=True)
 
     checkers = config.create_checkers()
 
-    ray.init(num_cpus=config.num_cpus, ignore_reinit_error=True)
+    ray.init(num_cpus=num_cpus, ignore_reinit_error=True)
 
-    max_concurrent_batches = config.num_cpus  # Limit the number of concurrent batches
+    max_concurrent_batches = num_cpus  # Limit the number of concurrent batches
 
-    if config.output_files_format == "smiles":
-        open_mode = "a" if config.append_results else "w"
+    if output_files_format == "smiles":
+        open_mode = "a" if append_results else "w"
         result_file = open(
-            str(result_directory / f"{config.result_reactions_file_name}.smiles"),
+            str(result_directory / f"{result_reactions_file_name}.smiles"),
             open_mode,
         )
         filtered_file = open(
-            str(result_directory / f"{config.filtered_reactions_file_name}.smiles"),
+            str(result_directory / f"{filtered_reactions_file_name}.smiles"),
             open_mode,
         )
-    elif config.output_files_format == "rdf":
+    elif output_files_format == "rdf":
         result_file = RDFWrite(
-            str(result_directory / f"{config.result_reactions_file_name}.rdf"),
-            append=config.append_results,
+            str(result_directory / f"{result_reactions_file_name}.rdf"),
+            append=append_results,
         )
         filtered_file = RDFWrite(
-            str(result_directory / f"{config.filtered_reactions_file_name}.rdf"),
-            append=config.append_results,
+            str(result_directory / f"{filtered_reactions_file_name}.rdf"),
+            append=append_results,
         )
     else:
         raise ValueError(
-            f"I don't know this output files format: {config.output_files_format}"
+            f"I don't know this output files format: {output_files_format}"
         )
 
-    with RDFRead(config.reaction_database_path, indexable=True) as reactions_file:
+    with RDFRead(reaction_database_path, indexable=True) as reactions_file:
         total_reactions = len(reactions_file)
         pbar = tqdm(total=total_reactions)
 
@@ -943,8 +917,10 @@ def filter_reactions(config: ReactionCheckConfig) -> None:
         for index, reaction in enumerate(reactions_file):
             reaction.meta["reaction_index"] = index
             batch.append((index, reaction))
-            if len(batch) == config.batch_size:
-                future = process_batch.remote(batch, config, checkers)
+            if len(batch) == batch_size:
+                future = process_batch.remote(
+                    batch, config, checkers, output_files_format
+                )
                 futures[future] = None
                 batch = []
 
@@ -955,18 +931,18 @@ def filter_reactions(config: ReactionCheckConfig) -> None:
                         filtered_file,
                         result_file,
                         pbar,
-                        config.batch_size,
+                        batch_size,
                     )
 
         # Process the last batch if it's not empty
         if batch:
-            future = process_batch.remote(batch, config, checkers)
+            future = process_batch.remote(batch, config, checkers, output_files_format)
             futures[future] = None
 
         # Process remaining batches
         while futures:
             process_completed_batches(
-                futures, filtered_file, result_file, pbar, config.batch_size
+                futures, filtered_file, result_file, pbar, batch_size
             )
 
         pbar.close()
