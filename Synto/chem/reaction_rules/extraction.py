@@ -54,7 +54,9 @@ class ExtractRuleConfig(ConfigABC):
     reverse_rule: bool = True
     reactor_validation: bool = True
     include_func_groups: bool = False
-    func_groups_list: List[Union[MoleculeContainer, QueryContainer]] = field(default_factory=list)
+    func_groups_list: List[Union[MoleculeContainer, QueryContainer]] = field(
+        default_factory=list
+    )
     include_rings: bool = False
     keep_leaving_groups: bool = False
     keep_incoming_groups: bool = False
@@ -72,15 +74,27 @@ class ExtractRuleConfig(ConfigABC):
 
     def _initialize_default_atom_info_retention(self):
         default_atom_info = {
-            "reaction_center": {"neighbors": True, "hybridization": True, "implicit_hydrogens": True, "ring_sizes": True},
-            "environment": {"neighbors": True, "hybridization": True, "implicit_hydrogens": True, "ring_sizes": True}
+            "reaction_center": {
+                "neighbors": True,
+                "hybridization": True,
+                "implicit_hydrogens": True,
+                "ring_sizes": True,
+            },
+            "environment": {
+                "neighbors": True,
+                "hybridization": True,
+                "implicit_hydrogens": True,
+                "ring_sizes": True,
+            },
         }
 
         if not self.atom_info_retention:
             self.atom_info_retention = default_atom_info
         else:
             for key in default_atom_info:
-                self.atom_info_retention[key].update(self.atom_info_retention.get(key, {}))
+                self.atom_info_retention[key].update(
+                    self.atom_info_retention.get(key, {})
+                )
 
     @staticmethod
     def from_dict(config_dict: Dict[str, Any]):
@@ -632,7 +646,9 @@ def clean_molecules(
                 if not all(
                     atom_retention_details["environment"].values()
                 ):  # if everything True, we keep all marks
-                    local_environment_atoms = set(rule_molecule.atoms_numbers) - reaction_center_atoms
+                    local_environment_atoms = (
+                        set(rule_molecule.atoms_numbers) - reaction_center_atoms
+                    )
                     for atom_number in local_environment_atoms:
                         query_rule_molecule = clean_atom(
                             query_rule_molecule,
@@ -644,7 +660,9 @@ def clean_molecules(
                 if not all(
                     atom_retention_details["reaction_center"].values()
                 ):  # if everything True, we keep all marks
-                    local_reaction_center_atoms = set(rule_molecule.atoms_numbers) & reaction_center_atoms
+                    local_reaction_center_atoms = (
+                        set(rule_molecule.atoms_numbers) & reaction_center_atoms
+                    )
                     for atom_number in local_reaction_center_atoms:
                         query_rule_molecule = clean_atom(
                             query_rule_molecule,

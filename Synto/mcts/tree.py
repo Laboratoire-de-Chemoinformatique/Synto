@@ -157,8 +157,6 @@ class Tree:
 
         :param target: a target molecule for retrosynthesis paths search
         :type target: MoleculeContainer
-        :param config: The `config` parameter is a dictionary that contains configuration settings for the tree search
-        :type config: dict
         """
 
         # config parameters
