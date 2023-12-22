@@ -672,7 +672,7 @@ class Tree:
         while node_id:
             path_length += 1
 
-            cumulated_nodes_value += self.nodes_init_value[node_id]
+            cumulated_nodes_value += self.nodes_total_value[node_id]
             node_id = self.parents[node_id]
 
         return cumulated_nodes_value / (path_length**2)
