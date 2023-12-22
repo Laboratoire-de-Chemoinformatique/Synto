@@ -211,6 +211,12 @@ class Tree:
         self.reaction_rules = load_reaction_rules(reaction_rules_path)
         self.building_blocks = load_building_blocks(building_blocks_path)
 
+        # check if target is building_block
+        if target_retron.is_building_block(
+            self.building_blocks, self.config.min_mol_size
+        ):
+            raise ValueError("Target is building block \n")
+
     def __len__(self) -> int:
         """
         Returns the current size (number of nodes) of a Tree.
@@ -240,11 +246,6 @@ class Tree:
         """
         The __next__ function is used to do one iteration of the tree building.
         """
-        # check if target is building_block
-        if self.nodes[1].curr_retron.is_building_block(
-            self.building_blocks, self.config.min_mol_size
-        ):
-            raise ValueError("Target is building block \n")
 
         if self.curr_iteration >= self.config.max_iterations:
             self._tqdm.close()
@@ -269,6 +270,9 @@ class Tree:
 
             if self.nodes_visit[node_id]:  # already visited
                 if not self.children[node_id]:  # dead node
+                    logging.debug(
+                        f"Tree search: bumped into node {node_id} which is dead"
+                    )
                     self._update_visits(node_id)
                     explore_path = False
                 else:
@@ -287,52 +291,55 @@ class Tree:
                 ):  # expand node if depth limit is not reached
                     self._expand_node(node_id)
                     if not self.children[node_id]:  # node was not expanded
-                        return False, [node_id]
-                    self.expanded_nodes.add(node_id)
+                        logging.debug(f"Tree search: node {node_id} was not expanded")
+                        value_to_backprop = -1.0
+                    else:
+                        self.expanded_nodes.add(node_id)
 
-                    if self.config.search_strategy == "evaluation_first":
-                        # recalculate node value based on children synthesisability and backpropagation
-                        child_values = [
-                            self.nodes_init_value[child_id]
-                            for child_id in self.children[node_id]
-                        ]
+                        if self.config.search_strategy == "evaluation_first":
+                            # recalculate node value based on children synthesisability and backpropagation
+                            child_values = [
+                                self.nodes_init_value[child_id]
+                                for child_id in self.children[node_id]
+                            ]
 
-                        if self.config.evaluation_agg == "max":
-                            value_to_backprop = max(child_values)
+                            if self.config.evaluation_agg == "max":
+                                value_to_backprop = max(child_values)
 
-                        elif self.config.evaluation_agg == "average":
-                            value_to_backprop = sum(child_values) / len(
-                                self.children[node_id]
-                            )
+                            elif self.config.evaluation_agg == "average":
+                                value_to_backprop = sum(child_values) / len(
+                                    self.children[node_id]
+                                )
+
+                            else:
+                                raise ValueError(
+                                    f"Invalid evaluation aggregation mode: {self.config.evaluation_agg} "
+                                    f"Allowed values are 'max', 'average'"
+                                )
+                        elif self.config.search_strategy == "expansion_first":
+                            value_to_backprop = self._get_node_value(node_id)
 
                         else:
                             raise ValueError(
-                                f"Invalid evaluation aggregation mode: {self.config.evaluation_agg} "
-                                f"Allowed values are 'max', 'average'"
+                                f"Invalid search_strategy: {self.config.search_strategy}: "
+                                f"Allowed values are 'expansion_first', 'evaluation_first'"
                             )
-                    elif self.config.search_strategy == "expansion_first":
-                        value_to_backprop = self._get_node_value(node_id)
-
-                    else:
-                        raise ValueError(
-                            f"Invalid search_strategy: {self.config.search_strategy}: "
-                            f"Allowed values are 'expansion_first', 'evaluation_first'"
-                        )
 
                     # backpropagation
                     self._backpropagate(node_id, value_to_backprop)
                     self._update_visits(node_id)
                     explore_path = False
 
-                    # found after expansion
-                    found_after_expansion = set()
-                    for child_id in iter(self.children[node_id]):
-                        if self.nodes[child_id].is_solved():
-                            found_after_expansion.add(child_id)
-                            self.winning_nodes.append(child_id)
+                    if self.children[node_id]:
+                        # found after expansion
+                        found_after_expansion = set()
+                        for child_id in iter(self.children[node_id]):
+                            if self.nodes[child_id].is_solved():
+                                found_after_expansion.add(child_id)
+                                self.winning_nodes.append(child_id)
 
-                    if found_after_expansion:
-                        return True, list(found_after_expansion)
+                        if found_after_expansion:
+                            return True, list(found_after_expansion)
 
                 else:
                     self._backpropagate(node_id, self.nodes_total_value[node_id])
@@ -492,7 +499,7 @@ class Tree:
         elif self.config.evaluation_mode == "rollout":
             node_value = min(
                 (
-                    self._rollout_node(retron, curr_depth=self.nodes_depth[node_id])
+                    self._rollout_node(retron, current_depth=self.nodes_depth[node_id])
                     for retron in node.retrons_to_expand
                 ),
                 default=1.0,
@@ -542,7 +549,7 @@ class Tree:
                 )
             node_id = self.parents[node_id]
 
-    def _rollout_node(self, retron: Retron, curr_depth: int = None):
+    def _rollout_node(self, retron: Retron, current_depth: int = None):
         """
         The function `_rollout_node` performs a rollout simulation from a given node in a tree.
         Given the current retron, find the first successful reaction and return the new retrons.
@@ -552,68 +559,77 @@ class Tree:
         If the reaction is not successful, return -1.0;
 
         If the reaction is successful, but the generated retrons are not the building_blocks and the retrons
-        cannot be generated without exceeding curr_depth threshold, return -0.5;
+        cannot be generated without exceeding current_depth threshold, return -0.5;
 
         If the reaction is successful, but the retrons are not the building_blocks and the retrons
         cannot be generated, return -1.0;
 
         :param retron: A Retron object
         :type retron: Retron
-        :param curr_depth: The current depth of the tree
-        :type curr_depth: int
+        :param current_depth: The current depth of the tree
+        :type current_depth: int
         """
 
-        max_depth = self.config.max_depth - curr_depth
+        max_depth = self.config.max_depth - current_depth
 
         # retron checking
         if retron.is_building_block(self.building_blocks, self.config.min_mol_size):
             return 1.0
 
         if max_depth == 0:
-            return -1.0
+            logging.debug("Rollout: tried to perform rollout on the leaf node")
+            return -0.5
 
         # retron simulating
         occurred_retrons = set()
-        retrons_to_expand = deque([retron.molecule])
+        retrons_to_expand = deque([retron])
         history = defaultdict(dict)
+        rollout_depth = 0
         while retrons_to_expand:
             # Iterate through reactors and pick first successful reaction.
             # Check products of the reaction if you can find them in in-building_blocks data
             # If not, then add missed products to retrons_to_expand and try to decompose them
             if len(history) >= max_depth:
-                reward = 0.0  # changed from -0.5
+                logging.debug(
+                    f"Rollout: max depth of rollout is reached with these "
+                    f"retrons to expand: {retrons_to_expand} {history}",
+                )
+                reward = -0.5
                 return reward
 
-            current_mol = retrons_to_expand.popleft()
-            history[curr_depth]["target"] = str(current_mol)
-            occurred_retrons.add(current_mol)
+            current_retron = retrons_to_expand.popleft()
+            history[rollout_depth]["target"] = current_retron
+            occurred_retrons.add(current_retron)
 
             # Pick the first successful reaction while iterating through reactors
-            current_retron = Retron(current_mol)
             reaction_rule_applied = False
             for prob, rule, rule_id in self.policy_function.predict_reaction_rules(
                 current_retron, self.reaction_rules
             ):
-                for products in apply_reaction_rule(current_mol, rule):
+                for products in apply_reaction_rule(current_retron.molecule, rule):
                     if products:
                         reaction_rule_applied = True
                         break
 
                 if reaction_rule_applied:
-                    history[curr_depth]["rule_index"] = rule_id
+                    history[rollout_depth]["rule_index"] = rule_id
                     break
 
             if not reaction_rule_applied:
-                logging.debug(f"Max curr_depth limited: %s", history)
+                logging.debug(
+                    f"Rollout: no reaction rule was applied for the "
+                    f"molecule {current_retron} on rollout depth {rollout_depth}"
+                )
                 reward = -1.0
                 return reward
 
-            history[curr_depth]["products"] = [str(res) for res in products]
+            products = tuple(Retron(product) for product in products)
+            history[rollout_depth]["products"] = products
 
             # check loops
             if any(x in occurred_retrons for x in products) and products:
                 # Sometimes manual can create a loop, when
-                logging.debug("Rollout got in the loop: %s", history)
+                logging.debug("Rollout: rollout got in the loop: %s", history)
                 # print('occurred_retrons')
                 reward = -1.0
                 return reward
@@ -624,13 +640,13 @@ class Tree:
                     [
                         x
                         for x in products
-                        if not Retron(x).is_building_block(
+                        if not x.is_building_block(
                             self.building_blocks, self.config.min_mol_size
                         )
-                        and len(x) > self.config.min_mol_size
                     ]
                 )
-                curr_depth += 1
+                rollout_depth += 1
+
         reward = 1.0
         return reward
 

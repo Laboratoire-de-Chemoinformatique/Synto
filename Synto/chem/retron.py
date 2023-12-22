@@ -13,7 +13,7 @@ class Retron:
     Retron class is used to extend the molecule behavior needed for interaction with a tree in MCTS
     """
 
-    def __init__(self, molecule: MoleculeContainer, canonicalize: bool = False):
+    def __init__(self, molecule: MoleculeContainer, canonicalize: bool = True):
         """
         It initializes a Retron object with a molecule container as a parameter.
 
@@ -35,6 +35,9 @@ class Retron:
         Returns the hash value of Retron.
         """
         return hash(self._molecule)
+
+    def __str__(self):
+        return str(self._molecule)
 
     def __eq__(self, other: "Retron"):
         """
@@ -90,7 +93,9 @@ class Retron:
             return str(self._molecule) in stock
 
 
-def compose_retrons(retrons: list = None, exclude_small=True, min_mol_size=6) -> MoleculeContainer:
+def compose_retrons(
+    retrons: list = None, exclude_small=True, min_mol_size=6
+) -> MoleculeContainer:
     """
     The function takes a list of retrons, excludes small retrons if specified, and composes them into a single molecule.
     This molecule is used for the prediction of synthesisability of the characterizing the possible success of the path
@@ -108,7 +113,9 @@ def compose_retrons(retrons: list = None, exclude_small=True, min_mol_size=6) ->
         return retrons[0].molecule
     elif len(retrons) > 1:
         if exclude_small:
-            big_retrons = [retron for retron in retrons if len(retron.molecule) > min_mol_size]
+            big_retrons = [
+                retron for retron in retrons if len(retron.molecule) > min_mol_size
+            ]
             if big_retrons:
                 retrons = big_retrons
         tmp_mol = retrons[0].molecule.copy()
@@ -118,6 +125,8 @@ def compose_retrons(retrons: list = None, exclude_small=True, min_mol_size=6) ->
                 new_number = tmp_mol.add_atom(atom.atomic_symbol)
                 transition_mapping[n] = new_number
             for atom, neighbor, bond in mol.molecule.bonds():
-                tmp_mol.add_bond(transition_mapping[atom], transition_mapping[neighbor], bond)
+                tmp_mol.add_bond(
+                    transition_mapping[atom], transition_mapping[neighbor], bond
+                )
             transition_mapping = {}
         return tmp_mol
