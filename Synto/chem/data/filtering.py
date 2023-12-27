@@ -17,7 +17,7 @@ from Synto.chem.utils import (
     remove_reagents,
     to_reaction_smiles_record,
 )
-from Synto.utils.config import ConfigABC
+from Synto.utils.config import ConfigABC, convert_config_to_dict
 
 
 @dataclass
@@ -596,39 +596,17 @@ class ReactionCheckConfig(ConfigABC):
     """
 
     # Configuration for reaction checkers
-    dynamic_bonds_config: Optional[DynamicBondsConfig] = field(
-        default_factory=DynamicBondsConfig
-    )
-    small_molecules_config: Optional[SmallMoleculesConfig] = field(
-        default_factory=SmallMoleculesConfig
-    )
-    strange_carbons_config: Optional[StrangeCarbonsConfig] = field(
-        default_factory=StrangeCarbonsConfig
-    )
-    compete_products_config: Optional[CompeteProductsConfig] = field(
-        default_factory=CompeteProductsConfig
-    )
-    cgr_connected_components_config: Optional[CGRConnectedComponentsConfig] = field(
-        default_factory=CGRConnectedComponentsConfig
-    )
-    rings_change_config: Optional[RingsChangeConfig] = field(
-        default_factory=RingsChangeConfig
-    )
-    no_reaction_config: Optional[NoReactionConfig] = field(
-        default_factory=NoReactionConfig
-    )
-    multi_center_config: Optional[MultiCenterConfig] = field(
-        default_factory=MultiCenterConfig
-    )
-    wrong_ch_breaking_config: Optional[WrongCHBreakingConfig] = field(
-        default_factory=WrongCHBreakingConfig
-    )
-    cc_sp3_breaking_config: Optional[CCsp3BreakingConfig] = field(
-        default_factory=CCsp3BreakingConfig
-    )
-    cc_ring_breaking_config: Optional[CCRingBreakingConfig] = field(
-        default_factory=CCRingBreakingConfig
-    )
+    dynamic_bonds_config: Optional[DynamicBondsConfig] = None
+    small_molecules_config: Optional[SmallMoleculesConfig] = None
+    strange_carbons_config: Optional[StrangeCarbonsConfig] = None
+    compete_products_config: Optional[CompeteProductsConfig] = None
+    cgr_connected_components_config: Optional[CGRConnectedComponentsConfig] = None
+    rings_change_config: Optional[RingsChangeConfig] = None
+    no_reaction_config: Optional[NoReactionConfig] = None
+    multi_center_config: Optional[MultiCenterConfig] = None
+    wrong_ch_breaking_config: Optional[WrongCHBreakingConfig] = None
+    cc_sp3_breaking_config: Optional[CCsp3BreakingConfig] = None
+    cc_ring_breaking_config: Optional[CCRingBreakingConfig] = None
 
     # Other configuration parameters
     rebalance_reaction: bool = False
@@ -641,10 +619,16 @@ class ReactionCheckConfig(ConfigABC):
         """
         Converts the configuration into a dictionary.
         """
-        return {
-            "dynamic_bonds_config": self.dynamic_bonds_config.to_dict(),
-            "small_molecules_config": self.small_molecules_config.to_dict(),
-            "compete_products_config": self.compete_products_config.to_dict(),
+        config_dict = {
+            "dynamic_bonds_config": convert_config_to_dict(
+                self.dynamic_bonds_config, DynamicBondsConfig
+            ),
+            "small_molecules_config": convert_config_to_dict(
+                self.small_molecules_config, SmallMoleculesConfig
+            ),
+            "compete_products_config": convert_config_to_dict(
+                self.compete_products_config, CompeteProductsConfig
+            ),
             "cgr_connected_components_config": {}
             if self.cgr_connected_components_config is not None
             else None,
@@ -670,15 +654,97 @@ class ReactionCheckConfig(ConfigABC):
             "small_molecules_max_size": self.small_molecules_max_size,
         }
 
+        filtered_config_dict = {k: v for k, v in config_dict.items() if v is not None}
+
+        return filtered_config_dict
+
     @staticmethod
     def from_dict(config_dict: Dict[str, Any]):
         """
         Create an instance of ReactionCheckConfig from a dictionary.
         """
-        config_dict = {
-            key: value for key, value in config_dict.items() if value is not None
-        }
-        return ReactionCheckConfig(**config_dict)
+        # Instantiate configuration objects if their corresponding dictionary is present
+        dynamic_bonds_config = (
+            DynamicBondsConfig(**config_dict["dynamic_bonds_config"])
+            if "dynamic_bonds_config" in config_dict
+            else None
+        )
+        small_molecules_config = (
+            SmallMoleculesConfig(**config_dict["small_molecules_config"])
+            if "small_molecules_config" in config_dict
+            else None
+        )
+        compete_products_config = (
+            CompeteProductsConfig(**config_dict["compete_products_config"])
+            if "compete_products_config" in config_dict
+            else None
+        )
+        cgr_connected_components_config = (
+            CGRConnectedComponentsConfig()
+            if "cgr_connected_components_config" in config_dict
+            else None
+        )
+        rings_change_config = (
+            RingsChangeConfig()
+            if "rings_change_config" in config_dict
+            else None
+        )
+        strange_carbons_config = (
+            StrangeCarbonsConfig()
+            if "strange_carbons_config" in config_dict
+            else None
+        )
+        no_reaction_config = (
+            NoReactionConfig()
+            if "no_reaction_config" in config_dict
+            else None
+        )
+        multi_center_config = (
+            MultiCenterConfig()
+            if "multi_center_config" in config_dict
+            else None
+        )
+        wrong_ch_breaking_config = (
+            WrongCHBreakingConfig()
+            if "wrong_ch_breaking_config" in config_dict
+            else None
+        )
+        cc_sp3_breaking_config = (
+            CCsp3BreakingConfig()
+            if "cc_sp3_breaking_config" in config_dict
+            else None
+        )
+        cc_ring_breaking_config = (
+            CCRingBreakingConfig()
+            if "cc_ring_breaking_config" in config_dict
+            else None
+        )
+
+        # Extract other simple configuration parameters
+        rebalance_reaction = config_dict.get("rebalance_reaction", False)
+        remove_reagents = config_dict.get("remove_reagents", True)
+        reagents_max_size = config_dict.get("reagents_max_size", 7)
+        remove_small_molecules = config_dict.get("remove_small_molecules", False)
+        small_molecules_max_size = config_dict.get("small_molecules_max_size", 6)
+
+        return ReactionCheckConfig(
+            dynamic_bonds_config=dynamic_bonds_config,
+            small_molecules_config=small_molecules_config,
+            compete_products_config=compete_products_config,
+            cgr_connected_components_config=cgr_connected_components_config,
+            rings_change_config=rings_change_config,
+            strange_carbons_config=strange_carbons_config,
+            no_reaction_config=no_reaction_config,
+            multi_center_config=multi_center_config,
+            wrong_ch_breaking_config=wrong_ch_breaking_config,
+            cc_sp3_breaking_config=cc_sp3_breaking_config,
+            cc_ring_breaking_config=cc_ring_breaking_config,
+            rebalance_reaction=rebalance_reaction,
+            remove_reagents=remove_reagents,
+            reagents_max_size=reagents_max_size,
+            remove_small_molecules=remove_small_molecules,
+            small_molecules_max_size=small_molecules_max_size,
+        )
 
     @staticmethod
     def from_yaml(file_path):
@@ -850,7 +916,7 @@ def process_completed_batches(futures, filtered_file, result_file, pbar, batch_s
 def filter_reactions(
     config: ReactionCheckConfig,
     reaction_database_path: str,
-    result_directory_name: str = "./",
+    result_directory_path: str = "./",
     result_reactions_file_name: str = "clean_reactions",
     filtered_reactions_file_name: str = "removed_reactions",
     output_files_format: str = "rdf",
@@ -864,7 +930,7 @@ def filter_reactions(
 
     :param config: ReactionCheckConfig object containing all configuration settings.
     :param reaction_database_path: Path to the reaction database file.
-    :param result_directory_name: Name of the directory to store results.
+    :param result_directory_path: Name of the directory to store results.
     :param output_files_format: Format of the output files (e.g., 'rdf').
     :param result_reactions_file_name: Name for the file containing cleaned reactions.
     :param filtered_reactions_file_name: Name for the file containing filtered reactions.
@@ -874,7 +940,7 @@ def filter_reactions(
     :return: None. The function writes the processed reactions to specified RDF and pickle files.
              Unique reactions are written if save_only_unique is True.
     """
-    result_directory = Path(result_directory_name)
+    result_directory = Path(result_directory_path)
     result_directory.mkdir(parents=True, exist_ok=True)
 
     checkers = config.create_checkers()

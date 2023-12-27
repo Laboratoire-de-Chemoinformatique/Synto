@@ -65,6 +65,22 @@ class ConfigABC(ABC):
         self._validate_params(params)
 
 
+def convert_config_to_dict(config_attr, config_type):
+    """
+    Converts a configuration attribute to a dictionary if it's either a dictionary
+    or an instance of a specified configuration type.
+
+    :param config_attr: The configuration attribute to be converted.
+    :param config_type: The type to check against for conversion.
+    :return: The configuration attribute as a dictionary, or None if it's not an instance of the given type or dict.
+    """
+    if isinstance(config_attr, dict):
+        return config_attr
+    elif isinstance(config_attr, config_type):
+        return config_attr.to_dict()
+    return None
+
+
 planning_config = {
     'General': {
         'num_cpus': 5,

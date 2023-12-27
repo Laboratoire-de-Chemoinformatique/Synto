@@ -37,10 +37,7 @@ torch-cluster = [{markers = "sys_platform == 'linux'", url="https://data.pyg.org
 pyg-lib = [{markers = "sys_platform == 'linux'", url="https://data.pyg.org/whl/torch-1.13.0%2Bcpu/pyg_lib-0.1.0+pt113cpu-cp310-cp310-linux_x86_64.whl"}]
 
 [tool.poetry.scripts]
-synto_planning_data = "Synto.interfaces.cli:download_planning_data_cli"
-synto_training_data = "Synto.interfaces.cli:download_training_data_cli"
-synto_planning = "Synto.interfaces.cli:synto_planning_cli"
-synto_training = "Synto.interfaces.cli:synto_training_cli"
+syntool = "Synto.interfaces.cli:syntool"
 
 [build-system]
 requires = ["poetry-core"]

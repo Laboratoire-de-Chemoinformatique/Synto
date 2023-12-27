@@ -6,6 +6,9 @@ from itertools import count, islice
 
 from CGRtools.containers import MoleculeContainer
 
+from Synto import Tree
+from Synto.utils import path_type
+
 
 def extract_routes(tree, extended=False):
     """
@@ -198,7 +201,7 @@ def path_graph(tree, node: int) -> str:
     return "\n".join(svg)
 
 
-def to_table(tree, html_path: str = "", aam: bool = False, extended=False):
+def to_table(tree: Tree, html_path: path_type, aam: bool = False, extended=False):
     """
     Write an HTML page with the synthesis paths in SVG format and corresponding reactions in SMILES format
 

@@ -11,7 +11,11 @@ from tqdm import tqdm
 
 from Synto.chem.utils import safe_canonicalization
 from Synto.interfaces.visualisation import to_table
-from Synto.mcts import Tree
+from Synto.mcts.tree import Tree, TreeConfig
+from Synto.mcts.evaluation import ValueFunction
+from Synto.mcts.expansion import PolicyConfig, PolicyFunction
+from Synto.utils import path_type
+from Synto.utils.files import MoleculeReader
 
 
 def extract_tree_stats(tree, target):
@@ -24,7 +28,9 @@ def extract_tree_stats(tree, target):
     :return: A dictionary with the calculated statistics
     """
     newick_tree, newick_meta = tree.newickify(visits_threshold=0)
-    newick_meta_line = ";".join([f"{nid},{v[0]},{v[1]},{v[2]}" for nid, v in newick_meta.items()])
+    newick_meta_line = ";".join(
+        [f"{nid},{v[0]},{v[1]},{v[2]}" for nid, v in newick_meta.items()]
+    )
     return {
         "target_smiles": str(target),
         "tree_size": len(tree),
@@ -36,58 +42,68 @@ def extract_tree_stats(tree, target):
 
 
 def tree_search(
-        config,
-        stats_name: str = 'tree_search_stats.csv',
-        retropaths_files_name: str = 'retropath',
-        logging_file_name: str = 'tree_search.log',
-        log_level: int = 10
+    tree_config: path_type,
+    reaction_rules: path_type,
+    building_blocks: path_type,
+    policy_weigths: path_type,
+    targets: path_type,
+    value_weights: path_type = None,
+    results_root: path_type = "search_results/",
+    stats_name: str = "tree_search_stats.csv",
+    retropaths_files_name: str = "retropath",
+    logging_file_name: str = "tree_search.log",
+    log_level: int = 10,
 ):
     """
-    The function performs a tree search on a set of target molecules stored in SDF file using a specified search
-    configuration, logging the results and statistics.
+    Performs a tree search on a set of target molecules using specified configuration and rules,
+    logging the results and statistics.
 
-    :param results_root: The path to the directory where the results of the tree search will be saved.
-    :param targets_file: The path to the file containing the target molecules. It should be in SDF format.
-    :param config: The path to a configuration file that contains the settings for the tree search algorithm.
-    :param stats_name: The name of the file where the statistics of the tree search will be saved.
-    :type stats_name: str (optional)
-    :param retropaths_files_name: The name of the files that will be generated to store the retro paths.
-    :type retropaths_files_name: str (optional)
-    :param logging_file_name: The name of the log file that will be created during the execution of the tree search
-    function. The log file will contain information about the progress and status of the tree searxh.
-    :type logging_file_name: str (optional)
-    :param log_level: The level of logging messages that will be recorded.
-    :type log_level: int (optional)
+    :param tree_config: The path to the YAML file containing the configuration for the tree search.
+    :param reaction_rules: The path to the file containing reaction rules.
+    :param building_blocks: The path to the file containing building blocks.
+    :param policy_weigths: The path to the file containing policy weights.
+    :param targets: The path to the file containing the target molecules (in SDF or SMILES format).
+    :param value_weights: The path to the file containing value weights (optional).
+    :param results_root: The path to the directory where the results of the tree search will be saved. Defaults to 'search_results/'.
+    :param stats_name: The name of the file where the statistics of the tree search will be saved. Defaults to 'tree_search_stats.csv'.
+    :param retropaths_files_name: The base name for the files that will be generated to store the retro paths. Defaults to 'retropath'.
+    :param logging_file_name: The name of the log file for recording the tree search process. Defaults to 'tree_search.log'.
+    :param log_level: The level of logging for recording messages. Defaults to 10.
+
+    This function configures and executes a tree search algorithm, leveraging reaction rules and building blocks
+    to find synthetic pathways for given target molecules. The results, including paths and statistics, are
+    saved in the specified directory. Logging is used to record the process and any issues encountered.
     """
 
+    policy_config = PolicyConfig(weights_path=policy_weigths)
+    policy_function = PolicyFunction(policy_config=policy_config)
+
+    value_function = None
+    if value_weights:
+        value_function = ValueFunction(weights_path=value_weights)
+
+    tree_config = TreeConfig.from_yaml(tree_config)
+
     # results folder
-    results_root = Path(config['General']['results_root'])
+    results_root = Path(results_root)
     if not results_root.exists():
         results_root.mkdir()
         print(f"Created results directory at {results_root}")
 
     # logging molecules_path
     logging_file = results_root.joinpath(logging_file_name)
-    logging.basicConfig(filename=logging_file, encoding='utf-8', level=log_level,
-                        format='%(asctime)s - %(levelname)s - %(message)s', datefmt='%d/%m/%Y %I:%M:%S %p')
+    logging.basicConfig(
+        filename=logging_file,
+        encoding="utf-8",
+        level=log_level,
+        format="%(asctime)s - %(levelname)s - %(message)s",
+        datefmt="%d/%m/%Y %I:%M:%S %p",
+    )
 
     # targets molecules_path
-    targets_file = Path(config['General']['targets_path'])
+    targets_file = Path(targets)
     assert targets_file.exists(), f"Target file at path {targets_file} does not exist"
-    assert targets_file.suffix == ".smi", "Only txt files are accepted"
-
-    # config molecules_path
-    if config["Tree"]["init_new_node_value"] is None:
-        logging.info(f"Evaluation strategy was chosen as extensive")
-        if config["Tree"]["evaluation_agg"] == "max":
-            logging.info(f"Update step will use max value of created children")
-        elif config["Tree"]["evaluation_agg"] == "avg":
-            logging.info(f"Update step will use average value of created children")
-        else:
-            raise ValueError(f"Parameter specified in Tree->evaluation_agg "
-                             f"is unknown: {config['Tree']['evaluation_agg']}")
-    else:
-        logging.info(f"Evaluation strategy was chosen as greedy")
+    assert targets_file.suffix == ".smi", "Only SMI files are accepted"
 
     # stats molecules_path
     if stats_name:
@@ -95,7 +111,16 @@ def tree_search(
             stats_name += ".csv"
     else:
         stats_name = targets_file.stem + ".csv"
-    stats_header = ["target_smiles", "tree_size", "search_time", "found_paths", "newick_tree", "newick_meta"]
+
+    stats_header = [
+        "target_smiles",
+        "tree_size",
+        "search_time",
+        "found_paths",
+        "newick_tree",
+        "newick_meta",
+    ]
+
     stats_file = results_root.joinpath(stats_name)
 
     logging.info(f"Stats file will be saved at {stats_file}")
@@ -103,29 +128,37 @@ def tree_search(
     # run search
     solved_trees = 0
     if retropaths_files_name is not None:
-        retropaths_folder = results_root.joinpath('retropaths')
+        retropaths_folder = results_root.joinpath("retropaths")
         retropaths_folder.mkdir(exist_ok=True)
     try:
-        with open(targets_file) as inp, open(stats_file, "w", newline="\n") as csvfile:
-
-            targets_list = [smiles(smi.strip()) for smi in inp.readlines()]
-            targets_list = [m for m in targets_list if m and type(m) is MoleculeContainer]
-            #
-            statswriter = csv.DictWriter(csvfile, delimiter=",", fieldnames=stats_header)
+        with MoleculeReader(targets_file, indexable=True) as inp, open(stats_file, "w", newline="\n") as csvfile:
+            statswriter = csv.DictWriter(
+                csvfile, delimiter=",", fieldnames=stats_header
+            )
             statswriter.writeheader()
 
-            print(f'Total number of target molecules: {len(targets_list)}')
-            for ti, target in tqdm(enumerate(targets_list), total=len(targets_list), position=0):
+            for ti, target in tqdm(
+                enumerate(inp), total=len(inp), position=0
+            ):
                 target = safe_canonicalization(target)
                 try:
-                    tree = Tree(target=target, config=config)
+                    tree = Tree(
+                        target=target,
+                        reaction_rules_path=reaction_rules,
+                        building_blocks_path=str(building_blocks),
+                        tree_config=tree_config,
+                        policy_function=policy_function,
+                        value_function=value_function,
+                    )
                     for solved, _ in tree:
                         if solved:
                             solved_trees += 1
                             break
 
                     if retropaths_files_name is not None:
-                        retropaths_file = retropaths_folder.joinpath(f"{retropaths_files_name}_target_{ti}.html")
+                        retropaths_file = retropaths_folder.joinpath(
+                            f"{retropaths_files_name}_target_{ti}.html"
+                        )
                         to_table(tree, retropaths_file, extended=True)
 
                     statistics = extract_tree_stats(tree, target)

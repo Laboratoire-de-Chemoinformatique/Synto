@@ -12,6 +12,7 @@ import yaml
 from Synto.chem.retron import Retron
 from Synto.ml.networks.policy import PolicyNetwork
 from Synto.ml.training import mol_to_pyg
+from Synto.utils import path_type
 from Synto.utils.config import ConfigABC
 
 
@@ -26,7 +27,7 @@ class PolicyConfig(ConfigABC):
     :ivar priority_rules_fraction: Fraction of priority rules. Defaults to 0.5.
     """
 
-    weights_path: Path = field(default_factory=Path)
+    weights_path: path_type
     top_rules: int = 50
     threshold: float = 0.0
     priority_rules_fraction: float = 0.5

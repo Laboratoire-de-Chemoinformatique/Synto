@@ -1,20 +1,25 @@
+from pathlib import Path
+
 from CGRtools.containers import ReactionContainer, MoleculeContainer, CGRContainer, QueryContainer
 from CGRtools.files.SMILESrw import SMILESRead
 from CGRtools.files.SDFrw import SDFRead, SDFWrite
 from CGRtools.files.RDFrw import RDFRead, RDFWrite
 
+from Synto.utils import path_type
+
 
 class FileHandler:
-    def __init__(self, filename: str, **kwargs):
+    def __init__(self, filename: path_type, **kwargs):
         """
         General class to handle chemical files.
 
         :param filename: the path and name of the file
-        :type filename: str
+        :type filename: path_type
 
         :return: None
         """
         self._file = None
+        filename = str(Path(filename).resolve(strict=True))
         ext = filename.split('.')[-1]
         file_types = {
             'smi': "SMI",
@@ -35,12 +40,12 @@ class FileHandler:
 
 
 class Reader(FileHandler):
-    def __init__(self, filename: str, **kwargs):
+    def __init__(self, filename: path_type, **kwargs):
         """
         General class to read chemical files.
 
         :param filename: the path and name of the file
-        :type filename: str
+        :type filename: path_type
 
         :return: None
         """
@@ -57,12 +62,12 @@ class Reader(FileHandler):
 
 
 class Writer(FileHandler):
-    def __init__(self, filename: str, mapping: bool = True, **kwargs):
+    def __init__(self, filename: path_type, mapping: bool = True, **kwargs):
         """
         General class to write chemical files.
 
         :param filename: the path and name of the file
-        :type filename: str
+        :type filename: path_type
 
         :param mapping: whenever to save mapping or not
         :type mapping: bool
@@ -77,12 +82,12 @@ class Writer(FileHandler):
 
 
 class ReactionReader(Reader):
-    def __init__(self, filename: str, **kwargs):
+    def __init__(self, filename: path_type, **kwargs):
         """
         Class to read reaction files.
 
         :param filename: the path and name of the file
-        :type filename: str
+        :type filename: path_type
 
         :return: None
         """
@@ -96,12 +101,12 @@ class ReactionReader(Reader):
 
 
 class ReactionWriter(Writer):
-    def __init__(self, filename: str, append_results: bool = False, mapping: bool = True, **kwargs):
+    def __init__(self, filename: path_type, append_results: bool = False, mapping: bool = True, **kwargs):
         """
         Class to write reaction files.
 
         :param filename: the path and name of the file
-        :type filename: str
+        :type filename: path_type
 
         :param append_results: whenever to append the new reactions (True) or to override the file (False)
         :type append_results: bool
@@ -137,18 +142,18 @@ class ReactionWriter(Writer):
 
 
 class MoleculeReader(Reader):
-    def __init__(self, filename: str, **kwargs):
+    def __init__(self, filename: path_type, **kwargs):
         """
         Class to read molecule files.
 
         :param filename: the path and name of the file
-        :type filename: str
+        :type filename: path_type
 
         :return: None
         """
         super().__init__(filename, **kwargs)
         if self._file_type == "SMI":
-            self._file = SMILESRead(filename, **kwargs)
+            self._file = SMILESRead(filename, ignore=True, **kwargs)
         elif self._file_type == "SDF":
             self._file = SDFRead(filename, **kwargs)
         else:
@@ -156,12 +161,12 @@ class MoleculeReader(Reader):
 
 
 class MoleculeWriter(Writer):
-    def __init__(self, filename: str, append_results: bool = False, mapping: bool = True, **kwargs):
+    def __init__(self, filename: path_type, append_results: bool = False, mapping: bool = True, **kwargs):
         """
         Class to write molecule files.
 
         :param filename: the path and name of the file
-        :type filename: str
+        :type filename: path_type
 
         :param append_results: whenever to append the new molecules (True) or to override the file (False)
         :type append_results: bool
