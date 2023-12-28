@@ -42,12 +42,12 @@ def extract_tree_stats(tree, target):
 
 
 def tree_search(
-    tree_config: path_type,
-    reaction_rules: path_type,
-    building_blocks: path_type,
-    policy_weigths: path_type,
     targets: path_type,
-    value_weights: path_type = None,
+    tree_config: TreeConfig,
+    reaction_rules_path: path_type,
+    building_blocks_path: path_type,
+    policy_weights_path: path_type,
+    value_weights_paths: path_type = None,
     results_root: path_type = "search_results/",
     stats_name: str = "tree_search_stats.csv",
     retropaths_files_name: str = "retropath",
@@ -59,11 +59,11 @@ def tree_search(
     logging the results and statistics.
 
     :param tree_config: The path to the YAML file containing the configuration for the tree search.
-    :param reaction_rules: The path to the file containing reaction rules.
-    :param building_blocks: The path to the file containing building blocks.
-    :param policy_weigths: The path to the file containing policy weights.
+    :param reaction_rules_path: The path to the file containing reaction rules.
+    :param building_blocks_path: The path to the file containing building blocks.
+    :param policy_weights_path: The path to the file containing policy weights.
     :param targets: The path to the file containing the target molecules (in SDF or SMILES format).
-    :param value_weights: The path to the file containing value weights (optional).
+    :param value_weights_paths: The path to the file containing value weights (optional).
     :param results_root: The path to the directory where the results of the tree search will be saved. Defaults to 'search_results/'.
     :param stats_name: The name of the file where the statistics of the tree search will be saved. Defaults to 'tree_search_stats.csv'.
     :param retropaths_files_name: The base name for the files that will be generated to store the retro paths. Defaults to 'retropath'.
@@ -75,14 +75,12 @@ def tree_search(
     saved in the specified directory. Logging is used to record the process and any issues encountered.
     """
 
-    policy_config = PolicyConfig(weights_path=policy_weigths)
+    policy_config = PolicyConfig(weights_path=policy_weights_path)
     policy_function = PolicyFunction(policy_config=policy_config)
 
     value_function = None
-    if value_weights:
-        value_function = ValueFunction(weights_path=value_weights)
-
-    tree_config = TreeConfig.from_yaml(tree_config)
+    if tree_config.evaluation_mode == 'gcn':
+        value_function = ValueFunction(weights_path=value_weights_paths)
 
     # results folder
     results_root = Path(results_root)
@@ -131,22 +129,20 @@ def tree_search(
         retropaths_folder = results_root.joinpath("retropaths")
         retropaths_folder.mkdir(exist_ok=True)
     try:
-        with MoleculeReader(targets_file, indexable=True) as inp, open(stats_file, "w", newline="\n") as csvfile:
-            statswriter = csv.DictWriter(
-                csvfile, delimiter=",", fieldnames=stats_header
-            )
+        with MoleculeReader(targets_file) as inp, open(stats_file, "w", newline="\n") as csvfile:
+            statswriter = csv.DictWriter(csvfile, delimiter=",", fieldnames=stats_header)
             statswriter.writeheader()
 
-            for ti, target in tqdm(
-                enumerate(inp), total=len(inp), position=0
-            ):
+            targets_list = [m for m in inp.read()]
+
+            for ti, target in tqdm(enumerate(targets_list), total=len(targets_list), position=0):
                 target = safe_canonicalization(target)
                 try:
                     tree = Tree(
                         target=target,
-                        reaction_rules_path=reaction_rules,
-                        building_blocks_path=str(building_blocks),
                         tree_config=tree_config,
+                        reaction_rules_path=reaction_rules_path,
+                        building_blocks_path=building_blocks_path,
                         policy_function=policy_function,
                         value_function=value_function,
                     )
@@ -156,9 +152,7 @@ def tree_search(
                             break
 
                     if retropaths_files_name is not None:
-                        retropaths_file = retropaths_folder.joinpath(
-                            f"{retropaths_files_name}_target_{ti}.html"
-                        )
+                        retropaths_file = retropaths_folder.joinpath(f"{retropaths_files_name}_target_{ti}.html")
                         to_table(tree, retropaths_file, extended=True)
 
                     statistics = extract_tree_stats(tree, target)

@@ -134,6 +134,7 @@ class RankingPolicyDataset(InMemoryDataset):
 
         processed_data = []
         with RDFRead(self.reactions_path, indexable=True) as inp:
+
             inp.reset_index()
             for reaction_id, rule_id in tqdm(dataset.items()):
                 reaction: ReactionContainer = inp[reaction_id]

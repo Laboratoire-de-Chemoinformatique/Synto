@@ -14,128 +14,13 @@ import yaml
 from CGRtools.containers import MoleculeContainer
 from numpy.random import uniform
 from tqdm.auto import tqdm
-
 from Synto.chem.loading import load_building_blocks, load_reaction_rules
 from Synto.chem.reaction import Reaction, apply_reaction_rule
 from Synto.chem.retron import Retron
 from Synto.mcts.evaluation import ValueFunction
 from Synto.mcts.expansion import PolicyFunction
 from Synto.mcts.node import Node
-from Synto.utils.config import ConfigABC
-
-
-@dataclass
-class TreeConfig(ConfigABC):
-    """
-    Configuration class for the tree-based search algorithm, inheriting from ConfigABC.
-
-    :ivar max_iterations: The number of iterations to run the algorithm for, defaults to 100.
-    :ivar max_tree_size: The maximum number of nodes in the tree, defaults to 10000.
-    :ivar max_time: The time limit (in seconds) for the algorithm to run, defaults to 600.
-    :ivar max_depth: The maximum depth of the tree, defaults to 6.
-    :ivar ucb_type: Type of UCB used in the search algorithm. Options are "puct", "uct", "value", defaults to "uct".
-    :ivar c_ucb: The exploration-exploitation balance coefficient used in Upper Confidence Bound (UCB), defaults to 0.1.
-    :ivar backprop_type: Type of backpropagation algorithm. Options are "muzero", "cumulative", defaults to "muzero".
-    :ivar search_strategy: The strategy used for tree search. Options are "expansion_first", "evaluation_first", defaults to "expansion_first".
-    :ivar exclude_small: Whether to exclude small molecules during the search, defaults to True.
-    :ivar evaluation_agg: Method for aggregating evaluation scores. Options are "max", "average", defaults to "max".
-    :ivar evaluation_mode: The method used for evaluating nodes. Options are "random", "rollout", "gcn", defaults to "gcn".
-    :ivar init_node_value: Initial value for a new node, defaults to 0.0.
-    :ivar epsilon: A parameter in the epsilon-greedy search strategy representing the chance of random selection
-    of reaction rules during the selection stage in Monte Carlo Tree Search,
-    specifically during Upper Confidence Bound estimation.
-    It balances between exploration and exploitation, defaults to 0.0.
-    :ivar min_mol_size: Defines the minimum size of a molecule that is have to be synthesized.
-    Molecules with 6 or fewer heavy atoms are assumed to be building blocks by definition,
-    thus setting the threshold for considering larger molecules in the search, defaults to 6.
-    :ivar silent: Whether to suppress progress output, defaults to False.
-    """
-
-    max_iterations: int = 100
-    max_tree_size: int = 10000
-    max_time: float = 600
-    max_depth: int = 6
-    ucb_type: str = "uct"
-    c_ucb: float = 0.1
-    backprop_type: str = "muzero"
-    search_strategy: str = "expansion_first"
-    exclude_small: bool = True
-    evaluation_agg: str = "max"
-    evaluation_mode: str = "gcn"
-    init_node_value: float = 0.0
-    epsilon: float = 0.0
-    min_mol_size: int = 6
-    silent: bool = False
-
-    @staticmethod
-    def from_dict(config_dict: Dict[str, Any]):
-        """
-        Creates a TreeConfig instance from a dictionary of configuration parameters.
-
-        Args:
-            config_dict: A dictionary containing configuration parameters.
-
-        Returns:
-            An instance of TreeConfig.
-        """
-        return TreeConfig(**config_dict)
-
-    @staticmethod
-    def from_yaml(file_path: str):
-        """
-        Deserializes a YAML file into a TreeConfig object.
-
-        Args:
-            file_path: Path to the YAML file containing configuration parameters.
-
-        Returns:
-            An instance of TreeConfig.
-        """
-        with open(file_path, "r") as file:
-            config_dict = yaml.safe_load(file)
-        return TreeConfig.from_dict(config_dict)
-
-    def _validate_params(self, params):
-        if params["ucb_type"] not in ["puct", "uct", "value"]:
-            raise ValueError(
-                "Invalid ucb_type. Allowed values are 'puct', 'uct', 'value'."
-            )
-        if params["backprop_type"] not in ["muzero", "cumulative"]:
-            raise ValueError(
-                "Invalid backprop_type. Allowed values are 'muzero', 'cumulative'."
-            )
-        if params["evaluation_mode"] not in ["random", "rollout", "gcn"]:
-            raise ValueError(
-                "Invalid evaluation_mode. Allowed values are 'random', 'rollout', 'gcn'."
-            )
-        if params["evaluation_agg"] not in ["max", "average"]:
-            raise ValueError(
-                "Invalid evaluation_agg. Allowed values are 'max', 'average'."
-            )
-        if not isinstance(params["c_ucb"], float):
-            raise TypeError("c_ucb must be a float.")
-        if not isinstance(params["max_depth"], int) or params["max_depth"] < 1:
-            raise ValueError("max_depth must be a positive integer.")
-        if not isinstance(params["max_tree_size"], int) or params["max_tree_size"] < 1:
-            raise ValueError("max_tree_size must be a positive integer.")
-        if (
-            not isinstance(params["max_iterations"], int)
-            or params["max_iterations"] < 1
-        ):
-            raise ValueError("max_iterations must be a positive integer.")
-        if not isinstance(params["max_time"], int) or params["max_time"] < 1:
-            raise ValueError("max_time must be a positive integer.")
-        if not isinstance(params["silent"], bool):
-            raise TypeError("silent must be a boolean.")
-        if params["init_node_value"] is not None and not isinstance(
-            params["init_node_value"], float
-        ):
-            raise TypeError("init_node_value must be a float if provided.")
-        if params["search_strategy"] not in ["expansion_first", "evaluation_first"]:
-            raise ValueError(
-                f"Invalid search_strategy: {params['search_strategy']}: "
-                f"Allowed values are 'expansion_first', 'evaluation_first'"
-            )
+from Synto.utils.config import TreeConfig
 
 
 class Tree:
@@ -146,9 +31,9 @@ class Tree:
     def __init__(
         self,
         target: MoleculeContainer,
+        tree_config: TreeConfig,
         reaction_rules_path: str,
         building_blocks_path: str,
-        tree_config: TreeConfig,
         policy_function: PolicyFunction,
         value_function: ValueFunction = None,
     ):
@@ -193,6 +78,7 @@ class Tree:
         # utils
         self._tqdm = None
 
+        # policy and value functions
         self.policy_function = policy_function
         if self.config.evaluation_mode == "gcn":
             if value_function is None:
@@ -202,20 +88,9 @@ class Tree:
             else:
                 self.value_function = value_function
 
-        # # networks loading
-        # self.policy_function = PolicyFunction(policy_config)
-        # if self.config.evaluation_mode == "gcn":
-        #     self.value_function = ValueFunction(value_weights_path)
-
         # building blocks and reaction reaction_rules
         self.reaction_rules = load_reaction_rules(reaction_rules_path)
         self.building_blocks = load_building_blocks(building_blocks_path)
-
-        # check if target is building_block
-        if target_retron.is_building_block(
-            self.building_blocks, self.config.min_mol_size
-        ):
-            raise ValueError("Target is building block \n")
 
     def __len__(self) -> int:
         """
@@ -246,6 +121,9 @@ class Tree:
         """
         The __next__ function is used to do one iteration of the tree building.
         """
+
+        if self.nodes[1].curr_retron.is_building_block(self.building_blocks, self.config.min_mol_size):
+            raise StopIteration("Target is building block \n")
 
         if self.curr_iteration >= self.config.max_iterations:
             self._tqdm.close()

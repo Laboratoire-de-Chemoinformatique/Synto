@@ -24,16 +24,22 @@ class PolicyNetworkConfig(ConfigABC):
     :ivar learning_rate: Learning rate for the optimizer.
     :ivar num_conv_layers: Number of convolutional layers in the network.
     :ivar num_epoch: Number of training epochs.
-    :ivar mode: Mode of operation, either 'filtering' or 'ranking'.
+    :ivar policy_type: Mode of operation, either 'filtering' or 'ranking'.
     """
-
+    policy_type: str = "ranking"
     vector_dim: int = 256
     batch_size: int = 500
     dropout: float = 0.4
     learning_rate: float = 0.008
     num_conv_layers: int = 5
     num_epoch: int = 100
-    mode: str = "ranking"
+    weights_path: str = None
+    threshold: float = 0.0
+    
+    # for filtering policy
+    priority_rules_fraction: float = 0.5
+    rule_prob_threshold: float = 0.0
+    top_rules: int = 50
 
     @staticmethod
     def from_dict(config_dict: Dict[str, Any]) -> 'PolicyNetworkConfig':
@@ -58,6 +64,10 @@ class PolicyNetworkConfig(ConfigABC):
         return PolicyNetworkConfig.from_dict(config_dict)
 
     def _validate_params(self, params: Dict[str, Any]):
+
+        if params['policy_type'] not in ["filtering", "ranking"]:
+            raise ValueError("policy_type must be either 'filtering' or 'ranking'.")
+
         if not isinstance(params['vector_dim'], int) or params['vector_dim'] <= 0:
             raise ValueError("vector_dim must be a positive integer.")
 
@@ -76,8 +86,14 @@ class PolicyNetworkConfig(ConfigABC):
         if not isinstance(params['learning_rate'], float) or params['learning_rate'] <= 0.0:
             raise ValueError("learning_rate must be a positive float.")
 
-        if params['mode'] not in ["filtering", "ranking"]:
-            raise ValueError("mode must be either 'filtering' or 'ranking'.")
+        if not isinstance(params['priority_rules_fraction'], float) or params['priority_rules_fraction'] < 0.0:
+            raise ValueError("priority_rules_fraction must be a non-negative positive float.")
+
+        if not isinstance(params['rule_prob_threshold'], float) or params['rule_prob_threshold'] < 0.0:
+            raise ValueError("rule_prob_threshold must be a non-negative float.")
+
+        if not isinstance(params['top_rules'], int) or params['top_rules'] <= 0:
+            raise ValueError("top_rules must be a positive integer.")
 
 
 class PolicyNetwork(MCTSNetwork, LightningModule, ABC):
@@ -85,7 +101,7 @@ class PolicyNetwork(MCTSNetwork, LightningModule, ABC):
     Policy value network
     """
 
-    def __init__(self, n_rules, vector_dim, mode="filtering", *args, **kwargs):
+    def __init__(self, n_rules, vector_dim, policy_type="filtering", *args, **kwargs):
         """
         Initializes a policy network with the given number of reaction rules (output dimension) and vector graph
         embedding dimension, and creates linear layers for predicting the regular and priority reaction rules.
@@ -95,10 +111,10 @@ class PolicyNetwork(MCTSNetwork, LightningModule, ABC):
         """
         super(PolicyNetwork, self).__init__(vector_dim, *args, **kwargs)
         self.save_hyperparameters()
-        self.mode = mode
+        self.policy_type = policy_type
         self.n_rules = n_rules
         self.y_predictor = Linear(vector_dim, n_rules)
-        if self.mode == "filtering":
+        if self.policy_type == "filtering":
             self.priority_predictor = Linear(vector_dim, n_rules)
 
     def forward(self, batch):
@@ -112,11 +128,11 @@ class PolicyNetwork(MCTSNetwork, LightningModule, ABC):
         """
         x = self.embedder(batch, self.batch_size)
         y = self.y_predictor(x)
-        if self.mode == "filtering":
+        if self.policy_type == "filtering":
             y = torch.sigmoid(y)
             priority = torch.sigmoid(self.priority_predictor(x))
             return y, priority
-        elif self.mode == "ranking":
+        elif self.policy_type == "ranking":
             y = torch.softmax(y, dim=-1)
             return y
 
@@ -131,7 +147,7 @@ class PolicyNetwork(MCTSNetwork, LightningModule, ABC):
         x = self.embedder(batch, self.batch_size)
         pred_y = self.y_predictor(x)
 
-        if self.mode == "ranking":
+        if self.policy_type == "ranking":
             true_one_hot = one_hot(true_y, num_classes=self.n_rules)
             loss = cross_entropy(pred_y, true_one_hot.float())
             ba_y = (
@@ -144,7 +160,7 @@ class PolicyNetwork(MCTSNetwork, LightningModule, ABC):
                 'balanced_accuracy_y': ba_y,
                 'f1_score_y': f1_y
             }
-        elif self.mode == "filtering":
+        elif self.policy_type == "filtering":
             loss_y = binary_cross_entropy_with_logits(pred_y, true_y.float())
             ba_y = (
                            recall(pred_y, true_y, task="multilabel", num_labels=self.n_rules) +
@@ -173,6 +189,6 @@ class PolicyNetwork(MCTSNetwork, LightningModule, ABC):
                 'f1_score_priority': f1_priority
             }
         else:
-            raise ValueError(f"Invalid mode: {self.mode}")
+            raise ValueError(f"Invalid mode: {self.policy_type}")
 
         return metrics

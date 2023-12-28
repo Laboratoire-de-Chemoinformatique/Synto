@@ -11,36 +11,47 @@ DataCleaning:
   clean_reactions: true
   standardize_building_blocks: true
 ReactionRules:
-  min_popularity: 5
+  min_popularity: 3
+  keep_leaving_groups: true
+  reaction_center_neighbors: true
+  reaction_center_hybridization: true
+  reaction_center_implicit_hydrogens: false
+  reaction_center_ring_sizes: false
+  environment_neighbors: true
+  environment_hybridization: false
+  environment_implicit_hydrogens: false
+  environment_ring_sizes: false
 Tree:
   backprop_type: muzero
-  c_usb: 0.1
+  c_ucb: 0.1
   evaluation_agg: max
   evaluation_mode: gcn
-  init_new_node_value: null
+  init_node_value: 0.0
   max_depth: 6
-  max_iterations: 10
+  max_iterations: 100
   max_time: 600
   max_tree_size: 1000000
   ucb_type: uct
-  verbose: false
+  silent: true
 SelfTuning:
   batch_size: 5
   num_simulations: 1
 PolicyNetwork:
-  batch_size: 500
+  policy_type: ranking
+  batch_size: 3
   dropout: 0.4
   learning_rate: 0.0005
   num_conv_layers: 5
-  num_epoch: 100
+  num_epoch: 10
   priority_rules_fraction: 0.5
   rule_prob_threshold: 0.0
   top_rules: 50
   vector_dim: 512
+  threshold: 0
 ValueNetwork:
-  batch_size: 500
+  batch_size: 2
   dropout: 0.4
   learning_rate: 0.0005
   num_conv_layers: 5
-  num_epoch: 100
+  num_epoch: 10
   vector_dim: 512

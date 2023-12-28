@@ -8,21 +8,21 @@ InputData:
   building_blocks_path: tests/synto_training_data_small/building_blocks/building_blocks.smi
   standardize_building_blocks: true
 PolicyNetwork:
-  weights_path: tests/synto_trained_models/policy_network/policy_network.ckpt
+  weights_path: tests/synto_trained_models/policy_network/weights/policy_network.ckpt
   priority_rules_fraction: 0.5
   top_rules: 50
   rule_prob_threshold: 0.0
 ValueNetwork:
-  weights_path: tests/synto_trained_models/value_network/value_network.ckpt
+  weights_path: tests/synto_trained_models/value_network/weights/value_network.ckpt
 Tree:
   ucb_type: uct
-  c_usb: 0.1
-  max_depth: 6
-  max_iterations: 10
-  max_time: 120
+  c_ucb: 0.1
+  max_depth: 9
+  max_iterations: 100
+  max_time: 1200
   max_tree_size: 100000
-  verbose: true
+  silent: true
   evaluation_mode: gcn
   evaluation_agg: max
   backprop_type: muzero
-  init_new_node_value: null
+  init_node_value: 0.0

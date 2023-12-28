@@ -4,13 +4,11 @@ Module containing functions with fixed protocol for reaction rules extraction
 import logging
 import pickle
 from collections import defaultdict
-from dataclasses import dataclass, field
 from itertools import islice
 from pathlib import Path
 from typing import List, Union, Tuple, IO, Dict, Set, Iterable, Any
 
 import ray
-import yaml
 from CGRtools.containers import MoleculeContainer, QueryContainer, ReactionContainer
 from CGRtools.exceptions import InvalidAromaticRing
 from CGRtools.files import RDFRead, RDFWrite
@@ -18,196 +16,14 @@ from CGRtools.reactor import Reactor
 from tqdm.auto import tqdm
 
 from Synto.chem.utils import reverse_reaction
-from Synto.utils.config import ConfigABC
-
-
-@dataclass
-class ExtractRuleConfig(ConfigABC):
-    """
-    Configuration class for extracting reaction rules, inheriting from ConfigABC.
-
-    :ivar multicenter_rules: If True, extracts a single rule encompassing all centers.
-                             If False, extracts separate reaction rules for each reaction center in a multicenter reaction.
-    :ivar as_query_container: If True, the extracted rules are generated as QueryContainer objects,
-                              analogous to SMARTS objects for pattern matching in chemical structures.
-    :ivar reverse_rule: If True, reverses the direction of the reaction for rule extraction.
-    :ivar reactor_validation: If True, validates each generated rule in a chemical reactor to ensure correct
-                              generation of products from reactants.
-    :ivar include_func_groups: If True, includes specific functional groups in the reaction rule in addition
-                               to the reaction center and its environment.
-    :ivar func_groups_list: A list of functional groups to be considered when include_func_groups is True.
-    :ivar include_rings: If True, includes ring structures in the reaction rules.
-    :ivar keep_leaving_groups: If True, retains leaving groups in the extracted reaction rule.
-    :ivar keep_incoming_groups: If True, retains incoming groups in the extracted reaction rule.
-    :ivar keep_reagents: If True, includes reagents in the extracted reaction rule.
-    :ivar environment_atom_count: Defines the size of the environment around the reaction center to be included
-                                  in the rule (0 for only the reaction center, 1 for the first environment, etc.).
-    :ivar min_popularity: Minimum number of times a rule must be applied to be considered for further analysis.
-    :ivar keep_metadata: If True, retains metadata associated with the reaction in the extracted rule.
-    :ivar single_reactant_only: If True, includes only reaction rules with a single reactant molecule.
-    :ivar atom_info_retention: Controls the amount of information about each atom to retain ('none',
-                                'reaction_center', or 'all').
-    """
-
-    multicenter_rules: bool = True
-    as_query_container: bool = True
-    reverse_rule: bool = True
-    reactor_validation: bool = True
-    include_func_groups: bool = False
-    func_groups_list: List[Union[MoleculeContainer, QueryContainer]] = field(
-        default_factory=list
-    )
-    include_rings: bool = False
-    keep_leaving_groups: bool = False
-    keep_incoming_groups: bool = False
-    keep_reagents: bool = False
-    environment_atom_count: int = 1
-    min_popularity: int = 3
-    keep_metadata: bool = False
-    single_reactant_only: bool = True
-    atom_info_retention: Dict[str, Dict[str, bool]] = field(default_factory=dict)
-
-    def __post_init__(self):
-        super().__post_init__()
-        self._validate_params(self.to_dict())
-        self._initialize_default_atom_info_retention()
-
-    def _initialize_default_atom_info_retention(self):
-        default_atom_info = {
-            "reaction_center": {
-                "neighbors": True,
-                "hybridization": True,
-                "implicit_hydrogens": True,
-                "ring_sizes": True,
-            },
-            "environment": {
-                "neighbors": True,
-                "hybridization": True,
-                "implicit_hydrogens": True,
-                "ring_sizes": True,
-            },
-        }
-
-        if not self.atom_info_retention:
-            self.atom_info_retention = default_atom_info
-        else:
-            for key in default_atom_info:
-                self.atom_info_retention[key].update(
-                    self.atom_info_retention.get(key, {})
-                )
-
-    @staticmethod
-    def from_dict(config_dict: Dict[str, Any]):
-        """
-        Creates an ExtractRuleConfig instance from a dictionary of configuration parameters.
-
-        :ivar config_dict: A dictionary containing configuration parameters.
-        :return: An instance of ExtractRuleConfig.
-        """
-        return ExtractRuleConfig(**config_dict)
-
-    @staticmethod
-    def from_yaml(file_path: str):
-        """
-        Deserializes a YAML file into an ExtractRuleConfig object.
-
-        :ivar file_path: Path to the YAML file containing configuration parameters.
-        :return: An instance of ExtractRuleConfig.
-        """
-        with open(file_path, "r") as file:
-            config_dict = yaml.safe_load(file)
-        return ExtractRuleConfig.from_dict(config_dict)
-
-    def _validate_params(self, params: Dict[str, Any]):
-        """
-        Validate the parameters of the configuration.
-        """
-        if not isinstance(params["multicenter_rules"], bool):
-            raise ValueError("multicenter_rules must be a boolean.")
-
-        if not isinstance(params["as_query_container"], bool):
-            raise ValueError("as_query_container must be a boolean.")
-
-        if not isinstance(params["reverse_rule"], bool):
-            raise ValueError("reverse_rule must be a boolean.")
-
-        if not isinstance(params["reactor_validation"], bool):
-            raise ValueError("reactor_validation must be a boolean.")
-
-        if not isinstance(params["include_func_groups"], bool):
-            raise ValueError("include_func_groups must be a boolean.")
-
-        if params["func_groups_list"] is not None and not all(
-            isinstance(group, (MoleculeContainer, QueryContainer))
-            for group in params["func_groups_list"]
-        ):
-            raise ValueError(
-                "func_groups_list must be a list of MoleculeContainer or QueryContainer objects."
-            )
-
-        if not isinstance(params["include_rings"], bool):
-            raise ValueError("include_rings must be a boolean.")
-
-        if not isinstance(params["keep_leaving_groups"], bool):
-            raise ValueError("keep_leaving_groups must be a boolean.")
-
-        if not isinstance(params["keep_incoming_groups"], bool):
-            raise ValueError("keep_incoming_groups must be a boolean.")
-
-        if not isinstance(params["keep_reagents"], bool):
-            raise ValueError("keep_reagents must be a boolean.")
-
-        if not isinstance(params["environment_atom_count"], int):
-            raise ValueError("environment_atom_count must be an integer.")
-
-        if not isinstance(params["min_popularity"], int):
-            raise ValueError("min_popularity must be an integer.")
-
-        if not isinstance(params["keep_metadata"], bool):
-            raise ValueError("keep_metadata must be a boolean.")
-
-        if not isinstance(params["single_reactant_only"], bool):
-            raise ValueError("single_reactant_only must be a boolean.")
-
-        if params["atom_info_retention"] is not None:
-            if not isinstance(params["atom_info_retention"], dict):
-                raise ValueError("atom_info_retention must be a dictionary.")
-
-            required_keys = {"reaction_center", "environment"}
-            if not required_keys.issubset(params["atom_info_retention"]):
-                missing_keys = required_keys - set(params["atom_info_retention"].keys())
-                raise ValueError(
-                    f"atom_info_retention missing required keys: {missing_keys}"
-                )
-
-            for key, value in params["atom_info_retention"].items():
-                if key not in required_keys:
-                    raise ValueError(f"Unexpected key in atom_info_retention: {key}")
-
-                expected_subkeys = {
-                    "neighbors",
-                    "hybridization",
-                    "implicit_hydrogens",
-                    "ring_sizes",
-                }
-                if not isinstance(value, dict) or not expected_subkeys.issubset(value):
-                    missing_subkeys = expected_subkeys - set(value.keys())
-                    raise ValueError(
-                        f"Invalid structure for {key} in atom_info_retention. Missing subkeys: {missing_subkeys}"
-                    )
-
-                for subkey, subvalue in value.items():
-                    if not isinstance(subvalue, bool):
-                        raise ValueError(
-                            f"Value for {subkey} in {key} of atom_info_retention must be boolean."
-                        )
+from Synto.utils.config import ExtractRuleConfig
 
 
 def extract_rules_from_reactions(
     config: ExtractRuleConfig,
     reaction_file: str,
     results_root: str,
-    rules_file_name: str,
+    rules_file_name: str = 'reaction_rules',
     num_cpus: int = 1,
     batch_size: int = 10,
 ) -> None:
@@ -216,7 +32,7 @@ def extract_rules_from_reactions(
 
     This function initializes a Ray environment for distributed computing and processes each reaction
     in the provided reaction database to extract reaction rules. It handles the reactions in batches,
-    parallelizing the rule extraction process. Extracted rules are written to RDF files and their statistics
+    parallelize the rule extraction process. Extracted rules are written to RDF files and their statistics
     are recorded. The function also sorts the rules based on their popularity and saves the sorted rules.
 
     :param config: Configuration settings for rule extraction, including file paths, batch size, and other parameters.
@@ -228,7 +44,27 @@ def extract_rules_from_reactions(
 
     :return: None
     """
+    # create reaction rules config
+    rules_config = ExtractRuleConfig(
+        min_popularity=config['ReactionRules']['min_popularity'],
+        keep_leaving_groups=config['ReactionRules']['keep_leaving_groups'],
+        atom_info_retention={
+            "reaction_center": {
+                "neighbors": config['ReactionRules']['reaction_center_neighbors'],
+                "hybridization": config['ReactionRules']['reaction_center_hybridization'],
+                "implicit_hydrogens": config['ReactionRules']['reaction_center_implicit_hydrogens'],
+                "ring_sizes": config['ReactionRules']['reaction_center_ring_sizes'],
+            },
+            "environment": {
+                "neighbors": config['ReactionRules']['environment_neighbors'],
+                "hybridization": config['ReactionRules']['environment_hybridization'],
+                "implicit_hydrogens": config['ReactionRules']['environment_implicit_hydrogens'],
+                "ring_sizes": config['ReactionRules']['environment_ring_sizes'],
+            },
+        }
+    )
 
+    # read files
     reaction_file = Path(reaction_file).resolve(strict=True)
     results_root = Path(results_root)
     results_root.mkdir(parents=True, exist_ok=True)
@@ -237,9 +73,7 @@ def extract_rules_from_reactions(
 
     with RDFRead(reaction_file, indexable=True) as reactions:
         total_reactions = len(reactions)
-        pbar = tqdm(
-            total=total_reactions, disable=False
-        )  # TODO progress bar disappears after finishing
+        pbar = tqdm(total=total_reactions, disable=False)  # TODO progress bar disappears after finishing
 
         futures = {}
         batch = []
@@ -252,7 +86,7 @@ def extract_rules_from_reactions(
             for index, reaction in enumerate(reactions):
                 batch.append((index, reaction))
                 if len(batch) == batch_size:
-                    future = process_reaction_batch.remote(batch, config)
+                    future = process_reaction_batch.remote(batch, rules_config)
                     futures[future] = None
                     batch = []
 
@@ -262,7 +96,7 @@ def extract_rules_from_reactions(
                         )
 
             if batch:
-                future = process_reaction_batch.remote(batch, config)
+                future = process_reaction_batch.remote(batch, rules_config)
                 futures[future] = None
 
             while futures:
@@ -279,8 +113,8 @@ def extract_rules_from_reactions(
 
         sorted_rules = sort_rules(
             rules_statistics,
-            min_popularity=config.min_popularity,
-            single_reactant_only=config.single_reactant_only,
+            min_popularity=rules_config.min_popularity,
+            single_reactant_only=rules_config.single_reactant_only,
         )
 
         with open(

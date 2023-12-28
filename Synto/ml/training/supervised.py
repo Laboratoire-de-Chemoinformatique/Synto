@@ -82,7 +82,6 @@ def run_policy_training(
     datamodule: LightningDataset,
     config: PolicyNetworkConfig,
     results_path: str,
-    experiment_name: str = "policy_network",
     accelerator: str = "gpu",
     devices: list = [0],
     silent=True,
@@ -94,7 +93,6 @@ def run_policy_training(
      loading, processing, and preparing the training data for the model.
     :param config: The dictionary that contains various configuration settings for the policy training process.
     :param results_path: Path to store the training results and logs.
-    :param experiment_name: The name of the experiment. Defaults to "policy_network".
     :param accelerator: The type of hardware accelerator to use for training (e.g., 'gpu', 'cpu').
                                      Defaults to "gpu".
     :param devices: A list of device indices to use for training. Defaults to [0].
@@ -126,15 +124,15 @@ def run_policy_training(
         dropout=config.dropout,
         num_conv_layers=config.num_conv_layers,
         learning_rate=config.learning_rate,
-        mode=config.mode,
+        policy_type=config.policy_type,
     )
 
     lr_monitor = LearningRateMonitor(logging_interval="epoch")
-    logger = CSVLogger(logs_path, name=experiment_name)
+    logger = CSVLogger(logs_path, name=results_path)
 
     checkpoint = ModelCheckpoint(
         dirpath=weights_path,
-        filename=experiment_name,
+        filename='policy_network',
         monitor="val_loss",
         mode="min",
     )
@@ -164,3 +162,6 @@ def run_policy_training(
         )
 
         trainer.fit(network, datamodule)
+
+    ba = round(trainer.logged_metrics['train_balanced_accuracy_y_step'].item(), 3)
+    print(f'Policy network balanced accuracy: {ba}')

@@ -28,6 +28,14 @@ from Synto.ml.training.preprocessing import ValueNetworkDataset
 from Synto.chem.retron import compose_retrons
 from Synto.utils.logging import DisableLogger, HiddenPrints
 from Synto.mcts.search import extract_tree_stats
+from Synto.chem.loading import load_building_blocks, load_reaction_rules
+from Synto.ml.networks.policy import PolicyNetwork
+from Synto.ml.networks.value import SynthesabilityValueNetwork
+from Synto.ml.training.loading import load_policy_net, load_value_net
+from Synto.mcts.expansion import PolicyConfig, PolicyFunction
+from Synto.mcts.evaluation import ValueFunction
+from Synto.ml.networks.policy import PolicyNetworkConfig
+from Synto.mcts.tree import TreeConfig
 
 
 def create_targets_batch(experiment_root=None, targets_file=None, tmp_file_id=None, batch_slices=None):
@@ -135,8 +143,21 @@ def run_tree_search(target=None, config=None):
         target = smiles(target)
         target.canonicalize()
 
-    # initialize tree.
-    tree = Tree(target=target, config=config)
+    # policy and value function loading
+    # TODO solve this problem between network and policy config
+    policy_config = PolicyNetworkConfig.from_dict(config['PolicyNetwork'])
+    policy_function = PolicyFunction(policy_config=policy_config)
+    value_function = ValueFunction(config['ValueNetwork']['weights_path'])
+
+    # initialize tree
+    tree_config = TreeConfig.from_dict(config['Tree'])
+    tree = Tree(target=target,
+                tree_config=tree_config,
+                reaction_rules_path=config['InputData']['reaction_rules_path'],
+                building_blocks_path=config['InputData']['building_blocks_path'],
+                policy_function=policy_function,
+                value_function=value_function,
+                )
 
     # remove target from buildings blocs
     if str(target) in tree.building_blocks:
@@ -148,25 +169,26 @@ def run_tree_search(target=None, config=None):
     return tree
 
 
-def create_tuning_set(processed_molecules_path):
+def create_tuning_set(processed_molecules_path, batch_size=1):
     """
     Creates a tuning dataset from a given processed molecules extracted from the trees from the
     planning stage and returns a LightningDataset object with a specified batch size for tuning value neural network.
 
+    :param batch_size:
     :param processed_molecules_path: The path to the directory where the processed molecules is stored
     :return: A LightningDataset object, which contains the tuning sets for value network tuning
     """
 
     full_dataset = ValueNetworkDataset(processed_molecules_path)
-    train_size = int(0.8 * len(full_dataset))
+    train_size = int(0.6 * len(full_dataset))
     val_size = len(full_dataset) - train_size
 
     train_set, val_set = random_split(full_dataset, [train_size, val_size], torch.Generator().manual_seed(42))
 
-    logging.info(f"Train Size: {len(train_set)}")
-    logging.info(f"Val Size: {len(val_set)}")
+    print(f"Training set size: {len(train_set)}")
+    print(f"Validation set size: {len(val_set)}")
 
-    return LightningDataset(train_set, val_set, batch_size=256, pin_memory=True)
+    return LightningDataset(train_set, val_set, batch_size=batch_size, pin_memory=True, drop_last=True)
 
 
 def tune_value_network(value_net, datamodule, experiment_root: Path, simul_id=0, n_epoch=100):
@@ -191,9 +213,8 @@ def tune_value_network(value_net, datamodule, experiment_root: Path, simul_id=0,
 
     with DisableLogger() as DL, HiddenPrints() as HP:
         trainer = Trainer(accelerator="gpu", devices=[0], max_epochs=n_epoch, callbacks=[lr_monitor], logger=logger,
-            gradient_clip_val=1.0, enable_progress_bar=False)
+                          gradient_clip_val=1.0, enable_progress_bar=False)
         trainer.fit(value_net, datamodule)
-
         val_score = trainer.validate(value_net, datamodule.val_dataloader())[0]
         trainer.save_checkpoint(current_weights)
     #
@@ -221,7 +242,7 @@ def run_training(processed_molecules_path=None, simul_id=None, config=None, expe
         config_weights_path = Path(config["ValueNetwork"]["weights_path"])
         if config_weights_path.exists():
             logging.info(f"Trainer loaded weights from {config_weights_path}")
-            value_net = load_value_net(SynthesabilityValueNetwork, config)
+            value_net = load_value_net(SynthesabilityValueNetwork, config["ValueNetwork"]["weights_path"])
 
     if value_net is None:
         all_weigths = sorted(weights_path.glob("*.ckpt"))
@@ -229,9 +250,9 @@ def run_training(processed_molecules_path=None, simul_id=None, config=None, expe
         if all_weigths:
             config["ValueNetwork"]["weights_path"] = all_weigths[-1]
             logging.info(f"Trainer loaded weights from {all_weigths[-1]}")
-            value_net = load_value_net(SynthesabilityValueNetwork, config)
+            value_net = load_value_net(SynthesabilityValueNetwork, config["ValueNetwork"]["weights_path"])
 
-    training_set = create_tuning_set(processed_molecules_path)
+    training_set = create_tuning_set(processed_molecules_path, batch_size=config["ValueNetwork"]["batch_size"])
     tune_value_network(value_net, training_set, experiment_root, simul_id, n_epoch=config["ValueNetwork"]["num_epoch"])
 
 
@@ -265,7 +286,7 @@ def run_planning(simul_id: int, config: dict,
             config_weights_path = Path(config["ValueNetwork"]["weights_path"])
             if config_weights_path.exists():
                 logging.info(f"Simulation loaded weights from {config_weights_path}")
-                value_net = load_value_net(SynthesabilityValueNetwork, config)
+                value_net = load_value_net(SynthesabilityValueNetwork, config["ValueNetwork"]["weights_path"])
 
         if value_net is None:
             weights_path = experiment_root.joinpath("weights")
@@ -274,7 +295,7 @@ def run_planning(simul_id: int, config: dict,
             if all_weights:
                 config["ValueNetwork"]["weights_path"] = all_weights[-1]
                 logging.info(f"Simulation loaded weights from {all_weights[-1]}")
-                value_net = load_value_net(SynthesabilityValueNetwork, config)
+                value_net = load_value_net(SynthesabilityValueNetwork, config["ValueNetwork"]["weights_path"])
 
         if not value_net:
             logging.info(f"Trainer init model without loading weights")
@@ -320,8 +341,8 @@ def run_planning(simul_id: int, config: dict,
         stats_writer.writeheader()
 
         # run tree search for targets
-        config["Tree"]["verbose"] = False
-        print(f'Process batch number {targets_batch_id}')
+        config["Tree"]["silent"] = True
+        print(f'\nProcess batch number {targets_batch_id}')
         for target_id, target in tqdm(enumerate(inp), total=batch_len):
             tree = run_tree_search(target, config)
             processed_molecules = extract_tree_retrons(tree, processed_molecules=processed_molecules)
