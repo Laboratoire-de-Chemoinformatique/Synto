@@ -155,6 +155,7 @@ def synto_training_cli(config_path):
         raise ValueError(
             "Invalid policy_type. Allowed values are 'ranking', 'filtering'."
         )
+
     datamodule = create_policy_dataset(reaction_rules_path=reaction_rules_path,
                                        molecules_or_reactions_path=molecules_or_reactions_path,
                                        output_path=policy_data_file,
