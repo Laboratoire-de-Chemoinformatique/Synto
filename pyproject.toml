@@ -1,12 +1,12 @@
 [tool.poetry]
-name = "synto"
+name = "syntool"
 version = "0.9.0"
-description = "Synthesis tool"
+description = "Chemocal synthesis planning tool"
 authors = ["Laboratoire de Chemoinformatique <tagirshin@gmail.com>"]
 license = "MIT"
 readme = "README.rst"
 packages = [
-    { include = "Synto", from = "." },
+    { include = "Syntool", from = "." },
 ]
 
 [tool.poetry.dependencies]
@@ -37,7 +37,10 @@ torch-cluster = [{markers = "sys_platform == 'linux'", url="https://data.pyg.org
 pyg-lib = [{markers = "sys_platform == 'linux'", url="https://data.pyg.org/whl/torch-1.13.0%2Bcpu/pyg_lib-0.1.0+pt113cpu-cp310-cp310-linux_x86_64.whl"}]
 
 [tool.poetry.scripts]
-syntool = "Synto.interfaces.cli:syntool"
+syntool_planning_data = "Syntool.interfaces.cli:download_planning_data_cli"
+syntool_training_data = "Syntool.interfaces.cli:download_training_data_cli"
+syntool_planning = "Syntool.interfaces.cli:syntool_planning_cli"
+syntool_training = "Syntool.interfaces.cli:syntool_training_cli"
 
 [build-system]
 requires = ["poetry-core"]

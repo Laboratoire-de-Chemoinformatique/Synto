@@ -7,9 +7,9 @@ import logging
 
 import torch
 
-from Synto.ml.networks.value import SynthesabilityValueNetwork
-from Synto.ml.training import mol_to_pyg
-from Synto.chem.retron import compose_retrons
+from Syntool.ml.networks.value import SynthesabilityValueNetwork
+from Syntool.ml.training import mol_to_pyg
+from Syntool.chem.retron import compose_retrons
 
 
 class ValueFunction:

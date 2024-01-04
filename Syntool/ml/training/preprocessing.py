@@ -23,8 +23,8 @@ from torch_geometric.data.makedirs import makedirs
 from torch_geometric.transforms import ToUndirected
 from tqdm import tqdm
 
-from Synto.chem.loading import load_reaction_rules
-from Synto.chem.utils import unite_molecules
+from Syntool.chem.loading import load_reaction_rules
+from Syntool.chem.utils import unite_molecules
 
 
 class ValueNetworkDataset(InMemoryDataset, ABC):

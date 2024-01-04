@@ -1,6 +1,6 @@
-Synto - SYNthesis planning TOol
+Syntool - Synthesis planning tool
 ========
-Synto is a tool for chemical synthesis planning based on Monte-Carlo Tree Search (MCTS)
+Syntool is a tool for chemical synthesis planning based on Monte-Carlo Tree Search (MCTS)
 with various implementations of policy and value functions.
 
 
@@ -66,14 +66,14 @@ For example, on Ubuntu we can install miniconda and set an environment in which 
     bash Miniconda3-latest-Linux-x86_64.sh
 
     # install poetry
-    conda create -n synto -c conda-forge "poetry=1.3.2" "python=3.10" -y
-    conda activate synto
+    conda create -n syntool -c conda-forge "poetry=1.3.2" "python=3.10" -y
+    conda activate syntool
 
     # install Synto
-    git clone https://github.com/Laboratoire-de-Chemoinformatique/Synto.git
+    git clone https://github.com/Laboratoire-de-Chemoinformatique/Syntool.git
 
-    # navigate to the Synto folder and run the following command:
-    cd Synto/
+    # navigate to the Syntool folder and run the following command:
+    cd Syntool/
     poetry install --with cpu
 
 If Poetry fails with error, a possible solution is to update the bashrc file with the following command:
@@ -89,18 +89,15 @@ After installation, one can add the Synto environment in their Jupyter platform:
 
 .. code-block:: bash
 
-    python -m ipykernel install --user --name synto --display-name "synto"
+    python -m ipykernel install --user --name synto --display-name "syntool"
 
 Usage
 ------------
 The usage is mostly optimized for the command line interface.
 Here are some implemented commands:
 
-* synto_planning
-* synto_training
-* synto_extract_rules
-* synto_policy_training
-* synto_self_tuning
+* syntool_planning
+* syntool_training
 
 Each command has a description that can be called with ``command --help``
 
@@ -108,15 +105,15 @@ Run retrosynthetic planning
 ^^^^^^^^^^^
 .. code-block:: bash
 
-    synto_planning_data
-    synto_planning --config="planning_config.yaml"
+    syntool_planning_data
+    syntool_planning --config="planning_config.yaml"
 
 Run training from scratch
 ^^^^^^^^^^^
 .. code-block:: bash
 
-    synto_training_data
-    synto_training --config="training_config.yaml"
+    syntool_training_data
+    syntool_training --config="training_config.yaml"
 
 
 Documentation
@@ -129,5 +126,5 @@ Tests
 
 .. code-block:: bash
 
-    synto_training --config="configs/training_config.yaml"
-    synto_planning --config="configs/planning_config.yaml"
+    syntool_training --config="configs/training_config.yaml"
+    syntool_planning --config="configs/planning_config.yaml"
