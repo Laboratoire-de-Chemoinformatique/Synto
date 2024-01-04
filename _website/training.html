@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Training &#8212; Syntool 1.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=4f649999" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=039e1c02" />
+    <script src="_static/documentation_options.js?v=f2a433a1"></script>
+    <script src="_static/doctools.js?v=888ff710"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Planning" href="planning.html" />
+    <link rel="prev" title="Tree search" href="tree_search.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="training">
+<h1>Training<a class="headerlink" href="#training" title="Link to this heading">¶</a></h1>
+<p><strong>Data</strong></p>
+<p>The following data files are required for retrosynthetic models training with Synto:</p>
+<p><cite>reaction_data.rdf</cite> - dataset of reactions for extraction of reaction rules</p>
+<p><cite>policy_molecules.sdf</cite> - dataset of molecules for training policy neural network</p>
+<p><cite>value_molecules.sdf</cite> - dataset of targets for self-tuning of value neural network</p>
+<p><cite>building_blocks.txt</cite> - building blocks in SMILES format (.smi or .txt)</p>
+<p><strong>Configuration</strong></p>
+<p>Retrosynthetic models training is configured with the <cite>config_training.yaml</cite> configuration file:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">General</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">results_root</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">synto_training_data</span>
+<span class="w">  </span><span class="nt">reaction_rules_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">synto_training_data/reaction_rules/reaction_rules.pickle</span>
+<span class="w">  </span><span class="nt">building_blocks_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">synto_training_data/building_blocks/building_blocks.pickle</span>
+<span class="w">  </span><span class="nt">num_cpus</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10</span>
+<span class="w">  </span><span class="nt">num_gpus</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
+<span class="nt">Tree</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">max_depth</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">6</span>
+<span class="w">  </span><span class="nt">max_iterations</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span>
+<span class="w">  </span><span class="nt">evaluation_mode</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">gcn</span>
+<span class="w">  </span><span class="nt">verbose</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<span class="nt">ReactionRules</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">results_root</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">synto_training_data/reaction_rules</span>
+<span class="w">  </span><span class="nt">reaction_data_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">synto_training_data/reaction_data/reaction_data.rdf</span>
+<span class="nt">SelfTuning</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">results_root</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">synto_training_data/value_network</span>
+<span class="w">  </span><span class="nt">dataset_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">synto_training_data/value_molecules/value_molecules.sdf</span>
+<span class="nt">PolicyNetwork</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">results_root</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">synto_training_data/policy_network</span>
+<span class="w">  </span><span class="nt">dataset_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">synto_training_data/policy_molecules/policy_molecules.sdf</span>
+<span class="w">  </span><span class="nt">datamodule_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">synto_training_data/policy_network/policy_dataset.pt</span>
+<span class="w">  </span><span class="nt">weights_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">synto_training_data/policy_network/policy_network.ckpt</span>
+<span class="nt">ValueNetwork</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">results_root</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">synto_training_data/value_network</span>
+<span class="w">  </span><span class="nt">weights_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">synto_training_data/value_network/value_network.ckpt</span>
+</pre></div>
+</div>
+<p><strong>Full-pipeline execution</strong></p>
+<p>For running retrosynthetic models training one needs three commands: (i) download training data
+(ii) prepare building blocks (canonicalize, standardize) (iii) run training pipeline:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>synto_training_data
+synto_building_blocks<span class="w"> </span>--input<span class="o">=</span><span class="s2">&quot;synto_training_data/building_blocks.txt&quot;</span><span class="w"> </span>--output<span class="o">=</span><span class="s2">&quot;synto_training_data/building_blocks.txt&quot;</span><span class="w"> </span><span class="c1"># skip for loaded data</span>
+synto_training<span class="w"> </span>--config<span class="o">=</span><span class="s2">&quot;training_config.yaml&quot;</span>
+</pre></div>
+</div>
+<p><strong>Step-by-step execution</strong></p>
+<ul class="simple">
+<li><p>synto_training_data</p></li>
+<li><p>synto_building_blocks</p></li>
+<li><p>synto_extract_rules</p></li>
+<li><p>synto_policy_training</p></li>
+<li><p>synto_self_tuning</p></li>
+</ul>
+<p><strong>Run planning on trained networks</strong></p>
+<p>Extracted reaction rules and trained policy and value networks can be used in retrosynthesis planning:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">General</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">reaction_rules_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">synto_training_data/reaction_rules/reaction_rules.pickle</span>
+<span class="w">  </span><span class="nt">building_blocks_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">synto_training_data/building_blocks/building_blocks.txt</span>
+<span class="nt">PolicyNetwork</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">weights_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">synto_training_data/policy_network/policy_network.ckpt</span>
+<span class="nt">ValueNetwork</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">weights_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">synto_training_data/value_network/value_network.ckpt</span>
+<span class="nt">Tree</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">max_depth</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">9</span><span class="w">  </span><span class="c1"># maximum depth of tree</span>
+<span class="w">  </span><span class="nt">max_iterations</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">100</span><span class="w">  </span><span class="c1"># maximum number of iterations</span>
+<span class="w">  </span><span class="nt">max_time</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">600</span><span class="w">  </span><span class="c1"># search time limit</span>
+<span class="w">  </span><span class="nt">evaluation_mode</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">gcn</span>
+<span class="w">  </span><span class="nt">verbose</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span><span class="w">  </span><span class="c1"># tree search progress bar</span>
+</pre></div>
+</div>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">Syntool</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="interfaces.html">Interfaces</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_cleaning.html">Data cleaning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reaction_rules.html">Reaction rules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="expansion_function.html">Expansion function</a></li>
+<li class="toctree-l1"><a class="reference internal" href="evaluation_function.html">Evaluation function</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tree_search.html">Tree search</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="planning.html">Planning</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="tree_search.html" title="previous chapter">Tree search</a></li>
+      <li>Next: <a href="planning.html" title="next chapter">Planning</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2023, University of Strasbourg.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 7.2.6</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
+      
+      |
+      <a href="_sources/training.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

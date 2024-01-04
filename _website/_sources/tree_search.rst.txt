@@ -1,0 +1,20 @@
+Tree search
+================
+
+The tree search is configured using the TreeConfig class. Key parameters include:
+
+* max_iterations: Defines the total number of iterations the algorithm will perform, essentially setting a limit on how many times the tree search loop can run. The default is 100 iterations.
+* max_tree_size: Sets the upper limit on the total number of nodes that can exist in the search tree, controlling the size and complexity of the tree. The default value is 10,000 nodes.
+* max_time: Specifies a time limit for the algorithm's execution, measured in seconds. This prevents the search from running indefinitely. The default time limit is 600 seconds (10 minutes).
+* max_depth: Determines the maximum depth of the tree, effectively controlling how far the search can go from the root node. The default maximum depth is 6 levels.
+* ucb_type: Chooses the type of Upper Confidence Bound (UCB) algorithm used in the search. Options include "puct" (predictive UCB), "uct" (standard UCB), and "value". The default is "uct".
+* c_ucb: This is the exploration-exploitation balance coefficient in UCB, which influences how much the algorithm favors the exploration of new paths versus the exploitation of known paths. The default coefficient is 0.1.
+* backprop_type: Selects the backpropagation method used during the search. Options are "muzero" (model-based approach) and "cumulative" (cumulative reward approach). The default is "muzero".
+* search_strategy: Determines the strategy for navigating the tree. Options are "expansion_first" (prioritizing the expansion of new nodes) and "evaluation_first" (prioritizing the evaluation of existing nodes). The default strategy is "expansion_first".
+* exclude_small: A boolean setting that, when true, excludes small molecules from the search, typically focusing on more complex molecules. The default is set to True.
+* evaluation_agg: This setting determines how the evaluation scores are aggregated. Options are "max" (using the maximum score) and "average" (using the average score). The default method is "max".
+* evaluation_mode: Defines the method used for node evaluation. Options include "random" (random evaluations), "rollout" (using rollout simulations), and "gcn" (graph convolutional networks). The default is "gcn".
+* init_node_value: Sets the initial value for newly created nodes in the tree. This can impact how nodes are prioritized during the search. The default initial value is 0.0.
+* epsilon: This parameter is used in the epsilon-greedy strategy during node selection, representing the probability of choosing a random action for exploration. A higher value leads to more exploration. The default value is 0.0.
+* min_mol_size: Defines the minimum size of a molecule (in terms of the number of heavy atoms) to be considered in the search. Molecules smaller than this threshold are typically considered readily available building blocks. The default is set to 6 heavy atoms.
+* silent: When set to True, this option suppresses the progress output of the tree search, keeping the output clean and focused. The default setting is False.

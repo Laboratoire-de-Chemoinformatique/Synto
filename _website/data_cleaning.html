@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Data cleaning &#8212; Syntool 1.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=4f649999" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=039e1c02" />
+    <script src="_static/documentation_options.js?v=f2a433a1"></script>
+    <script src="_static/doctools.js?v=888ff710"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Reaction rules" href="reaction_rules.html" />
+    <link rel="prev" title="Configuration" href="configuration.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="data-cleaning">
+<h1>Data cleaning<a class="headerlink" href="#data-cleaning" title="Link to this heading">¶</a></h1>
+<p>The reaction data are cleaned and preprocessed using our protocol for reaction data curation [<a class="reference external" href="https://doi.org/10.1002/minf.202100119">https://doi.org/10.1002/minf.202100119</a>].
+The protocol for reaction data curation consists of two parts: reaction mapping and reaction data cleaning.</p>
+<dl class="simple">
+<dt>The reaction data cleaning (standardization) protocol includes several steps such as:</dt><dd><ul class="simple">
+<li><p>transform functional groups, kekulize</p></li>
+<li><p>check for radicals (remove if something was found), isotopes, regroup ions</p></li>
+<li><p>check valences (remove if something is wrong)</p></li>
+<li><p>aromatize (thiele method)</p></li>
+<li><p>fix mapping (for symmetric functional groups) if such is in</p></li>
+<li><p>remove unchanged parts, explicit hydrogens</p></li>
+<li><p>remove reaction duplicate</p></li>
+</ul>
+</dd>
+</dl>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">from</span> <span class="nn">CGRtools</span> <span class="kn">import</span> <span class="n">smiles</span>
+<span class="kn">from</span> <span class="nn">CGRtools.files</span> <span class="kn">import</span> <span class="n">RDFRead</span>
+<span class="kn">from</span> <span class="nn">Synto.chem.data.standardizer</span> <span class="kn">import</span> <span class="n">Standardizer</span>
+
+<span class="n">reaction</span> <span class="o">=</span> <span class="n">smiles</span><span class="p">(</span><span class="s1">&#39;C1CC(CCC1)=O.CC(C)(C)NN.N#[C-]&gt;Cl.O.[Na+]&gt;CC(C)(C)NNC1(CCCCC1)C#N&#39;</span><span class="p">)</span>
+<span class="n">reaction</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s1">&#39;Reaction_ID&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+
+<span class="c1"># set logger</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">()</span>
+<span class="n">logger</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">)</span>
+
+<span class="c1"># check reaction</span>
+<span class="n">standardizer</span> <span class="o">=</span> <span class="n">Standardizer</span><span class="p">(</span><span class="n">skip_errors</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                            <span class="n">keep_unbalanced_ions</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                            <span class="n">id_tag</span><span class="o">=</span><span class="s1">&#39;Reaction_ID&#39;</span><span class="p">,</span>
+                            <span class="n">keep_reagents</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                            <span class="n">ignore_mapping</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                            <span class="n">action_on_isotopes</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                            <span class="n">skip_tautomerize</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                            <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">)</span>
+
+<span class="n">reaction</span> <span class="o">=</span> <span class="n">standardizer</span><span class="o">.</span><span class="n">standardize</span><span class="p">(</span><span class="n">reaction</span><span class="p">)</span>
+
+<span class="o">&gt;&gt;</span> <span class="n">INFO</span><span class="p">:</span><span class="n">root</span><span class="p">:</span><span class="n">Reaction</span> <span class="mf">0.</span><span class="o">.</span>
+<span class="o">&gt;&gt;</span> <span class="n">INFO</span><span class="p">:</span><span class="n">root</span><span class="p">:</span><span class="n">Reaction</span> <span class="mi">0</span><span class="p">:</span> <span class="n">Ions</span> <span class="n">were</span> <span class="n">split</span> <span class="n">but</span> <span class="n">the</span> <span class="n">reaction</span> <span class="ow">is</span> <span class="n">imbalanced</span><span class="o">..</span>
+</pre></div>
+</div>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">Syntool</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="interfaces.html">Interfaces</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Data cleaning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reaction_rules.html">Reaction rules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="expansion_function.html">Expansion function</a></li>
+<li class="toctree-l1"><a class="reference internal" href="evaluation_function.html">Evaluation function</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tree_search.html">Tree search</a></li>
+<li class="toctree-l1"><a class="reference internal" href="training.html">Training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="planning.html">Planning</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="configuration.html" title="previous chapter">Configuration</a></li>
+      <li>Next: <a href="reaction_rules.html" title="next chapter">Reaction rules</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2023, University of Strasbourg.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 7.2.6</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
+      
+      |
+      <a href="_sources/data_cleaning.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

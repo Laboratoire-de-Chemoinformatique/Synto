@@ -1,0 +1,125 @@
+Reaction rules
+===========================
+
+Syntool has an original protocol for reaction rule extraction
+
+Reaction mapping
+---------------------------
+Reaction atom-to-atom (AAM) mapping in Synto is performed with GraphormerMapper, a new algorithm for AAM based on a transformer
+neural network adopted for the direct processing of molecular graphs as sets of atoms and bonds, as opposed to SMILES/SELFIES
+sequence-based approaches, in combination with the Bidirectional Encoder Representations from Transformers (BERT) network.
+The graph transformer serves to extract molecular features that are tied to atoms and bonds. The BERT network is used for
+chemical transformation learning. In a benchmarking study, it was demonstrated [https://doi.org/10.1021/acs.jcim.2c00344]
+that GraphormerMapper is superior to the state-of-the-art IBM RxnMapper algorithm in the “Golden” benchmarking data set
+(total correctly mapped reactions 89.5% vs. 84.5%).
+
+.. code-block:: python
+
+    from chython import smiles
+
+    chython_reaction = smiles('C(O)CBr.O=S(=O)(CC)Cl>C(C)OCC>O=S(=O)(CC)OCCBr')
+    chython_reaction.reset_mapping()
+    mapped_smiles = format(chython_reaction, 'm')
+    print(mapped_smiles)
+    >> [CH2:1]([CH2:3][Br:4])[OH:2].[O:5]=[S:6](=[O:7])([CH2:8][CH3:9])[Cl:10]>[CH3:21][CH2:20][O:22][CH2:23][CH3:24]>[O:5]=[S:6](=[O:7])([CH2:8][CH3:9])[O:2][CH2:1][CH2:3][Br:4]
+
+Reaction filtration
+---------------------------
+In Syntool, reaction data filtration is a crucial step to ensure the quality and accuracy of the data used for retrosynthesis analysis.
+The USPTO dataset, a standardized but unfiltered collection of reaction records, serves as the primary data source.
+However, this dataset may contain records with no reaction center or atom-to-atom mapping errors. To address this, we apply
+several filters:
+
+    * No Reaction Filter: Removes reactions with identical reactants and products.
+    * Small Molecules Filter: Excludes reactions where all reactants and products have ≤ specified number of heavy atoms.
+    * Reaction Distance Filter: Discards reactions with more than specified changed bonds.
+    * Multi-Center Reaction Filter: Eliminates records with multiple reaction centers.
+    * Csp3-C Breaking Filter: Removes reactions where a bond between two sp3 carbons is broken, indicating potential mapping errors.
+    * C-C Ring Breaking Filter: Filters out reactions breaking a bond between two carbons in the same ring (sizes 5, 6, or 7), identified using the SSSR algorithm.
+    * C-H Breaking Filter: Removes reactions breaking a C-H bond to form a C-C bond, with exceptions for condensation reactions or those involving carbenes.
+
+Reaction rule extraction
+---------------------------
+After filtering the reaction data, the next crucial step in Synto is the extraction of reaction rules. This process is vital
+for retrosynthetic analysis, as it defines the patterns and transformations that can be applied to synthesize target molecules.
+The protocol for extracting retro-rules from reactions in Synto utilizes the CGRtools Python library. This procedure involves the
+following steps:
+
+    * Substructure Extraction: For each reactant and product in a given reaction, substructures containing the atoms of the reaction center and their immediate environment are extracted.
+    * Substructure Exchange: The reactant and product substructures are then exchanged.
+    * Reagents Handling: If the reaction includes reagents, they are not incorporated into the retro-rule.
+    * Label Preservation: All labels related to the atoms of the reaction center, such as hybridization, the number of neighbors, and the ring sizes in which the atoms participate, are preserved. For atoms in the first environment, only the sizes of rings are preserved.
+
+A retrosynthetic transformation formed by this protocol is applied to the product of the original reaction. If it successfully
+generates the reactants of the reaction, the rule is considered valid.
+
+The ExtractRuleConfig class in Synto allows for the fine-tuning of how reaction rules are extracted. Key parameters of this class include:
+
+* multicenter_rules: Determines whether a single rule is extracted for all centers in multicenter reactions (True) or if separate rules are generated for each center (False). The default is True.
+* as_query_container: When set to True, the extracted rules are formatted as QueryContainer objects, similar to SMARTS for chemical pattern matching. The default is True.
+* reverse_rule: If True, the direction of the reaction is reversed during rule extraction, which is useful for retrosynthesis. The default is True.
+* reactor_validation: Activates the validation of each generated rule in a chemical reactor to confirm the accurate generation of products from reactants when set to True. The default is True.
+* include_func_groups: If True, specific functional groups are included in the reaction rule in addition to the reaction center and its environment. The default is False.
+* func_groups_list: Specifies a list of functional groups to be included when include_func_groups is True.
+* include_rings: Includes ring structures in the reaction rules connected to the reaction center atoms if set to True. The default is False.
+* keep_leaving_groups: Keeps the leaving groups in the extracted reaction rule when set to True. The default is False.
+* keep_incoming_groups: Retains incoming groups in the extracted reaction rule if set to True. The default is False.
+* keep_reagents: Includes reagents in the extracted reaction rule when True. The default is False.
+* environment_atom_count: Sets the number of layers of atoms around the reaction center to be included in the rule. A value of 0 includes only the reaction center, 1 includes the first surrounding layer, and so on. The default is 1.
+* min_popularity: Establishes the minimum number of times a rule must be applied to be included in further analysis. The default is 3.
+* keep_metadata: Preserves associated metadata with the reaction in the extracted rule when set to True. The default is False.
+* single_reactant_only: Limits the extracted rules to those with only a single reactant molecule if True. The default is True.
+* atom_info_retention: Dictates the level of detail retained about atoms in the reaction center and their environment. Default settings retain information about neighbors, hybridization, implicit hydrogens, and ring sizes for both the reaction center and its environment.
+
+After configuring the rule extraction settings in Synto, the next step is to apply these configurations to extract reaction rules from our dataset:
+
+.. code-block:: python
+
+    from CGRtools import smiles
+    from Synto.chem.reaction_rules.extraction import ExtractRuleConfig
+    from Synto.chem.reaction_rules.extraction import create_rule
+
+    # read config
+    config = ExtractRuleConfig()
+
+    # extract reaction rule
+    mapped_reaction = smiles(mapped_smiles)
+    extracted_rule = create_rule(config, mapped_reaction)
+
+    # result
+    print(f'Reaction: {str(mapped_reaction)}')
+    >> Reaction: C(O)CBr.O=S(=O)(CC)Cl>C(C)OCC>O=S(=O)(CC)OCCBr
+
+    print(f'Reaction rule: {str(extracted_rule)}')
+    >> Reaction rule: [O]=[S](=[O])(-[C])-[O]-[C]>>[C]-[O].[O]=[S](=[O])(-[Cl])-[C]
+
+Reaction rule application
+---------------------------
+
+The extracted reaction rule can be applied then:
+
+.. code-block:: python
+
+    from CGRtools import CGRReactor
+    from CGRtools.containers import MoleculeContainer
+
+    # create reactor
+    retro_reactor = CGRReactor(extracted_rule)
+
+    # apply extracted reaction rule
+    product = example_reaction.products[0]
+    generated_reactant_pairs = list(retro_reactor(product))
+    generated_reactants = generated_reactant_pairs[0].split()
+    for i in generated_reactants:
+        i.clean2d()
+    generated_reactants = tuple(str(i) for i in generated_reactants)
+
+    print(f'Reaction rule: {str(extracted_rule)}')
+    >> Reaction rule: [O]=[S](=[O])(-[C])-[O]-[C]>>[C]-[O].[O]=[S](=[O])(-[Cl])-[C]
+
+    print(f'Product: {str(product)}')
+    >> Product: O=S(=O)(C)OCCCBr
+
+    print(f'Reactants: {generated_reactants[0]}, {generated_reactants[1]}')
+    >> Reactants: O=S(=O)(Cl)C, C(CCBr)O
+

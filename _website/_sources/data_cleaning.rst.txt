@@ -1,0 +1,44 @@
+Data cleaning
+===========================
+
+The reaction data are cleaned and preprocessed using our protocol for reaction data curation [https://doi.org/10.1002/minf.202100119].
+The protocol for reaction data curation consists of two parts: reaction mapping and reaction data cleaning.
+
+The reaction data cleaning (standardization) protocol includes several steps such as:
+    * transform functional groups, kekulize
+    * check for radicals (remove if something was found), isotopes, regroup ions
+    * check valences (remove if something is wrong)
+    * aromatize (thiele method)
+    * fix mapping (for symmetric functional groups) if such is in
+    * remove unchanged parts, explicit hydrogens
+    * remove reaction duplicate
+
+.. code-block:: python
+
+    import logging
+    from CGRtools import smiles
+    from CGRtools.files import RDFRead
+    from Synto.chem.data.standardizer import Standardizer
+
+    reaction = smiles('C1CC(CCC1)=O.CC(C)(C)NN.N#[C-]>Cl.O.[Na+]>CC(C)(C)NNC1(CCCCC1)C#N')
+    reaction.meta['Reaction_ID'] = 0
+
+    # set logger
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG)
+
+    # check reaction
+    standardizer = Standardizer(skip_errors=True,
+                                keep_unbalanced_ions=False,
+                                id_tag='Reaction_ID',
+                                keep_reagents=False,
+                                ignore_mapping=True,
+                                action_on_isotopes=2,
+                                skip_tautomerize=True,
+                                logger=logger)
+
+    reaction = standardizer.standardize(reaction)
+
+    >> INFO:root:Reaction 0..
+    >> INFO:root:Reaction 0: Ions were split but the reaction is imbalanced..
+

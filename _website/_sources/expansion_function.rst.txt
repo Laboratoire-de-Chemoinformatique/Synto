@@ -1,0 +1,20 @@
+Expansion function
+================
+
+Expansion function options
+
+Ranking policy network
+---------------------------
+
+The ranking policy typically employs a supervised neural network trained on molecular representations like Morgan fingerprints
+or molecular graphs. The network is trained to perform multi-class classification where for a given reaction:
+
+    * The retro-rule extracted from that reaction is assigned as the positive class.
+    * All other retro-rules extracted from the reaction database are assigned as negative classes.
+
+This approach biases the network to prioritize transformations that are likely to produce reactions similar to real ones,
+even without specific reaction conditions. However, it's important to note that reaction databases reflect historical data, and some useful rules might be underrepresented.
+
+Filtering policy network
+---------------------------
+XXXXXXXXXX

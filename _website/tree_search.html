@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Tree search &#8212; Syntool 1.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=4f649999" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=039e1c02" />
+    <script src="_static/documentation_options.js?v=f2a433a1"></script>
+    <script src="_static/doctools.js?v=888ff710"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Training" href="training.html" />
+    <link rel="prev" title="Evaluation function" href="evaluation_function.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="tree-search">
+<h1>Tree search<a class="headerlink" href="#tree-search" title="Link to this heading">¶</a></h1>
+<p>The tree search is configured using the TreeConfig class. Key parameters include:</p>
+<ul class="simple">
+<li><p>max_iterations: Defines the total number of iterations the algorithm will perform, essentially setting a limit on how many times the tree search loop can run. The default is 100 iterations.</p></li>
+<li><p>max_tree_size: Sets the upper limit on the total number of nodes that can exist in the search tree, controlling the size and complexity of the tree. The default value is 10,000 nodes.</p></li>
+<li><p>max_time: Specifies a time limit for the algorithm’s execution, measured in seconds. This prevents the search from running indefinitely. The default time limit is 600 seconds (10 minutes).</p></li>
+<li><p>max_depth: Determines the maximum depth of the tree, effectively controlling how far the search can go from the root node. The default maximum depth is 6 levels.</p></li>
+<li><p>ucb_type: Chooses the type of Upper Confidence Bound (UCB) algorithm used in the search. Options include “puct” (predictive UCB), “uct” (standard UCB), and “value”. The default is “uct”.</p></li>
+<li><p>c_ucb: This is the exploration-exploitation balance coefficient in UCB, which influences how much the algorithm favors the exploration of new paths versus the exploitation of known paths. The default coefficient is 0.1.</p></li>
+<li><p>backprop_type: Selects the backpropagation method used during the search. Options are “muzero” (model-based approach) and “cumulative” (cumulative reward approach). The default is “muzero”.</p></li>
+<li><p>search_strategy: Determines the strategy for navigating the tree. Options are “expansion_first” (prioritizing the expansion of new nodes) and “evaluation_first” (prioritizing the evaluation of existing nodes). The default strategy is “expansion_first”.</p></li>
+<li><p>exclude_small: A boolean setting that, when true, excludes small molecules from the search, typically focusing on more complex molecules. The default is set to True.</p></li>
+<li><p>evaluation_agg: This setting determines how the evaluation scores are aggregated. Options are “max” (using the maximum score) and “average” (using the average score). The default method is “max”.</p></li>
+<li><p>evaluation_mode: Defines the method used for node evaluation. Options include “random” (random evaluations), “rollout” (using rollout simulations), and “gcn” (graph convolutional networks). The default is “gcn”.</p></li>
+<li><p>init_node_value: Sets the initial value for newly created nodes in the tree. This can impact how nodes are prioritized during the search. The default initial value is 0.0.</p></li>
+<li><p>epsilon: This parameter is used in the epsilon-greedy strategy during node selection, representing the probability of choosing a random action for exploration. A higher value leads to more exploration. The default value is 0.0.</p></li>
+<li><p>min_mol_size: Defines the minimum size of a molecule (in terms of the number of heavy atoms) to be considered in the search. Molecules smaller than this threshold are typically considered readily available building blocks. The default is set to 6 heavy atoms.</p></li>
+<li><p>silent: When set to True, this option suppresses the progress output of the tree search, keeping the output clean and focused. The default setting is False.</p></li>
+</ul>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">Syntool</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="interfaces.html">Interfaces</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_cleaning.html">Data cleaning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reaction_rules.html">Reaction rules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="expansion_function.html">Expansion function</a></li>
+<li class="toctree-l1"><a class="reference internal" href="evaluation_function.html">Evaluation function</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Tree search</a></li>
+<li class="toctree-l1"><a class="reference internal" href="training.html">Training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="planning.html">Planning</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="evaluation_function.html" title="previous chapter">Evaluation function</a></li>
+      <li>Next: <a href="training.html" title="next chapter">Training</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2023, University of Strasbourg.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 7.2.6</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
+      
+      |
+      <a href="_sources/tree_search.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
