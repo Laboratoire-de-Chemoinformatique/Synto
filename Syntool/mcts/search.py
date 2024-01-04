@@ -6,7 +6,6 @@ import csv
 import logging
 from pathlib import Path
 
-from CGRtools import smiles, MoleculeContainer
 from tqdm import tqdm
 
 from Syntool.chem.utils import safe_canonicalization

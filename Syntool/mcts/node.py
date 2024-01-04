@@ -8,7 +8,7 @@ class Node:
     Node class represents a node in the search tree
     """
 
-    def __init__(self, retrons_to_expand=None, new_retrons=None):
+    def __init__(self, retrons_to_expand: tuple = None, new_retrons: tuple = None) -> None:
         """
         The function initializes the new Node object.
 
@@ -29,19 +29,19 @@ class Node:
             self.curr_retron = self.retrons_to_expand[0]
             self.next_retrons = self.retrons_to_expand[1:]
 
-    def __len__(self):
+    def __len__(self) -> int:
         """
         The number of retrons in this node to expand.
         """
         return len(self.retrons_to_expand)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """
         String representation of the node. Returns the smiles of retrons_to_expand and new_retrons.
         """
         return f"retrons_to_expand: {self.retrons_to_expand}\nnew_retrons: {self.new_retrons}"
 
-    def is_solved(self):
+    def is_solved(self) -> bool:
         """
         Is terminal node. There are not retrons for expansion.
         """

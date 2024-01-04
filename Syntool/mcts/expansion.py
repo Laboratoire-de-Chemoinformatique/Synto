@@ -16,17 +16,19 @@ class PolicyFunction:
     Policy function based on policy neural network for node expansion in MCTS
     """
 
-    def __init__(self, policy_config: PolicyConfig, compile=False):
+    def __init__(self, policy_config: PolicyConfig, compile: bool = False):
         """
-        Initializes the expansion function (filter policy network).
+        Initializes the expansion function (ranking or filter policy network).
 
-        :param policy_config: A dictionary containing configuration settings for the expansion policy
-        :type policy_config: dict
+        :param policy_config: A configuration object settings for the expansion policy
+        :type policy_config: PolicyConfig
+        :param compile: XX # TODO what is compile
+        :type compile: bool
         """
 
         self.config = policy_config
 
-        # policy_net = PolicyNetwork.load_from_checkpoint(
+        # policy_net = PolicyNetwork.load_from_checkpoint(   # TODO remove these block ?
         #     self.config.weights_path,
         #     map_location=torch.device("cpu"),
         #     batch_size=1,
@@ -46,14 +48,13 @@ class PolicyFunction:
         else:
             self.policy_net = policy_net
 
-    def predict_reaction_rules(self, retron: Retron, reaction_rules: list):
+    def predict_reaction_rules(self, retron: Retron, reaction_rules: list):  # TODO what is output - finish annotation
         """
-        The policy function predicts reaction rules based on a given retron and return a list of predicted reaction rules.
+        The policy function predicts the list of reaction rules given a retron.
 
         :param retron: The current retron for which the reaction rules are predicted
         :type retron: Retron
-        :param reaction_rules: The list of reaction rules from which applicable reaction rules are predicted
-        and selected.
+        :param reaction_rules: The list of reaction rules from which applicable reaction rules are predicted and selected.
         :type reaction_rules: list
         """
 

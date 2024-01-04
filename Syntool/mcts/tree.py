@@ -4,13 +4,11 @@ Module containing a class Tree that used for tree search of retrosynthetic paths
 
 import logging
 from collections import deque, defaultdict
-from dataclasses import dataclass
 from math import sqrt
 from random import choice, uniform
 from time import time
-from typing import Dict, Set, List, Tuple, Any
+from typing import Dict, Set, List, Tuple
 
-import yaml
 from CGRtools.containers import MoleculeContainer
 from numpy.random import uniform
 from tqdm.auto import tqdm
@@ -42,6 +40,16 @@ class Tree:
 
         :param target: a target molecule for retrosynthesis paths search
         :type target: MoleculeContainer
+        :param tree_config: a tree configuration file for retrosynthesis paths search
+        :type tree_config: TreeConfig
+        :param reaction_rules_path: a path for reaction rules file
+        :type reaction_rules_path: str
+        :param building_blocks_path: a path for building blocks file
+        :type building_blocks_path: str
+        :param policy_function: a policy function object
+        :type policy_function: PolicyFunction
+        :param value_function: a value function object
+        :type value_function: ValueFunction
         """
 
         # config parameters
@@ -99,7 +107,7 @@ class Tree:
 
         return self.curr_tree_size - 1
 
-    def __iter__(self) -> "Tree":
+    def __iter__(self) -> "Tree": # TODO what is annotation "Tree" -> Tree ?
         """
         The function is defining an iterator for a Tree object. Also needed for the bar progress display.
         """
@@ -117,7 +125,7 @@ class Tree:
         """
         return self.report()
 
-    def __next__(self):
+    def __next__(self):  # TODO what is return - function annotation ? tuple (bool, [node id])
         """
         The __next__ function is used to do one iteration of the tree building.
         """
@@ -327,14 +335,9 @@ class Tree:
 
                     self._add_node(node_id, child_node, scaled_prob)
 
-    def _add_node(
-        self,
-        node_id: int,
-        new_node: Node,
-        policy_prob: float = None,
-    ) -> None:
+    def _add_node(self, node_id: int, new_node: Node, policy_prob: float = None) -> None:
         """
-        This function adds a new node to a tree with its policy probability.
+        This function adds a new node to a tree with its predicted policy probability.
 
         :param node_id: ID of the parent node
         :type node_id: int
@@ -368,7 +371,14 @@ class Tree:
         self.nodes_init_value[new_node_id] = node_value
         self.nodes_total_value[new_node_id] = node_value
 
-    def _get_node_value(self, node_id):
+    def _get_node_value(self, node_id: int) -> float:
+        """
+        This function calculates the value for the given node.
+
+        :param node_id: ID of the given node
+        :type node_id: int
+        """
+
         node = self.nodes[node_id]
 
         if self.config.evaluation_mode == "random":
@@ -427,7 +437,7 @@ class Tree:
                 )
             node_id = self.parents[node_id]
 
-    def _rollout_node(self, retron: Retron, current_depth: int = None):
+    def _rollout_node(self, retron: Retron, current_depth: int = None) -> float:
         """
         The function `_rollout_node` performs a rollout simulation from a given node in a tree.
         Given the current retron, find the first successful reaction and return the new retrons.
@@ -539,11 +549,12 @@ class Tree:
             f"Found paths: {len(self.winning_nodes)}\nTime: {round(self.curr_time, 1)} seconds"
         )
 
-    def path_score(self, node_id) -> float:
+    def path_score(self, node_id: int) -> float:
         """
         The function calculates the score of a given path from the node with node_id to the root node.
 
         :param node_id: The ID of a given node
+        :type node_id: int
         """
 
         cumulated_nodes_value, path_length = 0, 0
@@ -553,9 +564,9 @@ class Tree:
             cumulated_nodes_value += self.nodes_total_value[node_id]
             node_id = self.parents[node_id]
 
-        return cumulated_nodes_value / (path_length**2)
+        return cumulated_nodes_value / (path_length ** 2)
 
-    def path_to_node(self, node_id: int) -> List:
+    def path_to_node(self, node_id: int) -> list:
         """
         The function returns the path (list of IDs of nodes) to from a node specified by node_id to the root node.
 
@@ -575,6 +586,7 @@ class Tree:
         node specified with node_id to the root node
 
         :param node_id: The ID of a given node
+        :type node_id: int
         """
 
         nodes = self.path_to_node(node_id)
@@ -591,19 +603,22 @@ class Tree:
             r.clean2d()
         return tuple(reversed(tmp))
 
-    def newickify(self, visits_threshold=0, root_node_id=1):
+    def newickify(self, visits_threshold: int = 0, root_node_id: int = 1):  # TODO what is return here ?
         """
         Adopted from https://stackoverflow.com/questions/50003007/how-to-convert-python-dictionary-to-newick-form-format
-        :param visits_threshold: int
+        :param visits_threshold: the minimum number of visits for the given node  # TODO is this explanation correct ?
+        :type visits_threshold: int
         :param root_node_id: The ID of a root node
+        :type root_node_id: int
         """
         visited_nodes = set()
 
-        def newick_render_node(current_node_id) -> str:
+        def newick_render_node(current_node_id: int) -> str:
             """
             Recursively generates a Newick string representation of a tree
 
             :param current_node_id: The identifier of the current node in the tree
+            :type current_node_id: The identifier of the current node in the tree
             :return: A string representation of a node in a Newick format
             """
             assert (
