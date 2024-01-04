@@ -69,7 +69,7 @@ For example, on Ubuntu we can install miniconda and set an environment in which 
     conda create -n syntool -c conda-forge "poetry=1.3.2" "python=3.10" -y
     conda activate syntool
 
-    # install Synto
+    # install Syntool
     git clone https://github.com/Laboratoire-de-Chemoinformatique/Syntool.git
 
     # navigate to the Syntool folder and run the following command:
@@ -119,7 +119,7 @@ Run training from scratch
 Documentation
 -----------
 
-The detailed documentation can be found `here <https://laboratoire-de-chemoinformatique.github.io/Synto/>`_
+The detailed documentation can be found `here <https://laboratoire-de-chemoinformatique.github.io/Syntool/>`_
 
 Tests
 -----------

@@ -28,7 +28,7 @@ optional = true
 [tool.poetry.group.cpu.dependencies]
 adabelief-pytorch = ">=0.2.1"
 torch = ">=1.13,<1.14"
-torch-geometric = "2.2.0"
+torch-geometric = "2.4.0"
 pytorch-lightning = ">=1.9,<2"
 torch-scatter = [{markers = "sys_platform == 'linux'", url="https://data.pyg.org/whl/torch-1.13.0%2Bcpu/torch_scatter-2.1.0%2Bpt113cpu-cp310-cp310-linux_x86_64.whl"}]
 torch-sparse = [{markers = "sys_platform == 'linux'", url="https://data.pyg.org/whl/torch-1.13.0%2Bcpu/torch_sparse-0.6.16%2Bpt113cpu-cp310-cp310-linux_x86_64.whl"}]
