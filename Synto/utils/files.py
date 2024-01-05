@@ -1,4 +1,5 @@
 from pathlib import Path
+from os.path import splitext
 
 from CGRtools.containers import ReactionContainer, MoleculeContainer, CGRContainer, QueryContainer
 from CGRtools.files.SMILESrw import SMILESRead
@@ -20,12 +21,12 @@ class FileHandler:
         """
         self._file = None
         filename = str(Path(filename).resolve(strict=True))
-        ext = filename.split('.')[-1]
+        _, ext = splitext(filename)
         file_types = {
-            'smi': "SMI",
-            'smiles': "SMI",
-            'rdf': "RDF",
-            'sdf': 'SDF',
+            '.smi': "SMI",
+            '.smiles': "SMI",
+            '.rdf': "RDF",
+            '.sdf': 'SDF',
         }
         try:
             self._file_type = file_types[filename.split('.')[-1].lower()]
@@ -155,7 +156,7 @@ class MoleculeReader(Reader):
         if self._file_type == "SMI":
             self._file = SMILESRead(filename, ignore=True, **kwargs)
         elif self._file_type == "SDF":
-            self._file = SDFRead(filename, **kwargs)
+            self._file = SDFRead(filename, indexable=True, **kwargs)
         else:
             raise ValueError("File type incompatible -", filename)
 
