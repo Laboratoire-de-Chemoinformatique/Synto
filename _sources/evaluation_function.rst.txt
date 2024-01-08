@@ -1,14 +1,44 @@
 Evaluation function
 ================
 
-Evaluation function options
+During the evaluation step, the value function (or evaluation function) is used to estimate the retrosynthetic feasibility
+of a newly created node. In Syntool, evaluation functions such as random function (assigns a random value), rollout function,
+and value network trained with the learning from simulated experience algorithm are implemented. The architecture of the
+value network is like the policy network. The molecular representation part of the neural network is the same, and the
+difference is that the output linear layer returns a single value ranging from 0 to 1.
 
 Rollout function
 ---------------------------
-
-XXXXXXXXXXXXXX
+The rollout function, given the current intermediate product, finds the first successful reaction and returns the new
+intermediate products. If the intermediate product is a building block, returns 1.0, or else checks the first successful
+reaction. If the reaction is not successful, returns -1.0. If the reaction is successful, but the generated intermediate
+products are not the building blocks and the intermediate products cannot be generated without exceeding the current depth
+of the tree, returns -0.5. If the reaction is successful, but the intermediate products are not the building blocks and
+the intermediate products cannot be generated, returns -1.0.
 
 Reinforcement function
 ---------------------------
-XXXXXXXXXXXXXX
+The value neural network is iteratively trained on training subsets extracted from the previous planning sessions
+(learning from simulated experience). In the first iteration, the value network is initialized with random weights and
+is used for the initial retrosynthesis planning session for N target molecules. Then, intermediate products that were
+part of a successful retrosynthesis path leading to building block molecules are labeled with a positive label, and
+precursors that did not lead to building blocks are labeled with a negative label. This generated training data is
+used to retrain the value network to better recognize precursors leading to possible successful retrosynthetic paths.
+The training task of the value network is a classification problem, where the positive class corresponds to the precursor
+that leads to building blocks; otherwise, it is considered a negative class.
+
+The value network, its architecture, and hyperparameters can be specified in the
+ValueNetwork section in the training configuration file:
+
+.. code-block:: yaml
+
+    ValueNetwork:
+      vector_dim: 512
+      batch_size: 500
+      dropout: 0.4
+      learning_rate: 0.0005
+      num_conv_layers: 5
+      num_epoch: 100
+
+
 

@@ -35,40 +35,67 @@
 <h1>Interfaces<a class="headerlink" href="#interfaces" title="Link to this heading">¶</a></h1>
 <section id="command-line-interface">
 <h2>Command line interface<a class="headerlink" href="#command-line-interface" title="Link to this heading">¶</a></h2>
-<p>Synto provides with CLI commands for training and planning modes.</p>
+<p>Syntool provides with CLI commands for training and planning modes.</p>
 <blockquote>
 <div><p>For retrosynthesis planning:</p>
 <ul class="simple">
 <li><p>syntool_planning_data</p></li>
-<li><p>syntool_planning</p></li>
+<li><p>syntool_planning –config=”planning_config.yaml”</p></li>
 </ul>
 <p>For retrosynthetic models training:</p>
 <ul class="simple">
 <li><p>syntool_training_data</p></li>
-<li><p>syntool_training</p></li>
+<li><p>syntool_training –config=”training_config.yaml”</p></li>
 </ul>
 </div></blockquote>
 </section>
 <section id="python-interface">
 <h2>Python interface<a class="headerlink" href="#python-interface" title="Link to this heading">¶</a></h2>
 <p>Python interface for planning</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">Syntool.mcts</span> <span class="kn">import</span> <span class="n">Tree</span>
-<span class="kn">from</span> <span class="nn">Syntool.utils.config</span> <span class="kn">import</span> <span class="n">read_planning_config</span>
-<span class="kn">from</span> <span class="nn">CGRtools</span> <span class="kn">import</span> <span class="n">smiles</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">CGRtools</span> <span class="kn">import</span> <span class="n">smiles</span>
+<span class="kn">from</span> <span class="nn">Syntool.utils.config</span> <span class="kn">import</span> <span class="n">TreeConfig</span><span class="p">,</span> <span class="n">PolicyNetworkConfig</span>
+<span class="kn">from</span> <span class="nn">Syntool.mcts.tree</span> <span class="kn">import</span> <span class="n">Tree</span>
+<span class="kn">from</span> <span class="nn">Syntool.mcts.expansion</span> <span class="kn">import</span> <span class="n">PolicyFunction</span>
 
 <span class="c1"># set target</span>
 <span class="n">target</span> <span class="o">=</span> <span class="s1">&#39;C1=CC=NC(CNC(=O)C2=C3C(=NC(N)=N2)C(OC)=CC=C3)=N1&#39;</span>
 <span class="n">target</span> <span class="o">=</span> <span class="n">smiles</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
 <span class="n">target</span><span class="o">.</span><span class="n">canonicalize</span><span class="p">()</span>
-<span class="n">target</span><span class="o">.</span><span class="n">clean2d</span><span class="p">()</span>
 
-<span class="c1"># read config file</span>
-<span class="n">config_path</span> <span class="o">=</span> <span class="s1">&#39;planning_config.yaml&#39;</span>
-<span class="n">config</span> <span class="o">=</span> <span class="n">read_planning_config</span><span class="p">(</span><span class="n">config_path</span><span class="p">)</span>
+<span class="c1"># search tree parameters</span>
+<span class="n">tree_config</span> <span class="o">=</span> <span class="n">TreeConfig</span><span class="o">.</span><span class="n">from_dict</span><span class="p">({</span><span class="s1">&#39;max_iterations&#39;</span><span class="p">:</span> <span class="mi">100</span><span class="p">,</span>
+                                    <span class="s1">&#39;max_tree_size&#39;</span><span class="p">:</span> <span class="mi">10000</span><span class="p">,</span>
+                                    <span class="s1">&#39;max_time&#39;</span><span class="p">:</span> <span class="mi">120</span><span class="p">,</span>
+                                    <span class="s1">&#39;max_depth&#39;</span><span class="p">:</span> <span class="mi">9</span><span class="p">,</span>
+                                    <span class="s1">&#39;ucb_type&#39;</span><span class="p">:</span> <span class="s1">&#39;uct&#39;</span><span class="p">,</span>
+                                    <span class="s1">&#39;c_ucb&#39;</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">,</span>
+                                    <span class="s1">&#39;backprop_type&#39;</span><span class="p">:</span> <span class="s1">&#39;muzero&#39;</span><span class="p">,</span>
+                                    <span class="s1">&#39;search_strategy&#39;</span><span class="p">:</span> <span class="s1">&#39;expansion_first&#39;</span><span class="p">,</span>
+                                    <span class="s1">&#39;exclude_small&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+                                    <span class="s1">&#39;evaluation_agg&#39;</span><span class="p">:</span> <span class="s1">&#39;max&#39;</span><span class="p">,</span>
+                                    <span class="s1">&#39;evaluation_mode&#39;</span><span class="p">:</span> <span class="s1">&#39;rollout&#39;</span><span class="p">,</span>
+                                    <span class="s1">&#39;init_node_value&#39;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+                                    <span class="s1">&#39;epsilon&#39;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+                                    <span class="s1">&#39;min_mol_size&#39;</span><span class="p">:</span> <span class="mi">6</span><span class="p">,</span>
+                                    <span class="s1">&#39;silent&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">})</span>
+
+<span class="c1"># policy network weighs</span>
+<span class="n">policy_config</span> <span class="o">=</span> <span class="n">PolicyNetworkConfig</span><span class="p">(</span><span class="n">weights_path</span><span class="o">=</span><span class="s1">&#39;ranking_policy/weights/policy_network.ckpt&#39;</span><span class="p">)</span>
+<span class="n">policy_function</span> <span class="o">=</span> <span class="n">PolicyFunction</span><span class="p">(</span><span class="n">policy_config</span><span class="o">=</span><span class="n">policy_config</span><span class="p">)</span>
+
+<span class="c1"># init tree</span>
+<span class="n">tree</span> <span class="o">=</span> <span class="n">Tree</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">target</span><span class="p">,</span>
+            <span class="n">tree_config</span><span class="o">=</span><span class="n">tree_config</span><span class="p">,</span>
+            <span class="n">reaction_rules_path</span><span class="o">=</span><span class="s1">&#39;planning_data/reaction_rules.pickle&#39;</span><span class="p">,</span>
+            <span class="n">building_blocks_path</span><span class="o">=</span><span class="s1">&#39;planning_data/building_blocks.smi&#39;</span><span class="p">,</span>
+            <span class="n">policy_function</span><span class="o">=</span><span class="n">policy_function</span><span class="p">,</span>
+            <span class="n">value_function</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
 
 <span class="c1"># run search</span>
-<span class="n">tree</span> <span class="o">=</span> <span class="n">Tree</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">target</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>
 <span class="n">_</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">tree</span><span class="p">)</span>
+
+<span class="c1"># print results</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">tree</span><span class="p">)</span>
 </pre></div>
 </div>
 </section>

@@ -33,8 +33,9 @@
             
   <section id="tree-search">
 <h1>Tree search<a class="headerlink" href="#tree-search" title="Link to this heading">¶</a></h1>
-<p>The tree search is configured using the TreeConfig class. Key parameters include:</p>
-<ul class="simple">
+<p>The tree search is configured using the <cite>Syntool.until.config.TreeConfig</cite> class. Key parameters include:</p>
+<blockquote>
+<div><ul class="simple">
 <li><p>max_iterations: Defines the total number of iterations the algorithm will perform, essentially setting a limit on how many times the tree search loop can run. The default is 100 iterations.</p></li>
 <li><p>max_tree_size: Sets the upper limit on the total number of nodes that can exist in the search tree, controlling the size and complexity of the tree. The default value is 10,000 nodes.</p></li>
 <li><p>max_time: Specifies a time limit for the algorithm’s execution, measured in seconds. This prevents the search from running indefinitely. The default time limit is 600 seconds (10 minutes).</p></li>
@@ -51,6 +52,7 @@
 <li><p>min_mol_size: Defines the minimum size of a molecule (in terms of the number of heavy atoms) to be considered in the search. Molecules smaller than this threshold are typically considered readily available building blocks. The default is set to 6 heavy atoms.</p></li>
 <li><p>silent: When set to True, this option suppresses the progress output of the tree search, keeping the output clean and focused. The default setting is False.</p></li>
 </ul>
+</div></blockquote>
 </section>
 
 

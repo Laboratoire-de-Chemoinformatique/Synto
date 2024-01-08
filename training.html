@@ -36,69 +36,15 @@
 <p><strong>Data</strong></p>
 <p>The following data files are required for retrosynthetic models training with Synto:</p>
 <p><cite>reaction_data.rdf</cite> - dataset of reactions for extraction of reaction rules</p>
-<p><cite>policy_molecules.sdf</cite> - dataset of molecules for training policy neural network</p>
-<p><cite>value_molecules.sdf</cite> - dataset of targets for self-tuning of value neural network</p>
-<p><cite>building_blocks.txt</cite> - building blocks in SMILES format (.smi or .txt)</p>
-<p><strong>Configuration</strong></p>
-<p>Retrosynthetic models training is configured with the <cite>config_training.yaml</cite> configuration file:</p>
-<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">General</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">results_root</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">synto_training_data</span>
-<span class="w">  </span><span class="nt">reaction_rules_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">synto_training_data/reaction_rules/reaction_rules.pickle</span>
-<span class="w">  </span><span class="nt">building_blocks_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">synto_training_data/building_blocks/building_blocks.pickle</span>
-<span class="w">  </span><span class="nt">num_cpus</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10</span>
-<span class="w">  </span><span class="nt">num_gpus</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
-<span class="nt">Tree</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">max_depth</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">6</span>
-<span class="w">  </span><span class="nt">max_iterations</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span>
-<span class="w">  </span><span class="nt">evaluation_mode</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">gcn</span>
-<span class="w">  </span><span class="nt">verbose</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
-<span class="nt">ReactionRules</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">results_root</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">synto_training_data/reaction_rules</span>
-<span class="w">  </span><span class="nt">reaction_data_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">synto_training_data/reaction_data/reaction_data.rdf</span>
-<span class="nt">SelfTuning</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">results_root</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">synto_training_data/value_network</span>
-<span class="w">  </span><span class="nt">dataset_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">synto_training_data/value_molecules/value_molecules.sdf</span>
-<span class="nt">PolicyNetwork</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">results_root</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">synto_training_data/policy_network</span>
-<span class="w">  </span><span class="nt">dataset_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">synto_training_data/policy_molecules/policy_molecules.sdf</span>
-<span class="w">  </span><span class="nt">datamodule_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">synto_training_data/policy_network/policy_dataset.pt</span>
-<span class="w">  </span><span class="nt">weights_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">synto_training_data/policy_network/policy_network.ckpt</span>
-<span class="nt">ValueNetwork</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">results_root</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">synto_training_data/value_network</span>
-<span class="w">  </span><span class="nt">weights_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">synto_training_data/value_network/value_network.ckpt</span>
-</pre></div>
-</div>
+<p><cite>policy_molecules.smi</cite> - dataset of molecules for training policy neural network</p>
+<p><cite>value_molecules.smi</cite> - dataset of targets for self-tuning of value neural network</p>
+<p><cite>building_blocks.smi</cite> - building blocks in SMILES format (.smi or .txt)</p>
 <p><strong>Full-pipeline execution</strong></p>
-<p>For running retrosynthetic models training one needs three commands: (i) download training data
-(ii) prepare building blocks (canonicalize, standardize) (iii) run training pipeline:</p>
+<p>Retrosynthetic models training is configured with the <cite>config_training.yaml</cite> configuration file <span class="xref std std-ref">Configuration</span>.</p>
+<p>For running retrosynthetic models training one needs three commands: (i) download training data and (ii)
+run training pipeline:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>synto_training_data
-synto_building_blocks<span class="w"> </span>--input<span class="o">=</span><span class="s2">&quot;synto_training_data/building_blocks.txt&quot;</span><span class="w"> </span>--output<span class="o">=</span><span class="s2">&quot;synto_training_data/building_blocks.txt&quot;</span><span class="w"> </span><span class="c1"># skip for loaded data</span>
 synto_training<span class="w"> </span>--config<span class="o">=</span><span class="s2">&quot;training_config.yaml&quot;</span>
-</pre></div>
-</div>
-<p><strong>Step-by-step execution</strong></p>
-<ul class="simple">
-<li><p>synto_training_data</p></li>
-<li><p>synto_building_blocks</p></li>
-<li><p>synto_extract_rules</p></li>
-<li><p>synto_policy_training</p></li>
-<li><p>synto_self_tuning</p></li>
-</ul>
-<p><strong>Run planning on trained networks</strong></p>
-<p>Extracted reaction rules and trained policy and value networks can be used in retrosynthesis planning:</p>
-<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">General</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">reaction_rules_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">synto_training_data/reaction_rules/reaction_rules.pickle</span>
-<span class="w">  </span><span class="nt">building_blocks_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">synto_training_data/building_blocks/building_blocks.txt</span>
-<span class="nt">PolicyNetwork</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">weights_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">synto_training_data/policy_network/policy_network.ckpt</span>
-<span class="nt">ValueNetwork</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">weights_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">synto_training_data/value_network/value_network.ckpt</span>
-<span class="nt">Tree</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">max_depth</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">9</span><span class="w">  </span><span class="c1"># maximum depth of tree</span>
-<span class="w">  </span><span class="nt">max_iterations</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">100</span><span class="w">  </span><span class="c1"># maximum number of iterations</span>
-<span class="w">  </span><span class="nt">max_time</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">600</span><span class="w">  </span><span class="c1"># search time limit</span>
-<span class="w">  </span><span class="nt">evaluation_mode</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">gcn</span>
-<span class="w">  </span><span class="nt">verbose</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span><span class="w">  </span><span class="c1"># tree search progress bar</span>
 </pre></div>
 </div>
 </section>

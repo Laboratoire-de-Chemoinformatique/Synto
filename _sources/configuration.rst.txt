@@ -2,7 +2,7 @@ Configuration
 ===========================
 
 Syntool can be configured with advanced versions of configuration files that provide more flexibility in retrosynthesis
-planning and training of retrosynthetic models
+planning and training of retrosynthetic models.
 
 Planning configuration
 ---------------------------
@@ -11,27 +11,33 @@ Planning configuration yaml file
 .. code-block:: yaml
 
     General:
-      reaction_rules_path: syntool_planning_data/reaction_rules.pickle
-      building_blocks_path: syntool_planning_data/building_blocks.txt
-    Tree:
-      ucb_type: uct
-      c_usb: 0.1
-      max_depth: 6
-      max_iterations: 50
-      max_time: 120
-      max_tree_size: 100000
-      verbose: true
-      evaluation_mode: gcn
-      evaluation_agg: max
-      backprop_type: muzero
-      init_new_node_value: null
+      num_cpus: 4
+      num_gpus: 1
+      targets_path:
+      results_root:
+    InputData:
+      reaction_rules_path:
+      building_blocks_path:
+      standardize_building_blocks: true
     PolicyNetwork:
-      weights_path: syntool_planning_data/policy_network.ckpt
+      weights_path:
       priority_rules_fraction: 0.5
       top_rules: 50
       rule_prob_threshold: 0.0
     ValueNetwork:
-      weights_path: syntool_planning_data/value_network.ckpt
+      weights_path:
+    Tree:
+      ucb_type: uct
+      c_ucb: 0.1
+      max_depth: 9
+      max_iterations: 100
+      max_time: 120
+      max_tree_size: 100000
+      evaluation_mode: gcn
+      evaluation_agg: max
+      backprop_type: muzero
+      init_node_value: 0.0
+      silent: true
 
 
 Training configuration
@@ -41,55 +47,60 @@ Training configuration yaml file
 .. code-block:: yaml
 
     General:
-      results_root: syntool_training_data
-      reaction_rules_path: syntool_training_data/reaction_rules/reaction_rules.pickle
-      building_blocks_path: syntool_training_data/building_blocks/building_blocks.pickle
-      num_cpus: 5
+      num_cpus: 4
       num_gpus: 1
+      results_root:
+    InputData:
+      building_blocks_path:
+      policy_data_path:
+      reaction_data_path:
+      value_data_path:
+    DataCleaning:
+      clean_reactions: true
+      standardize_building_blocks: true
+    ReactionRules:
+      min_popularity: 3
+      keep_leaving_groups: true
+      reaction_center_neighbors: true
+      reaction_center_hybridization: true
+      reaction_center_implicit_hydrogens: false
+      reaction_center_ring_sizes: false
+      environment_neighbors: true
+      environment_hybridization: false
+      environment_implicit_hydrogens: false
+      environment_ring_sizes: false
     Tree:
-      ucb_type: uct
-      c_usb: 0.1
+      backprop_type: muzero
+      c_ucb: 0.1
+      evaluation_agg: max
+      evaluation_mode: gcn
+      init_node_value: 0.0
       max_depth: 6
-      max_iterations: 15
+      max_iterations: 100
       max_time: 600
       max_tree_size: 1000000
-      verbose: false
-      evaluation_mode: gcn
-      evaluation_agg: max
-      backprop_type: muzero
-      init_new_node_value: null
-      epsilon: 0.0
-    ReactionRules:
-      results_root: syntool_training_data/reaction_rules
-      reaction_data_path: syntool_training_data/reaction_data/reaction_data.rdf
-      min_popularity: 5
+      ucb_type: uct
+      silent: true
     SelfTuning:
-      results_root: syntool_training_data/value_network
-      dataset_path: syntool_training_data/value_molecules/value_molecules.smi
+      batch_size: 100
       num_simulations: 1
-      batch_size: 5
     PolicyNetwork:
-      results_root: syntool_training_data/policy_network
-      dataset_path: syntool_training_data/policy_molecules/policy_molecules.smi
-      datamodule_path: syntool_training_data/policy_network/policy_dataset.pt
-      weights_path: syntool_training_data/policy_network/policy_network.ckpt
-      top_rules: 50
+      policy_type: ranking
+      batch_size: 500
+      dropout: 0.4
+      learning_rate: 0.0005
+      num_conv_layers: 5
+      num_epoch: 100
       priority_rules_fraction: 0.5
       rule_prob_threshold: 0.0
-      num_conv_layers: 5
+      top_rules: 50
       vector_dim: 512
-      dropout: 0.4
-      learning_rate: 0.0005
-      num_epoch: 100
-      batch_size: 500
     ValueNetwork:
-      results_root: syntool_training_data/value_network
-      weights_path: syntool_training_data/value_network/value_network.ckpt
-      num_conv_layers: 5
-      vector_dim: 512
+      batch_size: 2
       dropout: 0.4
       learning_rate: 0.0005
+      num_conv_layers: 5
       num_epoch: 100
-      batch_size: 500
+      vector_dim: 512
 
 

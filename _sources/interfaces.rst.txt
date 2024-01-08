@@ -4,17 +4,18 @@ Interfaces
 Command line interface
 ---------------------------
 
-Synto provides with CLI commands for training and planning modes.
+Syntool provides with CLI commands for training and planning modes.
 
     For retrosynthesis planning:
 
     * syntool_planning_data
-    * syntool_planning
+    * syntool_planning --config="planning_config.yaml"
+
 
     For retrosynthetic models training:
 
     * syntool_training_data
-    * syntool_training
+    * syntool_training --config="training_config.yaml"
 
 
 Python interface
@@ -24,20 +25,47 @@ Python interface for planning
 
 .. code-block:: python
 
-    from Syntool.mcts import Tree
-    from Syntool.utils.config import read_planning_config
     from CGRtools import smiles
+    from Syntool.utils.config import TreeConfig, PolicyNetworkConfig
+    from Syntool.mcts.tree import Tree
+    from Syntool.mcts.expansion import PolicyFunction
 
     # set target
     target = 'C1=CC=NC(CNC(=O)C2=C3C(=NC(N)=N2)C(OC)=CC=C3)=N1'
     target = smiles(target)
     target.canonicalize()
-    target.clean2d()
 
-    # read config file
-    config_path = 'planning_config.yaml'
-    config = read_planning_config(config_path)
+    # search tree parameters
+    tree_config = TreeConfig.from_dict({'max_iterations': 100,
+                                        'max_tree_size': 10000,
+                                        'max_time': 120,
+                                        'max_depth': 9,
+                                        'ucb_type': 'uct',
+                                        'c_ucb': 0.1,
+                                        'backprop_type': 'muzero',
+                                        'search_strategy': 'expansion_first',
+                                        'exclude_small': True,
+                                        'evaluation_agg': 'max',
+                                        'evaluation_mode': 'rollout',
+                                        'init_node_value': 0.0,
+                                        'epsilon': 0.0,
+                                        'min_mol_size': 6,
+                                        'silent': False})
+
+    # policy network weighs
+    policy_config = PolicyNetworkConfig(weights_path='ranking_policy/weights/policy_network.ckpt')
+    policy_function = PolicyFunction(policy_config=policy_config)
+
+    # init tree
+    tree = Tree(target=target,
+                tree_config=tree_config,
+                reaction_rules_path='planning_data/reaction_rules.pickle',
+                building_blocks_path='planning_data/building_blocks.smi',
+                policy_function=policy_function,
+                value_function=None)
 
     # run search
-    tree = Tree(target=target, config=config)
     _ = list(tree)
+
+    # print results
+    print(tree)

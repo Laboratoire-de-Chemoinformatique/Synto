@@ -33,8 +33,7 @@
             
   <section id="data-cleaning">
 <h1>Data cleaning<a class="headerlink" href="#data-cleaning" title="Link to this heading">¶</a></h1>
-<p>The reaction data are cleaned and preprocessed using our protocol for reaction data curation [<a class="reference external" href="https://doi.org/10.1002/minf.202100119">https://doi.org/10.1002/minf.202100119</a>].
-The protocol for reaction data curation consists of two parts: reaction mapping and reaction data cleaning.</p>
+<p>The reaction data are cleaned and preprocessed using original protocol for reaction data curation [<a class="reference external" href="https://doi.org/10.1002/minf.202100119">https://doi.org/10.1002/minf.202100119</a>].</p>
 <dl class="simple">
 <dt>The reaction data cleaning (standardization) protocol includes several steps such as:</dt><dd><ul class="simple">
 <li><p>transform functional groups, kekulize</p></li>
@@ -47,10 +46,11 @@ The protocol for reaction data curation consists of two parts: reaction mapping 
 </ul>
 </dd>
 </dl>
+<p>This is an example of application of Standardizer to the given reaction:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">from</span> <span class="nn">CGRtools</span> <span class="kn">import</span> <span class="n">smiles</span>
 <span class="kn">from</span> <span class="nn">CGRtools.files</span> <span class="kn">import</span> <span class="n">RDFRead</span>
-<span class="kn">from</span> <span class="nn">Synto.chem.data.standardizer</span> <span class="kn">import</span> <span class="n">Standardizer</span>
+<span class="kn">from</span> <span class="nn">Syntool.chem.data.standardizer</span> <span class="kn">import</span> <span class="n">Standardizer</span>
 
 <span class="n">reaction</span> <span class="o">=</span> <span class="n">smiles</span><span class="p">(</span><span class="s1">&#39;C1CC(CCC1)=O.CC(C)(C)NN.N#[C-]&gt;Cl.O.[Na+]&gt;CC(C)(C)NNC1(CCCCC1)C#N&#39;</span><span class="p">)</span>
 <span class="n">reaction</span><span class="o">.</span><span class="n">meta</span><span class="p">[</span><span class="s1">&#39;Reaction_ID&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>

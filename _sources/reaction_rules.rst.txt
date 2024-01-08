@@ -1,7 +1,8 @@
 Reaction rules
 ===========================
 
-Syntool has an original protocol for reaction rule extraction
+Syntool has an original protocol for reaction rule extraction. This protocol is preceded by reaction mapping and
+reaction filtering to prevent extraction of erroneous reaction rules.
 
 Reaction mapping
 ---------------------------
@@ -26,9 +27,7 @@ that GraphormerMapper is superior to the state-of-the-art IBM RxnMapper algorith
 Reaction filtration
 ---------------------------
 In Syntool, reaction data filtration is a crucial step to ensure the quality and accuracy of the data used for retrosynthesis analysis.
-The USPTO dataset, a standardized but unfiltered collection of reaction records, serves as the primary data source.
-However, this dataset may contain records with no reaction center or atom-to-atom mapping errors. To address this, we apply
-several filters:
+To address this, the are several reaction filters:
 
     * No Reaction Filter: Removes reactions with identical reactants and products.
     * Small Molecules Filter: Excludes reactions where all reactants and products have ≤ specified number of heavy atoms.
@@ -40,18 +39,18 @@ several filters:
 
 Reaction rule extraction
 ---------------------------
-After filtering the reaction data, the next crucial step in Synto is the extraction of reaction rules. This process is vital
-for retrosynthetic analysis, as it defines the patterns and transformations that can be applied to synthesize target molecules.
-The protocol for extracting retro-rules from reactions in Synto utilizes the CGRtools Python library. This procedure involves the
-following steps:
+After filtering the reaction data, the next step is the extraction of reaction rules. The protocol for extracting
+reaction rules from reactions in Syntool is based on CGRtools Python library. This procedure involves the following steps:
 
-    * Substructure Extraction: For each reactant and product in a given reaction, substructures containing the atoms of the reaction center and their immediate environment are extracted.
+    * Substructure Extraction: For each reactant and product in a given reaction, substructures containing the atoms of
+the reaction center and their immediate environment are extracted.
     * Substructure Exchange: The reactant and product substructures are then exchanged.
     * Reagents Handling: If the reaction includes reagents, they are not incorporated into the retro-rule.
-    * Label Preservation: All labels related to the atoms of the reaction center, such as hybridization, the number of neighbors, and the ring sizes in which the atoms participate, are preserved. For atoms in the first environment, only the sizes of rings are preserved.
+    * Label Preservation: All labels related to the atoms of the reaction center, such as hybridization, the number of neighbors,
+and the ring sizes in which the atoms participate, are preserved. For atoms in the first environment, only the sizes of rings are preserved.
 
 A retrosynthetic transformation formed by this protocol is applied to the product of the original reaction. If it successfully
-generates the reactants of the reaction, the rule is considered valid.
+generates the reactants of the reaction, the reaction rule is considered valid.
 
 The ExtractRuleConfig class in Synto allows for the fine-tuning of how reaction rules are extracted. Key parameters of this class include:
 
@@ -71,13 +70,13 @@ The ExtractRuleConfig class in Synto allows for the fine-tuning of how reaction 
 * single_reactant_only: Limits the extracted rules to those with only a single reactant molecule if True. The default is True.
 * atom_info_retention: Dictates the level of detail retained about atoms in the reaction center and their environment. Default settings retain information about neighbors, hybridization, implicit hydrogens, and ring sizes for both the reaction center and its environment.
 
-After configuring the rule extraction settings in Synto, the next step is to apply these configurations to extract reaction rules from our dataset:
+After configuring the rule extraction settings in Synto, the next step is to apply these configurations to extract reaction rules from the dataset:
 
 .. code-block:: python
 
     from CGRtools import smiles
-    from Synto.chem.reaction_rules.extraction import ExtractRuleConfig
-    from Synto.chem.reaction_rules.extraction import create_rule
+    from Syntool.chem.reaction_rules.extraction import ExtractRuleConfig
+    from Syntool.chem.reaction_rules.extraction import create_rule
 
     # read config
     config = ExtractRuleConfig()
@@ -107,7 +106,7 @@ The extracted reaction rule can be applied then:
     retro_reactor = CGRReactor(extracted_rule)
 
     # apply extracted reaction rule
-    product = example_reaction.products[0]
+    product = mapped_reaction.products[0]
     generated_reactant_pairs = list(retro_reactor(product))
     generated_reactants = generated_reactant_pairs[0].split()
     for i in generated_reactants:

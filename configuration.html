@@ -34,32 +34,38 @@
   <section id="configuration">
 <h1>Configuration<a class="headerlink" href="#configuration" title="Link to this heading">¶</a></h1>
 <p>Syntool can be configured with advanced versions of configuration files that provide more flexibility in retrosynthesis
-planning and training of retrosynthetic models</p>
+planning and training of retrosynthetic models.</p>
 <section id="planning-configuration">
 <h2>Planning configuration<a class="headerlink" href="#planning-configuration" title="Link to this heading">¶</a></h2>
 <p>Planning configuration yaml file</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">General</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">reaction_rules_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">syntool_planning_data/reaction_rules.pickle</span>
-<span class="w">  </span><span class="nt">building_blocks_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">syntool_planning_data/building_blocks.txt</span>
-<span class="nt">Tree</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">ucb_type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">uct</span>
-<span class="w">  </span><span class="nt">c_usb</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.1</span>
-<span class="w">  </span><span class="nt">max_depth</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">6</span>
-<span class="w">  </span><span class="nt">max_iterations</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">50</span>
-<span class="w">  </span><span class="nt">max_time</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">120</span>
-<span class="w">  </span><span class="nt">max_tree_size</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">100000</span>
-<span class="w">  </span><span class="nt">verbose</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
-<span class="w">  </span><span class="nt">evaluation_mode</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">gcn</span>
-<span class="w">  </span><span class="nt">evaluation_agg</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">max</span>
-<span class="w">  </span><span class="nt">backprop_type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">muzero</span>
-<span class="w">  </span><span class="nt">init_new_node_value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="w">  </span><span class="nt">num_cpus</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">4</span>
+<span class="w">  </span><span class="nt">num_gpus</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
+<span class="w">  </span><span class="nt">targets_path</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">results_root</span><span class="p">:</span>
+<span class="nt">InputData</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">reaction_rules_path</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">building_blocks_path</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">standardize_building_blocks</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
 <span class="nt">PolicyNetwork</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">weights_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">syntool_planning_data/policy_network.ckpt</span>
+<span class="w">  </span><span class="nt">weights_path</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">priority_rules_fraction</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.5</span>
 <span class="w">  </span><span class="nt">top_rules</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">50</span>
 <span class="w">  </span><span class="nt">rule_prob_threshold</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.0</span>
 <span class="nt">ValueNetwork</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">weights_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">syntool_planning_data/value_network.ckpt</span>
+<span class="w">  </span><span class="nt">weights_path</span><span class="p">:</span>
+<span class="nt">Tree</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">ucb_type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">uct</span>
+<span class="w">  </span><span class="nt">c_ucb</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.1</span>
+<span class="w">  </span><span class="nt">max_depth</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">9</span>
+<span class="w">  </span><span class="nt">max_iterations</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">100</span>
+<span class="w">  </span><span class="nt">max_time</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">120</span>
+<span class="w">  </span><span class="nt">max_tree_size</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">100000</span>
+<span class="w">  </span><span class="nt">evaluation_mode</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">gcn</span>
+<span class="w">  </span><span class="nt">evaluation_agg</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">max</span>
+<span class="w">  </span><span class="nt">backprop_type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">muzero</span>
+<span class="w">  </span><span class="nt">init_node_value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.0</span>
+<span class="w">  </span><span class="nt">silent</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
 </pre></div>
 </div>
 </section>
@@ -67,56 +73,61 @@ planning and training of retrosynthetic models</p>
 <h2>Training configuration<a class="headerlink" href="#training-configuration" title="Link to this heading">¶</a></h2>
 <p>Training configuration yaml file</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">General</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">results_root</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">syntool_training_data</span>
-<span class="w">  </span><span class="nt">reaction_rules_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">syntool_training_data/reaction_rules/reaction_rules.pickle</span>
-<span class="w">  </span><span class="nt">building_blocks_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">syntool_training_data/building_blocks/building_blocks.pickle</span>
-<span class="w">  </span><span class="nt">num_cpus</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span>
+<span class="w">  </span><span class="nt">num_cpus</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">4</span>
 <span class="w">  </span><span class="nt">num_gpus</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
+<span class="w">  </span><span class="nt">results_root</span><span class="p">:</span>
+<span class="nt">InputData</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">building_blocks_path</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">policy_data_path</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">reaction_data_path</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">value_data_path</span><span class="p">:</span>
+<span class="nt">DataCleaning</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">clean_reactions</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">  </span><span class="nt">standardize_building_blocks</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="nt">ReactionRules</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">min_popularity</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3</span>
+<span class="w">  </span><span class="nt">keep_leaving_groups</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">  </span><span class="nt">reaction_center_neighbors</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">  </span><span class="nt">reaction_center_hybridization</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">  </span><span class="nt">reaction_center_implicit_hydrogens</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<span class="w">  </span><span class="nt">reaction_center_ring_sizes</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<span class="w">  </span><span class="nt">environment_neighbors</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">  </span><span class="nt">environment_hybridization</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<span class="w">  </span><span class="nt">environment_implicit_hydrogens</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<span class="w">  </span><span class="nt">environment_ring_sizes</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
 <span class="nt">Tree</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">ucb_type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">uct</span>
-<span class="w">  </span><span class="nt">c_usb</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.1</span>
+<span class="w">  </span><span class="nt">backprop_type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">muzero</span>
+<span class="w">  </span><span class="nt">c_ucb</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.1</span>
+<span class="w">  </span><span class="nt">evaluation_agg</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">max</span>
+<span class="w">  </span><span class="nt">evaluation_mode</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">gcn</span>
+<span class="w">  </span><span class="nt">init_node_value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.0</span>
 <span class="w">  </span><span class="nt">max_depth</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">6</span>
-<span class="w">  </span><span class="nt">max_iterations</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">15</span>
+<span class="w">  </span><span class="nt">max_iterations</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">100</span>
 <span class="w">  </span><span class="nt">max_time</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">600</span>
 <span class="w">  </span><span class="nt">max_tree_size</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1000000</span>
-<span class="w">  </span><span class="nt">verbose</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
-<span class="w">  </span><span class="nt">evaluation_mode</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">gcn</span>
-<span class="w">  </span><span class="nt">evaluation_agg</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">max</span>
-<span class="w">  </span><span class="nt">backprop_type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">muzero</span>
-<span class="w">  </span><span class="nt">init_new_node_value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
-<span class="w">  </span><span class="nt">epsilon</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.0</span>
-<span class="nt">ReactionRules</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">results_root</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">syntool_training_data/reaction_rules</span>
-<span class="w">  </span><span class="nt">reaction_data_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">syntool_training_data/reaction_data/reaction_data.rdf</span>
-<span class="w">  </span><span class="nt">min_popularity</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span>
+<span class="w">  </span><span class="nt">ucb_type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">uct</span>
+<span class="w">  </span><span class="nt">silent</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
 <span class="nt">SelfTuning</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">results_root</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">syntool_training_data/value_network</span>
-<span class="w">  </span><span class="nt">dataset_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">syntool_training_data/value_molecules/value_molecules.smi</span>
+<span class="w">  </span><span class="nt">batch_size</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">100</span>
 <span class="w">  </span><span class="nt">num_simulations</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
-<span class="w">  </span><span class="nt">batch_size</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span>
 <span class="nt">PolicyNetwork</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">results_root</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">syntool_training_data/policy_network</span>
-<span class="w">  </span><span class="nt">dataset_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">syntool_training_data/policy_molecules/policy_molecules.smi</span>
-<span class="w">  </span><span class="nt">datamodule_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">syntool_training_data/policy_network/policy_dataset.pt</span>
-<span class="w">  </span><span class="nt">weights_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">syntool_training_data/policy_network/policy_network.ckpt</span>
-<span class="w">  </span><span class="nt">top_rules</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">50</span>
+<span class="w">  </span><span class="nt">policy_type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ranking</span>
+<span class="w">  </span><span class="nt">batch_size</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">500</span>
+<span class="w">  </span><span class="nt">dropout</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.4</span>
+<span class="w">  </span><span class="nt">learning_rate</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.0005</span>
+<span class="w">  </span><span class="nt">num_conv_layers</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span>
+<span class="w">  </span><span class="nt">num_epoch</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">100</span>
 <span class="w">  </span><span class="nt">priority_rules_fraction</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.5</span>
 <span class="w">  </span><span class="nt">rule_prob_threshold</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.0</span>
-<span class="w">  </span><span class="nt">num_conv_layers</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span>
+<span class="w">  </span><span class="nt">top_rules</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">50</span>
 <span class="w">  </span><span class="nt">vector_dim</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">512</span>
-<span class="w">  </span><span class="nt">dropout</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.4</span>
-<span class="w">  </span><span class="nt">learning_rate</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.0005</span>
-<span class="w">  </span><span class="nt">num_epoch</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">100</span>
-<span class="w">  </span><span class="nt">batch_size</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">500</span>
 <span class="nt">ValueNetwork</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">results_root</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">syntool_training_data/value_network</span>
-<span class="w">  </span><span class="nt">weights_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">syntool_training_data/value_network/value_network.ckpt</span>
-<span class="w">  </span><span class="nt">num_conv_layers</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span>
-<span class="w">  </span><span class="nt">vector_dim</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">512</span>
+<span class="w">  </span><span class="nt">batch_size</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span>
 <span class="w">  </span><span class="nt">dropout</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.4</span>
 <span class="w">  </span><span class="nt">learning_rate</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.0005</span>
+<span class="w">  </span><span class="nt">num_conv_layers</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span>
 <span class="w">  </span><span class="nt">num_epoch</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">100</span>
-<span class="w">  </span><span class="nt">batch_size</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">500</span>
+<span class="w">  </span><span class="nt">vector_dim</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">512</span>
 </pre></div>
 </div>
 </section>
