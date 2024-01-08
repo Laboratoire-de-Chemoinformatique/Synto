@@ -13,9 +13,9 @@ from pytorch_lightning.loggers import CSVLogger
 from torch.utils.data import random_split
 from torch_geometric.data.lightning import LightningDataset
 
-from Synto.ml.networks.policy import PolicyNetwork, PolicyNetworkConfig
-from Synto.ml.training.preprocessing import RankingPolicyDataset, FilteringPolicyDataset
-from Synto.utils.logging import DisableLogger, HiddenPrints
+from Syntool.ml.networks.policy import PolicyNetwork, PolicyNetworkConfig
+from Syntool.ml.training.preprocessing import RankingPolicyDataset, FilteringPolicyDataset
+from Syntool.utils.logging import DisableLogger, HiddenPrints
 
 warnings.filterwarnings("ignore")
 

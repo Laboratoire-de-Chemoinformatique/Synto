@@ -6,16 +6,16 @@ import csv
 import logging
 from pathlib import Path
 
-from CGRtools import smiles, MoleculeContainer
 from tqdm import tqdm
 
-from Synto.chem.utils import safe_canonicalization
-from Synto.interfaces.visualisation import to_table
-from Synto.mcts.tree import Tree, TreeConfig
-from Synto.mcts.evaluation import ValueFunction
-from Synto.mcts.expansion import PolicyConfig, PolicyFunction
-from Synto.utils import path_type
-from Synto.utils.files import MoleculeReader
+from Syntool.chem.utils import safe_canonicalization
+from Syntool.interfaces.visualisation import to_table
+from Syntool.mcts.tree import Tree, TreeConfig
+from Syntool.mcts.evaluation import ValueFunction
+from Syntool.mcts.expansion import PolicyFunction
+from Syntool.utils import path_type
+from Syntool.utils.files import MoleculeReader
+from Syntool.utils.config import PolicyNetworkConfig
 
 
 def extract_tree_stats(tree, target):
@@ -75,7 +75,7 @@ def tree_search(
     saved in the specified directory. Logging is used to record the process and any issues encountered.
     """
 
-    policy_config = PolicyConfig(weights_path=policy_weights_path)
+    policy_config = PolicyNetworkConfig(weights_path=policy_weights_path)
     policy_function = PolicyFunction(policy_config=policy_config)
 
     value_function = None

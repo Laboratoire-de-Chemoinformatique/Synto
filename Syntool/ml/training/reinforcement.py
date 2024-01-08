@@ -20,22 +20,18 @@ from torch.utils.data import random_split
 from torch_geometric.data.lightning import LightningDataset
 from tqdm import tqdm
 
-from Synto.interfaces.visualisation import to_table
-from Synto.mcts.tree import Tree
-from Synto.ml.networks.value import SynthesabilityValueNetwork
-from Synto.ml.training.loading import load_value_net
-from Synto.ml.training.preprocessing import ValueNetworkDataset
-from Synto.chem.retron import compose_retrons
-from Synto.utils.logging import DisableLogger, HiddenPrints
-from Synto.mcts.search import extract_tree_stats
-from Synto.chem.loading import load_building_blocks, load_reaction_rules
-from Synto.ml.networks.policy import PolicyNetwork
-from Synto.ml.networks.value import SynthesabilityValueNetwork
-from Synto.ml.training.loading import load_policy_net, load_value_net
-from Synto.mcts.expansion import PolicyConfig, PolicyFunction
-from Synto.mcts.evaluation import ValueFunction
-from Synto.ml.networks.policy import PolicyNetworkConfig
-from Synto.mcts.tree import TreeConfig
+from Syntool.interfaces.visualisation import to_table
+from Syntool.mcts.tree import Tree
+from Syntool.ml.training.preprocessing import ValueNetworkDataset
+from Syntool.chem.retron import compose_retrons
+from Syntool.utils.logging import DisableLogger, HiddenPrints
+from Syntool.mcts.search import extract_tree_stats
+from Syntool.ml.networks.value import SynthesabilityValueNetwork
+from Syntool.ml.training.loading import load_value_net
+from Syntool.mcts.expansion import PolicyFunction
+from Syntool.mcts.evaluation import ValueFunction
+from Syntool.ml.networks.policy import PolicyNetworkConfig
+from Syntool.mcts.tree import TreeConfig
 
 
 def create_targets_batch(experiment_root=None, targets_file=None, tmp_file_id=None, batch_slices=None):

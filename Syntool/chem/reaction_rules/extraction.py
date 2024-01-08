@@ -15,8 +15,8 @@ from CGRtools.files import RDFRead, RDFWrite
 from CGRtools.reactor import Reactor
 from tqdm.auto import tqdm
 
-from Synto.chem.utils import reverse_reaction
-from Synto.utils.config import ExtractRuleConfig
+from Syntool.chem.utils import reverse_reaction
+from Syntool.utils.config import ExtractRuleConfig
 
 
 def extract_rules_from_reactions(

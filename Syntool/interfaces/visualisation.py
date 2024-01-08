@@ -6,8 +6,8 @@ from itertools import count, islice
 
 from CGRtools.containers import MoleculeContainer
 
-from Synto import Tree
-from Synto.utils import path_type
+from Syntool import Tree
+from Syntool.utils import path_type
 
 
 def extract_routes(tree, extended=False):

@@ -9,16 +9,16 @@ from pathlib import Path
 import click
 import gdown
 
-from Synto.chem.reaction_rules.extraction import extract_rules_from_reactions
-from Synto.chem.data.cleaning import reactions_cleaner
-from Synto.ml.training import create_policy_dataset, run_policy_training
-from Synto.ml.training.reinforcement import run_self_tuning
-from Synto.chem.loading import standardize_building_blocks
-from Synto.utils.config import read_planning_config, read_training_config
-from Synto.mcts.search import tree_search
+from Syntool.chem.reaction_rules.extraction import extract_rules_from_reactions
+from Syntool.chem.data.cleaning import reactions_cleaner
+from Syntool.ml.training import create_policy_dataset, run_policy_training
+from Syntool.ml.training.reinforcement import run_self_tuning
+from Syntool.chem.loading import standardize_building_blocks
+from Syntool.utils.config import read_planning_config, read_training_config
+from Syntool.mcts.search import tree_search
 
-from Synto.ml.networks.policy import PolicyNetworkConfig
-from Synto.utils.config import TreeConfig
+from Syntool.ml.networks.policy import PolicyNetworkConfig
+from Syntool.utils.config import TreeConfig
 
 warnings.filterwarnings("ignore")
 main = click.Group()
@@ -54,14 +54,14 @@ def training_data_cli():
     os.remove(output)
 
 
-@main.command(name='synto_planning')
+@main.command(name='syntool_planning')
 @click.option("--config",
               "config_path",
               required=True,
               help="Path to the config YAML molecules_path. To generate default config, use command Synto_default_config",
               type=click.Path(exists=True, path_type=Path),
               )
-def synto_planning_cli(config_path):
+def syntool_planning_cli(config_path):
     """
     Launches tree search for the given target molecules and stores search statistics and found retrosynthetic paths
 
@@ -87,7 +87,7 @@ def synto_planning_cli(config_path):
                 results_root=config['General']['results_root'])
 
 
-@main.command(name='synto_training')
+@main.command(name='syntool_training')
 @click.option(
     "--config",
     "config_path",
@@ -95,7 +95,7 @@ def synto_planning_cli(config_path):
     help="Path to the config YAML file.",
     type=click.Path(exists=True, path_type=Path)
              )
-def synto_training_cli(config_path):
+def syntool_training_cli(config_path):
 
     # read training config
     print('READ CONFIG ...')
@@ -155,6 +155,7 @@ def synto_training_cli(config_path):
         raise ValueError(
             "Invalid policy_type. Allowed values are 'ranking', 'filtering'."
         )
+
     datamodule = create_policy_dataset(reaction_rules_path=reaction_rules_path,
                                        molecules_or_reactions_path=molecules_or_reactions_path,
                                        output_path=policy_data_file,

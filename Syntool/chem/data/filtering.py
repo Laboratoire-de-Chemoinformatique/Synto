@@ -11,13 +11,13 @@ from CGRtools.files import RDFRead, RDFWrite
 from StructureFingerprint import MorganFingerprint
 from tqdm.auto import tqdm
 
-from Synto.chem.utils import (
+from Syntool.chem.utils import (
     remove_small_molecules,
     rebalance_reaction,
     remove_reagents,
     to_reaction_smiles_record,
 )
-from Synto.utils.config import ConfigABC, convert_config_to_dict
+from Syntool.utils.config import ConfigABC, convert_config_to_dict
 
 
 @dataclass
@@ -1020,7 +1020,7 @@ def filter_reactions(
     """
     Example usage:
     # Importing config and reaction filtering function
-    from Synto.chem.filtering import ReactionCheckConfig, filter_reactions
+    from Syntool.chem.filtering import ReactionCheckConfig, filter_reactions
 
     # Creating a configuration object with default parameters
     config = ReactionCheckConfig()

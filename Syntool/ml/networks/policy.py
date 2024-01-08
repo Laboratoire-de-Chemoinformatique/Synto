@@ -9,8 +9,8 @@ from torch.nn import Linear
 from torch.nn.functional import binary_cross_entropy_with_logits, cross_entropy, one_hot
 from torchmetrics.functional.classification import recall, specificity, f1_score
 
-from Synto.ml.networks.modules import MCTSNetwork
-from Synto.utils.config import ConfigABC
+from Syntool.ml.networks.modules import MCTSNetwork
+from Syntool.utils.config import ConfigABC
 
 
 @dataclass
