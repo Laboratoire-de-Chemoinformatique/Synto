@@ -6,7 +6,7 @@ from CGRtools.files.SMILESrw import SMILESRead
 from CGRtools.files.SDFrw import SDFRead, SDFWrite
 from CGRtools.files.RDFrw import RDFRead, RDFWrite
 
-from Synto.utils import path_type
+from Syntool.utils import path_type
 
 
 class FileHandler:

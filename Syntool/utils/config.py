@@ -10,7 +10,7 @@ from CGRtools.containers import MoleculeContainer, QueryContainer, ReactionConta
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict
-from Synto.utils import path_type
+from Syntool.utils import path_type
 
 
 @dataclass
