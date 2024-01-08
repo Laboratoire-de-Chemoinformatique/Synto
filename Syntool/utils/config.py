@@ -358,84 +358,18 @@ class TreeConfig(ConfigABC):
                 f"Allowed values are 'expansion_first', 'evaluation_first'"
             )
 
-
 @dataclass
-class PolicyConfig(ConfigABC):
-    """
-    Configuration class for the policy, inheriting from ConfigABC.
-
-    :ivar weights_path: Path to the weights file.
-    :ivar top_rules: Number of top rules to be considered. Defaults to 50.
-    :ivar threshold: Threshold for rule selection. Defaults to 0.0.
-    :ivar priority_rules_fraction: Fraction of priority rules. Defaults to 0.5.
-    """
-
-    weights_path: path_type
-    policy_type: str = 'ranking'
-    top_rules: int = 50
-    threshold: float = 0.0
-    priority_rules_fraction: float = 0.5
-
-    def __post_init__(self):
-        super().__post_init__()
-        self.weights_path = Path(self.weights_path).resolve(strict=True)
-        params = self.to_dict()
-        # self._validate_params(params) # TODO solve later
-
-    @staticmethod
-    def from_dict(config_dict: Dict[str, Any]):
-        """
-        Creates a PolicyConfig instance from a dictionary of configuration parameters.
-
-        :param config_dict: A dictionary containing configuration parameters.
-        :return: An instance of PolicyConfig.
-        """
-        return PolicyConfig(**config_dict)
-
-    @staticmethod
-    def from_yaml(file_path: str):
-        """
-        Deserializes a YAML file into a PolicyConfig object.
-
-        :param file_path: Path to the YAML file containing configuration parameters.
-        :return: An instance of PolicyConfig.
-        """
-        with open(file_path, "r") as file:
-            config_dict = yaml.safe_load(file)
-        return PolicyConfig.from_dict(config_dict)
-
-    def _validate_params(self, params: Dict[str, Any]):
-        """
-        Validates the configuration parameters.
-
-        :param params: A dictionary of parameters to validate.
-        :raises ValueError: If any parameter is invalid.
-        """
-        if not isinstance(params["top_rules"], int) or params["top_rules"] < 0:
-            raise ValueError("top_rules must be a non-negative integer.")
-        if not isinstance(params["threshold"], float) or not (
-            0.0 <= params["threshold"] <= 1.0
-        ):
-            raise ValueError("threshold must be a float between 0.0 and 1.0.")
-        if not isinstance(params["priority_rules_fraction"], float) or not (
-            0.0 <= params["priority_rules_fraction"] <= 1.0
-        ):
-            raise ValueError(
-                "priority_rules_fraction must be a float between 0.0 and 1.0."
-            )
-
-
 class PolicyNetworkConfig(ConfigABC):
     """
     Configuration class for the policy network, inheriting from ConfigABC.
 
-    :ivar vector_dim: Dimension of the input vectors.
-    :ivar batch_size: Number of samples per batch.
-    :ivar dropout: Dropout rate for regularization.
-    :ivar learning_rate: Learning rate for the optimizer.
-    :ivar num_conv_layers: Number of convolutional layers in the network.
-    :ivar num_epoch: Number of training epochs.
-    :ivar policy_type: Mode of operation, either 'filtering' or 'ranking'.
+    :ivar vector_dim: simension of the input vectors.
+    :ivar batch_size: number of samples per batch.
+    :ivar dropout: dropout rate for regularization.
+    :ivar learning_rate: learning rate for the optimizer.
+    :ivar num_conv_layers: number of convolutional layers in the network.
+    :ivar num_epoch: number of training epochs.
+    :ivar policy_type: mode of operation, either 'filtering' or 'ranking'.
     """
 
     policy_type: str = "ranking"
@@ -603,10 +537,10 @@ def convert_config_to_dict(config_attr, config_type):
 
 def read_planning_config(config_path):
     """
-    Reads planning configuration file and checks if the setting parameters are correct
+    Reads planning configuration file and checks if the setting parameters are correct.
 
-    :param config_path: The path to the file with configuration settings for retrosynthetic planning
-    :return: The validated configuration dictionary
+    :param config_path: the path to the file with configuration settings for retrosynthetic planning
+    :return: the validated configuration dictionary
     """
     with open(config_path, "r") as file:
         config = yaml.safe_load(file)
@@ -617,8 +551,8 @@ def read_training_config(config_path):
     """
     Reads training configuration file and checks if the setting parameters are correct
 
-    :param config_path: The path to the file with configuration settings for training policy and value networks
-    :return: The validated configuration dictionary
+    :param config_path: the path to the file with configuration settings for training policy and value networks
+    :return: the validated configuration dictionary.
     """
     with open(config_path, "r") as file:
         config = yaml.safe_load(file)
