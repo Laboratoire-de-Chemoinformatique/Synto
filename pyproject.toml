@@ -10,7 +10,7 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.8,<4"
+python = ">=3.9,<3.12"
 CGRtools = "^4.1.35"
 py-mini-racer = ">=0.6"
 pandas = ">=1.4"
@@ -21,20 +21,42 @@ StructureFingerprint = "^2.1"
 werkzeug = ">2.0"
 gdown = "4.7.1"
 ordered-set = "4.1.0"
+numpy = ">=1.26"
+chytorch = "^1.60"
+chytorch-rxnmap = "^1.4"
 
-[tool.poetry.group.cpu]
+#[tool.poetry.group.cpu]
+#optional = true
+#
+#[tool.poetry.group.cpu.dependencies]
+#adabelief-pytorch = ">=0.2.1"
+#torch = ">=1.13,<1.14"
+#torch-geometric = "2.4.0"
+#pytorch-lightning = ">=1.9,<2"
+#torch-scatter = [{markers = "sys_platform == 'linux'", url="https://data.pyg.org/whl/torch-1.13.0%2Bcpu/torch_scatter-2.1.0%2Bpt113cpu-cp310-cp310-linux_x86_64.whl"}]
+#torch-sparse = [{markers = "sys_platform == 'linux'", url="https://data.pyg.org/whl/torch-1.13.0%2Bcpu/torch_sparse-0.6.16%2Bpt113cpu-cp310-cp310-linux_x86_64.whl"}]
+#torch-spline-conv = [{markers = "sys_platform == 'linux'", url="https://data.pyg.org/whl/torch-1.13.0%2Bcpu/torch_spline_conv-1.2.1%2Bpt113cpu-cp310-cp310-linux_x86_64.whl"}]
+#torch-cluster = [{markers = "sys_platform == 'linux'", url="https://data.pyg.org/whl/torch-1.13.0%2Bcpu/torch_cluster-1.6.0%2Bpt113cpu-cp310-cp310-linux_x86_64.whl"}]
+#pyg-lib = [{markers = "sys_platform == 'linux'", url="https://data.pyg.org/whl/torch-1.13.0%2Bcpu/pyg_lib-0.1.0+pt113cpu-cp310-cp310-linux_x86_64.whl"}]
+
+[tool.poetry.group.gpu]
 optional = true
 
-[tool.poetry.group.cpu.dependencies]
+[tool.poetry.group.gpu.dependencies]
 adabelief-pytorch = ">=0.2.1"
-torch = ">=1.13,<1.14"
+torch = [{ url = "https://download.pytorch.org/whl/cu121/torch-2.1.0%2Bcu121-cp310-cp310-linux_x86_64.whl" }]
 torch-geometric = "2.4.0"
 pytorch-lightning = ">=1.9,<2"
-torch-scatter = [{markers = "sys_platform == 'linux'", url="https://data.pyg.org/whl/torch-1.13.0%2Bcpu/torch_scatter-2.1.0%2Bpt113cpu-cp310-cp310-linux_x86_64.whl"}]
-torch-sparse = [{markers = "sys_platform == 'linux'", url="https://data.pyg.org/whl/torch-1.13.0%2Bcpu/torch_sparse-0.6.16%2Bpt113cpu-cp310-cp310-linux_x86_64.whl"}]
-torch-spline-conv = [{markers = "sys_platform == 'linux'", url="https://data.pyg.org/whl/torch-1.13.0%2Bcpu/torch_spline_conv-1.2.1%2Bpt113cpu-cp310-cp310-linux_x86_64.whl"}]
-torch-cluster = [{markers = "sys_platform == 'linux'", url="https://data.pyg.org/whl/torch-1.13.0%2Bcpu/torch_cluster-1.6.0%2Bpt113cpu-cp310-cp310-linux_x86_64.whl"}]
-pyg-lib = [{markers = "sys_platform == 'linux'", url="https://data.pyg.org/whl/torch-1.13.0%2Bcpu/pyg_lib-0.1.0+pt113cpu-cp310-cp310-linux_x86_64.whl"}]
+torch-scatter = [{markers = "sys_platform == 'linux'", url="https://data.pyg.org/whl/torch-2.1.0%2Bcu121/torch_scatter-2.1.2+pt21cu121-cp310-cp310-linux_x86_64.whl"}]
+torch-sparse = [{markers = "sys_platform == 'linux'", url="https://data.pyg.org/whl/torch-2.1.0%2Bcu121/torch_sparse-0.6.18+pt21cu121-cp310-cp310-linux_x86_64.whl"}]
+torch-spline-conv = [{markers = "sys_platform == 'linux'", url="https://data.pyg.org/whl/torch-2.1.0%2Bcu121/torch_spline_conv-1.2.2+pt21cu121-cp310-cp310-linux_x86_64.whl"}]
+torch-cluster = [{markers = "sys_platform == 'linux'", url="https://data.pyg.org/whl/torch-2.1.0%2Bcu121/torch_cluster-1.6.3+pt21cu121-cp310-cp310-linux_x86_64.whl"}]
+pyg-lib = [{markers = "sys_platform == 'linux'", url="https://data.pyg.org/whl/torch-2.1.0%2Bcu121/pyg_lib-0.3.0+pt21cu121-cp310-cp310-linux_x86_64.whl"}]
+
+#[[tool.poetry.source]]
+#name = "torch"
+#url = "https://data.pyg.org/whl/torch-2.1.0%2Bcu121"
+#secondary = true
 
 [tool.poetry.scripts]
 syntool_planning_data = "Syntool.interfaces.cli:download_planning_data_cli"
