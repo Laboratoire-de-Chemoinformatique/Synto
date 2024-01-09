@@ -1,12 +1,54 @@
 from pathlib import Path
 from os.path import splitext
+from typing import Iterable, Union
 
+from CGRtools import smiles
 from CGRtools.containers import ReactionContainer, MoleculeContainer, CGRContainer, QueryContainer
-from CGRtools.files.SMILESrw import SMILESRead
 from CGRtools.files.SDFrw import SDFRead, SDFWrite
 from CGRtools.files.RDFrw import RDFRead, RDFWrite
 
 from Syntool.utils import path_type
+
+
+class SMILESRead:
+    def __init__(self,filename: path_type, **kwargs):
+        """
+        Simplified class to read files containing a SMILES (Molecules or Reaction) string per line.
+        :param filename: the path and name of the SMILES file to parse
+        :return: None
+        """
+        filename = str(Path(filename).resolve(strict=True))
+        self._file = open(filename, "r")
+        self._data = self.__data()
+
+    def __data(self) -> Iterable[Union[ReactionContainer, CGRContainer]]:
+        for line in iter(self._file.readline, ''):
+            x = smiles(line)
+            if isinstance(x, ReactionContainer) or isinstance(x, CGRContainer):
+                yield x
+
+    def __enter__(self):
+        return self
+
+    def read(self):
+        """
+        Parse whole SMILES file.
+
+        :return: List of parsed molecules or reactions.
+        """
+        return list(iter(self))
+
+    def __iter__(self):
+        return (x for x in self._data)
+
+    def __next__(self):
+        return next(iter(self))
+
+    def close(self):
+        self._file.close()
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
 
 
 class FileHandler:
@@ -20,7 +62,7 @@ class FileHandler:
         :return: None
         """
         self._file = None
-        filename = str(Path(filename).resolve(strict=True))
+        # filename = str(Path(filename).resolve(strict=True)) #TODO Tagir please correct bug in ReactionWriter following your modification
         _, ext = splitext(filename)
         file_types = {
             '.smi': "SMI",
@@ -29,7 +71,7 @@ class FileHandler:
             '.sdf': 'SDF',
         }
         try:
-            self._file_type = file_types[filename.split('.')[-1].lower()]
+            self._file_type = file_types[ext]
         except KeyError:
             raise ValueError("I don't know the file extension,", ext)
 
