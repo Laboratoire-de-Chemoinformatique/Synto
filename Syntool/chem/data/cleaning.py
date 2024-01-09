@@ -1,10 +1,11 @@
 import os
-from multiprocessing import Queue, Process, Manager
-from logging import warning, getLogger
+from multiprocessing import Queue, Process, Manager, Value
+from logging import getLogger
 from tqdm import tqdm
 from CGRtools.containers import ReactionContainer
-from CGRtools.files import RDFRead, RDFWrite
+
 from .standardizer import Standardizer
+from Syntool.utils.files import ReactionReader, ReactionWriter
 
 
 def cleaner(reaction: ReactionContainer, logger):
@@ -34,30 +35,38 @@ def worker_cleaner(to_clean: Queue, to_write: Queue):
         if raw_reaction == "Quit":
             break
         res = cleaner(raw_reaction, logger)
-        if res:
-            to_write.put(res)
+        to_write.put(res)
     logger.disabled = False
 
 
-def cleaner_writer(output_file: str, to_write: Queue, remove_old=True):
+def cleaner_writer(output_file: str, to_write: Queue, cleaned_nb: Value, remove_old=True):
     """
     Writes in output file the standardized reactions
 
     :param output_file: output file path
     :param to_write: Standardized ReactionContainer to write
+    :param cleaned_nb: number of final reactions
     :param remove_old: whenever to remove or not an already existing file
     """
 
     if remove_old and os.path.isfile(output_file):
         os.remove(output_file)
-        # warning(f"Removed {output_file}")
 
-    with RDFWrite(output_file) as out:
+    counter = 0
+    seen_reactions = []
+    with ReactionWriter(output_file) as out:
         while True:
             res = to_write.get()
-            if res == "Quit":
-                break
-            out.write(res)
+            if res:
+                if res == "Quit":
+                    cleaned_nb.set(counter)
+                    break
+                elif isinstance(res, ReactionContainer):
+                    smi = format(res, "m")
+                    if smi not in seen_reactions:
+                        out.write(res)
+                        counter += 1
+                        seen_reactions.append(smi)
 
 
 def reactions_cleaner(input_file: str, output_file: str, num_cpus: int, batch_prep_size: int = 100):
@@ -72,8 +81,9 @@ def reactions_cleaner(input_file: str, output_file: str, num_cpus: int, batch_pr
     with Manager() as m:
         to_clean = m.Queue(maxsize=num_cpus * batch_prep_size)
         to_write = m.Queue(maxsize=batch_prep_size)
+        cleaned_nb = m.Value(int, 0)
 
-        writer = Process(target=cleaner_writer, args=(output_file, to_write,))
+        writer = Process(target=cleaner_writer, args=(output_file, to_write, cleaned_nb))
         writer.start()
 
         workers = []
@@ -82,15 +92,13 @@ def reactions_cleaner(input_file: str, output_file: str, num_cpus: int, batch_pr
             w.start()
             workers.append(w)
 
-        with RDFRead(input_file, indexable=True) as reactions:
-            reactions.reset_index()
-            print(f'Total number of reactions: {len(reactions)}')
-            for n, raw_reaction in tqdm(enumerate(reactions), total=len(reactions)):
+        n = 0
+        with ReactionReader(input_file) as reactions:
+            for raw_reaction in tqdm(reactions):
+                if 'Reaction_ID' not in raw_reaction.meta:
+                    raw_reaction.meta['Reaction_ID'] = n
                 to_clean.put(raw_reaction)
-        #
-        # TODO finish it
-        # n_removed = len(reactions) - len(RDFRead(output_file, indexable=True))
-        # print(f'Removed number of reactions: {n_removed} ({100 * n_removed / len(reactions):.1f} %)')
+                n += 1
 
         for _ in workers:
             to_clean.put("Quit")
@@ -99,3 +107,7 @@ def reactions_cleaner(input_file: str, output_file: str, num_cpus: int, batch_pr
 
         to_write.put("Quit")
         writer.join()
+
+        n_removed = n - cleaned_nb.get()
+        print(f'Initial number of reactions: {n}'),
+        print(f'Removed number of reactions: {n_removed} ({100 * n_removed / n:.2f} %)')

@@ -178,7 +178,7 @@ class Standardizer:
         :param reaction: ReactionContainer
         :return: ReactionContainer
         """
-        self.logger.info('Reaction {0}..'.format(reaction.meta[self._id_tag])) # TODO remove reaction id
+        self.logger.info('Reaction {0}..'.format(reaction.meta[self._id_tag]))
         try:
             reaction.standardize()
         except:
