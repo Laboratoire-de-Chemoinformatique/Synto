@@ -22,17 +22,13 @@ from tqdm import tqdm
 
 from Syntool.interfaces.visualisation import to_table
 from Syntool.mcts.tree import Tree
-from Syntool.ml.networks.value import SynthesabilityValueNetwork
-from Syntool.ml.training.loading import load_value_net
 from Syntool.ml.training.preprocessing import ValueNetworkDataset
 from Syntool.chem.retron import compose_retrons
 from Syntool.utils.logging import DisableLogger, HiddenPrints
 from Syntool.mcts.search import extract_tree_stats
-from Syntool.chem.loading import load_building_blocks, load_reaction_rules
-from Syntool.ml.networks.policy import PolicyNetwork
 from Syntool.ml.networks.value import SynthesabilityValueNetwork
-from Syntool.ml.training.loading import load_policy_net, load_value_net
-from Syntool.mcts.expansion import PolicyConfig, PolicyFunction
+from Syntool.ml.training.loading import load_value_net
+from Syntool.mcts.expansion import PolicyFunction
 from Syntool.mcts.evaluation import ValueFunction
 from Syntool.ml.networks.policy import PolicyNetworkConfig
 from Syntool.mcts.tree import TreeConfig

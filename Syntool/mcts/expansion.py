@@ -7,7 +7,7 @@ import torch_geometric
 from Syntool.chem.retron import Retron
 from Syntool.ml.networks.policy import PolicyNetwork
 from Syntool.ml.training import mol_to_pyg
-from Syntool.utils.config import PolicyConfig
+from Syntool.utils.config import PolicyNetworkConfig
 
 
 
@@ -16,7 +16,7 @@ class PolicyFunction:
     Policy function based on policy neural network for node expansion in MCTS
     """
 
-    def __init__(self, policy_config: PolicyConfig, compile: bool = False):
+    def __init__(self, policy_config: PolicyNetworkConfig, compile: bool = False):
         """
         Initializes the expansion function (ranking or filter policy network).
 
